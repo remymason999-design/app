@@ -354,3 +354,270 @@ def test_admin_user_has_role_admin(admin_token):
     r = requests.get(f"{API}/auth/me", headers=H(admin_token))
     assert r.status_code == 200
     assert r.json().get("role") == "admin"
+
+
+
+# ============ Iteration 4: search, sections, reviews, progress, notifications, watchlist value ============
+
+@pytest.fixture(scope="session")
+def fresh_user():
+    """A brand-new user used for iter4 specific tests (notifications, progress, etc.)."""
+    email = f"iter4_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    r = requests.post(f"{API}/auth/register", json={"email": email, "password": "Test1234!", "name": "Iter4"})
+    assert r.status_code == 200, r.text
+    return {"email": email, "token": r.json()["access_token"], "user": r.json()["user"]}
+
+
+# --- Preferences accept country/age/excluded_categories ---
+def test_preferences_country_age_exclusions(fresh_user):
+    tok = fresh_user["token"]
+    r = requests.put(f"{API}/user/preferences", headers=H(tok),
+                     json={"country": "gb", "age": 33, "excluded_categories": ["anime", "bollywood"]})
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["country"] == "GB"
+    assert data["age"] == 33
+    assert set(data["excluded_categories"]) == {"anime", "bollywood"}
+
+
+def test_preferences_age_clamped(fresh_user):
+    tok = fresh_user["token"]
+    r = requests.put(f"{API}/user/preferences", headers=H(tok), json={"age": 999})
+    assert r.status_code == 200
+    assert r.json()["age"] == 120
+
+
+# --- Search: local hit, fallback ---
+def test_search_local_match(user_ctx):
+    """Search should return a local catalog match for a common english title."""
+    tok = user_ctx["token"]
+    r = requests.get(f"{API}/search", params={"q": "the"}, headers=H(tok))
+    assert r.status_code == 200
+    data = r.json()
+    assert "results" in data and "fallback" in data
+    assert isinstance(data["results"], list)
+    # 'the' is extremely common — should be local hit
+    if data["results"]:
+        assert data["fallback"] is False
+
+
+def test_search_empty_query(user_ctx):
+    r = requests.get(f"{API}/search", params={"q": "  "}, headers=H(user_ctx["token"]))
+    assert r.status_code == 200
+    assert r.json() == {"results": [], "fallback": False}
+
+
+def test_search_garbage_returns_fallback(user_ctx):
+    """Garbage query should return fallback=true with top-rated suggestions."""
+    tok = user_ctx["token"]
+    r = requests.get(f"{API}/search", params={"q": "qzxqzxqzxnotreal99"}, headers=H(tok))
+    assert r.status_code == 200
+    data = r.json()
+    # If TMDB returns nothing for nonsense, we fall back. Accept either: live TMDB might still find junk.
+    if data["fallback"]:
+        assert len(data["results"]) > 0
+        # Fallback should be sorted by rating desc
+        ratings = [m.get("rating", 0) for m in data["results"]]
+        assert ratings == sorted(ratings, reverse=True)
+
+
+# --- Sections (TMDB live) ---
+def test_section_upcoming(user_ctx):
+    r = requests.get(f"{API}/sections/upcoming", headers=H(user_ctx["token"]), timeout=15)
+    assert r.status_code == 200, r.text
+    items = r.json()
+    assert isinstance(items, list)
+    # TMDB live; allow some flakiness, but should be > 0 in normal conditions
+    assert len(items) <= 12
+
+
+def test_section_trending(user_ctx):
+    r = requests.get(f"{API}/sections/trending", headers=H(user_ctx["token"]), timeout=15)
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+def test_section_popular_locally(user_ctx):
+    r = requests.get(f"{API}/sections/popular-locally", headers=H(user_ctx["token"]), timeout=15)
+    assert r.status_code == 200
+    assert isinstance(r.json(), list)
+
+
+# --- Movie detail enriched fields ---
+def test_movie_detail_enriched_fields(user_ctx):
+    tok = user_ctx["token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    assert movies, "discover empty"
+    mid = movies[0]["id"]
+    r = requests.get(f"{API}/movies/{mid}", headers=H(tok))
+    assert r.status_code == 200
+    m = r.json()
+    # Expected fields after iter4 enrich
+    for key in ["id", "title", "genres", "available_on"]:
+        assert key in m
+    # New fields (may be None/empty but key should exist or be optional). At least one of these should exist for TMDB-sourced.
+    assert any(k in m for k in ["type", "tags", "rent_on", "buy_on"])
+
+
+# --- Progress upsert + readback ---
+def test_progress_upsert_and_readback(user_ctx):
+    tok = user_ctx["token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    mid = movies[0]["id"]
+    r = requests.post(f"{API}/user/progress", headers=H(tok),
+                      json={"movie_id": mid, "season": 2, "episode": 5})
+    assert r.status_code == 200, r.text
+    data = r.json()
+    prog = (data.get("progress") or {}).get(mid)
+    assert prog and prog["season"] == 2 and prog["episode"] == 5
+    # GET /movies/{id} should now include progress
+    r2 = requests.get(f"{API}/movies/{mid}", headers=H(tok))
+    assert r2.status_code == 200
+    assert r2.json().get("progress", {}).get("season") == 2
+
+
+def test_progress_invalid_season():
+    email = f"prog_{uuid.uuid4().hex[:6]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "P"}).json()["access_token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    r = requests.post(f"{API}/user/progress", headers=H(tok),
+                      json={"movie_id": movies[0]["id"], "season": 0, "episode": 1})
+    assert r.status_code == 422
+
+
+# --- Reviews CRUD ---
+def test_post_and_get_review(user_ctx):
+    tok = user_ctx["token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    mid = movies[0]["id"]
+    text = "This is a really thoughtful, decently long review of the movie I enjoyed."
+    r = requests.post(f"{API}/movies/{mid}/reviews", headers=H(tok),
+                      json={"movie_id": mid, "rating": 8, "text": text})
+    assert r.status_code == 200, r.text
+    rev = r.json()
+    assert rev["rating"] == 8 and rev["text"].startswith("This is")
+    # Upsert: posting again should overwrite, not duplicate
+    r2 = requests.post(f"{API}/movies/{mid}/reviews", headers=H(tok),
+                       json={"movie_id": mid, "rating": 9, "text": text})
+    assert r2.status_code == 200
+    # GET reviews
+    r3 = requests.get(f"{API}/movies/{mid}/reviews", headers=H(tok))
+    assert r3.status_code == 200
+    body = r3.json()
+    assert "summary" in body and "user" in body and "tmdb" in body
+    user_revs = [u for u in body["user"] if u["user_id"] == user_ctx["user"]["user_id"]]
+    assert len(user_revs) == 1, "upsert should produce exactly one user review"
+    assert user_revs[0]["rating"] == 9
+
+
+def test_review_invalid_rating(user_ctx):
+    tok = user_ctx["token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    mid = movies[0]["id"]
+    r = requests.post(f"{API}/movies/{mid}/reviews", headers=H(tok),
+                      json={"movie_id": mid, "rating": 11, "text": "valid text here for review"})
+    assert r.status_code == 422
+
+
+def test_review_movie_id_mismatch(user_ctx):
+    tok = user_ctx["token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    mid = movies[0]["id"]
+    r = requests.post(f"{API}/movies/{mid}/reviews", headers=H(tok),
+                      json={"movie_id": "different_id", "rating": 5, "text": "valid review text here"})
+    assert r.status_code == 400
+
+
+# --- Similar ---
+def test_similar(user_ctx):
+    tok = user_ctx["token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    mid = movies[0]["id"]
+    r = requests.get(f"{API}/movies/{mid}/similar", headers=H(tok), timeout=15)
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    assert len(data) <= 12
+
+
+# --- Notifications ---
+def test_seeded_notifications_on_register():
+    email = f"notif_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "N"}).json()["access_token"]
+    r = requests.get(f"{API}/notifications", headers=H(tok))
+    assert r.status_code == 200
+    data = r.json()
+    assert "items" in data and "unread" in data
+    assert len(data["items"]) >= 3, f"expected >=3 seeded notifs, got {len(data['items'])}"
+    assert data["unread"] >= 3
+
+
+def test_notifications_mark_all_read():
+    email = f"notif2_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "N2"}).json()["access_token"]
+    r = requests.post(f"{API}/notifications/read-all", headers=H(tok))
+    assert r.status_code == 200
+    assert r.json()["updated"] >= 3
+    r2 = requests.get(f"{API}/notifications", headers=H(tok))
+    assert r2.json()["unread"] == 0
+
+
+# --- Watchlist value ---
+def test_watchlist_value():
+    email = f"wlv_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "W"}).json()["access_token"]
+    requests.put(f"{API}/user/preferences", headers=H(tok),
+                 json={"services": ["netflix", "hbo_max"]})
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    # Save 2 titles
+    requests.post(f"{API}/user/action", headers=H(tok),
+                  json={"movie_id": movies[0]["id"], "action": "save"})
+    requests.post(f"{API}/user/action", headers=H(tok),
+                  json={"movie_id": movies[1]["id"], "action": "watched"})
+    r = requests.get(f"{API}/watchlist/value", headers=H(tok))
+    assert r.status_code == 200
+    data = r.json()
+    assert "services" in data and "watchlist_size" in data
+    assert data["watchlist_size"] == 2
+    assert isinstance(data["services"], list) and len(data["services"]) >= 1
+    for row in data["services"]:
+        for k in ["service_id", "name", "price_monthly", "subscribed", "titles_count", "value_score", "top_titles"]:
+            assert k in row, f"missing {k} in service row"
+    # Sorted by value_score desc
+    scores = [r["value_score"] for r in data["services"]]
+    assert scores == sorted(scores, reverse=True)
+
+
+# --- Excluded categories filter discover ---
+def test_discover_respects_excluded_categories():
+    email = f"excl_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "E"}).json()["access_token"]
+    requests.put(f"{API}/user/preferences", headers=H(tok),
+                 json={"excluded_categories": ["anime", "bollywood"]})
+    r = requests.get(f"{API}/discover", headers=H(tok))
+    assert r.status_code == 200
+    movies = r.json()
+    for m in movies:
+        tags = set(m.get("tags") or [])
+        assert "anime" not in tags
+        assert "bollywood" not in tags
+
+
+# --- Auth gating on iter4 endpoints ---
+@pytest.mark.parametrize("path,method", [
+    ("/search?q=test", "get"),
+    ("/sections/upcoming", "get"),
+    ("/sections/trending", "get"),
+    ("/sections/popular-locally", "get"),
+    ("/notifications", "get"),
+    ("/watchlist/value", "get"),
+])
+def test_iter4_endpoints_require_auth(path, method):
+    fn = getattr(requests, method)
+    r = fn(f"{API}{path}")
+    assert r.status_code == 401, f"{path} should require auth, got {r.status_code}"

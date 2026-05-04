@@ -17,6 +17,7 @@ import Savings from "@/pages/Savings";
 import Profile from "@/pages/Profile";
 import MovieDetail from "@/pages/MovieDetail";
 import AuthCallback from "@/pages/AuthCallback";
+import Search from "@/pages/Search";
 import Admin from "@/pages/Admin";
 
 function AppShell() {
@@ -82,6 +83,14 @@ function AppShell() {
                     element={
                         <ProtectedRoute>
                             <MovieDetail />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/search"
+                    element={
+                        <ProtectedRoute>
+                            <Search />
                         </ProtectedRoute>
                     }
                 />

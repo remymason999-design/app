@@ -10,6 +10,8 @@ export default function OnboardingGenres() {
     const { user, setUser } = useAuth();
     const [genres, setGenres] = useState([]);
     const [selected, setSelected] = useState(new Set(user?.genres || []));
+    const [country, setCountry] = useState(user?.country || "GB");
+    const [age, setAge] = useState(user?.age || "");
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
@@ -29,6 +31,8 @@ export default function OnboardingGenres() {
         try {
             const updated = await apiPut("/user/preferences", {
                 genres: Array.from(selected.size ? selected : new Set(["Drama"])),
+                country,
+                age: age ? Number(age) : undefined,
             });
             setUser(updated);
             toast.success("All set — let's find something to watch");
@@ -44,9 +48,9 @@ export default function OnboardingGenres() {
         <div className="min-h-screen px-6 pt-12 pb-32 max-w-md mx-auto" data-testid="onboarding-genres">
             <p className="text-xs uppercase tracking-[0.25em] text-amber">Step 2 of 2</p>
             <h1 className="font-display text-4xl mt-3 leading-[1]">What do you love watching?</h1>
-            <p className="text-zinc-400 mt-3 mb-8">Pick a few — we'll learn the rest from your swipes.</p>
+            <p className="text-zinc-400 mt-3 mb-6">Pick a few — we'll learn the rest from your swipes.</p>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-8">
                 {genres.map((g, i) => {
                     const on = selected.has(g);
                     return (
@@ -69,6 +73,30 @@ export default function OnboardingGenres() {
                 })}
             </div>
 
+            <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 mb-2">Country (for streaming availability)</p>
+            <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                data-testid="onboarding-country"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-sm mb-5 focus:border-amber/60 outline-none"
+            >
+                {COUNTRY_LIST.map((c) => (
+                    <option key={c.code} value={c.code}>{c.name}</option>
+                ))}
+            </select>
+
+            <p className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 mb-2">Age (optional — used for content rating)</p>
+            <input
+                type="number"
+                min={1}
+                max={120}
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="e.g. 28"
+                data-testid="onboarding-age"
+                className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-sm focus:border-amber/60 outline-none"
+            />
+
             <div className="fixed inset-x-0 bottom-0 glass-strong px-6 py-5">
                 <div className="max-w-md mx-auto flex items-center justify-between gap-4">
                     <div className="text-sm text-zinc-400">
@@ -87,3 +115,20 @@ export default function OnboardingGenres() {
         </div>
     );
 }
+
+const COUNTRY_LIST = [
+    { code: "GB", name: "🇬🇧 United Kingdom" },
+    { code: "US", name: "🇺🇸 United States" },
+    { code: "CA", name: "🇨🇦 Canada" },
+    { code: "AU", name: "🇦🇺 Australia" },
+    { code: "IE", name: "🇮🇪 Ireland" },
+    { code: "IN", name: "🇮🇳 India" },
+    { code: "DE", name: "🇩🇪 Germany" },
+    { code: "FR", name: "🇫🇷 France" },
+    { code: "ES", name: "🇪🇸 Spain" },
+    { code: "IT", name: "🇮🇹 Italy" },
+    { code: "NL", name: "🇳🇱 Netherlands" },
+    { code: "BR", name: "🇧🇷 Brazil" },
+    { code: "MX", name: "🇲🇽 Mexico" },
+    { code: "JP", name: "🇯🇵 Japan" },
+];

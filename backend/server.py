@@ -181,6 +181,21 @@ class LoginIn(BaseModel):
 class PreferencesIn(BaseModel):
     services: Optional[List[str]] = None
     genres: Optional[List[str]] = None
+    excluded_categories: Optional[List[str]] = None  # e.g. ["anime", "bollywood"]
+    country: Optional[str] = None  # ISO-3166 alpha-2 (e.g. "GB", "US")
+    age: Optional[int] = None
+
+
+class ProgressIn(BaseModel):
+    movie_id: str
+    season: int = Field(ge=1)
+    episode: int = Field(ge=1)
+
+
+class ReviewIn(BaseModel):
+    movie_id: str
+    rating: int = Field(ge=1, le=10)
+    text: str = Field(min_length=1, max_length=2000)
 
 
 class ActionIn(BaseModel):
@@ -214,6 +229,7 @@ async def register(payload: RegisterIn, response: Response):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.users.insert_one(doc)
+    await _seed_notifications_for_user(user_id)
     access = create_access_token(user_id, email)
     refresh = create_refresh_token(user_id)
     set_auth_cookies(response, access, refresh)
@@ -304,6 +320,7 @@ async def google_session(response: Response, x_session_id: str = Header(..., ali
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         await db.users.insert_one(user.copy())
+        await _seed_notifications_for_user(user["user_id"])
     session_token = data.get("session_token")
     expires = datetime.now(timezone.utc) + timedelta(days=7)
     await db.user_sessions.insert_one({
@@ -338,6 +355,12 @@ async def set_prefs(payload: PreferencesIn, user: dict = Depends(require_user)):
         update["subscriptions"] = payload.services
     if payload.genres is not None:
         update["genres"] = payload.genres
+    if payload.excluded_categories is not None:
+        update["excluded_categories"] = payload.excluded_categories
+    if payload.country is not None:
+        update["country"] = payload.country.upper()[:2]
+    if payload.age is not None:
+        update["age"] = max(1, min(120, payload.age))
     if update:
         await db.users.update_one({"user_id": user["user_id"]}, {"$set": update})
     fresh = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0})
@@ -352,6 +375,9 @@ ACTION_WEIGHTS = {"save": 2, "watched": 3, "skip": -1}
 def _movie_matches(movie: dict, user: dict) -> bool:
     subs = set(user.get("subscriptions") or [])
     if subs and not (set(movie.get("available_on", [])) & subs):
+        return False
+    excluded = set((user.get("excluded_categories") or []))
+    if excluded and (set(movie.get("tags") or []) & excluded):
         return False
     return True
 
@@ -408,8 +434,220 @@ async def discover(user: dict = Depends(require_user), limit: int = 20):
 async def get_movie(movie_id: str, user: dict = Depends(require_user)):
     m = next((x for x in CATALOG if x["id"] == movie_id), None)
     if not m:
+        # Maybe in DB but not in in-memory cache
+        m = await db.movies_cache.find_one({"id": movie_id}, {"_id": 0})
+    if not m:
         raise HTTPException(404, "Movie not found")
-    return m
+    out = dict(m)
+    # Attach user-specific TV progress
+    progress = (user.get("progress") or {}).get(movie_id)
+    if progress:
+        out["progress"] = progress
+    return out
+
+
+@api.post("/user/progress")
+async def set_progress(payload: ProgressIn, user: dict = Depends(require_user)):
+    await db.users.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {f"progress.{payload.movie_id}": {
+            "season": payload.season, "episode": payload.episode,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        }}},
+    )
+    fresh = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0})
+    return clean_user(fresh)
+
+
+@api.get("/search")
+async def search(q: str, user: dict = Depends(require_user), limit: int = 20):
+    q = (q or "").strip()
+    if not q:
+        return {"results": [], "fallback": False}
+    region = (user.get("country") or os.environ.get("TMDB_REGION", "GB")).upper()
+    # First check local catalog (title contains, genre match, etc.)
+    ql = q.lower()
+    local = [
+        m for m in CATALOG
+        if ql in (m.get("title") or "").lower()
+        or ql in [g.lower() for g in (m.get("genres") or [])]
+    ][:limit]
+    if local:
+        return {"results": local, "fallback": False}
+    # Otherwise search TMDB
+    try:
+        tmdb_results = await tmdb_client.search_titles(q, region=region, limit=limit)
+        if tmdb_results:
+            return {"results": tmdb_results, "fallback": False}
+    except Exception as e:
+        logger.warning(f"TMDB search failed: {e}")
+    # Last resort: similar suggestions from top-rated catalog
+    fallback = sorted(CATALOG, key=lambda m: m.get("rating", 0), reverse=True)[:limit]
+    return {"results": fallback, "fallback": True}
+
+
+@api.get("/movies/{movie_id}/similar")
+async def similar(movie_id: str, user: dict = Depends(require_user)):
+    m = next((x for x in CATALOG if x["id"] == movie_id), None)
+    if not m or not m.get("tmdb_id"):
+        # Local similarity by genre overlap
+        if not m:
+            raise HTTPException(404, "Movie not found")
+        target_genres = set(m.get("genres") or [])
+        ranked = sorted(
+            [c for c in CATALOG if c["id"] != movie_id and (set(c.get("genres") or []) & target_genres)],
+            key=lambda c: (len(set(c.get("genres") or []) & target_genres), c.get("rating", 0)),
+            reverse=True,
+        )
+        return ranked[:12]
+    region = (user.get("country") or "GB").upper()
+    return await tmdb_client.fetch_similar(m["type"], m["tmdb_id"], region=region)
+
+
+@api.get("/movies/{movie_id}/reviews")
+async def get_reviews(movie_id: str, user: dict = Depends(require_user)):
+    m = next((x for x in CATALOG if x["id"] == movie_id), None)
+    if not m:
+        raise HTTPException(404, "Movie not found")
+    # User-generated
+    user_reviews = []
+    async for r in db.user_reviews.find({"movie_id": movie_id}, {"_id": 0}).sort("created_at", -1):
+        user_reviews.append(r)
+    # TMDB
+    tmdb_reviews = []
+    if m.get("tmdb_id"):
+        try:
+            tmdb_reviews = await tmdb_client.fetch_tmdb_reviews(m["type"], m["tmdb_id"], limit=5)
+        except Exception:
+            pass
+    summary = {
+        "user_count": len(user_reviews),
+        "user_avg": round(sum(r["rating"] for r in user_reviews) / len(user_reviews), 1) if user_reviews else None,
+        "tmdb_rating": m.get("rating"),
+        "tmdb_vote_count": m.get("vote_count"),
+    }
+    return {"summary": summary, "user": user_reviews, "tmdb": tmdb_reviews}
+
+
+@api.post("/movies/{movie_id}/reviews")
+async def post_review(movie_id: str, payload: ReviewIn, user: dict = Depends(require_user)):
+    if payload.movie_id != movie_id:
+        raise HTTPException(400, "movie_id mismatch")
+    m = next((x for x in CATALOG if x["id"] == movie_id), None)
+    if not m:
+        raise HTTPException(404, "Movie not found")
+    # Upsert one review per user per movie
+    doc = {
+        "movie_id": movie_id,
+        "user_id": user["user_id"],
+        "user_name": user["name"],
+        "rating": payload.rating,
+        "text": payload.text.strip(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.user_reviews.update_one(
+        {"movie_id": movie_id, "user_id": user["user_id"]},
+        {"$set": doc},
+        upsert=True,
+    )
+    return doc
+
+
+# --- Discover sections ----------------------------------------------------
+@api.get("/sections/upcoming")
+async def section_upcoming(user: dict = Depends(require_user), limit: int = 12):
+    region = (user.get("country") or "GB").upper()
+    items = await tmdb_client.fetch_endpoint("/movie/upcoming", "movie", pages=1, region=region)
+    items.sort(key=lambda m: m.get("popularity", 0), reverse=True)
+    return items[:limit]
+
+
+@api.get("/sections/trending")
+async def section_trending(user: dict = Depends(require_user), limit: int = 12):
+    region = (user.get("country") or "GB").upper()
+    items = []
+    for kind in ("movie", "tv"):
+        items.extend(await tmdb_client.fetch_endpoint(f"/trending/{kind}/week", kind, pages=1, region=region))
+    # Filter by user excludes
+    items = [m for m in items if not (set(m.get("tags") or []) & set(user.get("excluded_categories") or []))]
+    items.sort(key=lambda m: m.get("popularity", 0), reverse=True)
+    return items[:limit]
+
+
+@api.get("/sections/popular-locally")
+async def section_popular_locally(user: dict = Depends(require_user), limit: int = 12):
+    region = (user.get("country") or "GB").upper()
+    items = await tmdb_client.fetch_endpoint("/movie/popular", "movie", pages=1, region=region)
+    items.sort(key=lambda m: m.get("popularity", 0), reverse=True)
+    return items[:limit]
+
+
+# --- Notifications --------------------------------------------------------
+@api.get("/notifications")
+async def list_notifications(user: dict = Depends(require_user)):
+    out = []
+    async for n in db.notifications.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).limit(30):
+        out.append(n)
+    unread = await db.notifications.count_documents({"user_id": user["user_id"], "read": False})
+    return {"items": out, "unread": unread}
+
+
+@api.post("/notifications/read-all")
+async def mark_all_read(user: dict = Depends(require_user)):
+    r = await db.notifications.update_many(
+        {"user_id": user["user_id"], "read": False},
+        {"$set": {"read": True}},
+    )
+    return {"updated": r.modified_count}
+
+
+async def _seed_notifications_for_user(user_id: str):
+    """Seed a few welcome / trending notifications for a fresh user."""
+    existing = await db.notifications.count_documents({"user_id": user_id})
+    if existing >= 3:
+        return
+    seed = [
+        {"title": "Welcome to WatchSmart", "body": "Swipe right to save, left to skip. We'll learn your taste in minutes.", "kind": "welcome"},
+        {"title": "Trending this week", "body": "Tap Trending in Discover to see what everyone's watching right now.", "kind": "trending"},
+        {"title": "You can save real money", "body": "Open Savings to see which subscriptions are pulling their weight.", "kind": "tip"},
+    ]
+    docs = [{
+        "user_id": user_id,
+        "title": s["title"], "body": s["body"], "kind": s["kind"],
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    } for s in seed]
+    if docs:
+        await db.notifications.insert_many(docs)
+
+
+# --- Watchlist value ------------------------------------------------------
+@api.get("/watchlist/value")
+async def watchlist_value(user: dict = Depends(require_user)):
+    """Compute service-by-service value based on what user has saved/watched."""
+    activity_ids = (user.get("saved") or []) + (user.get("watched") or [])
+    activity = _movies_by_ids(activity_ids)
+    services_by_id = {s["id"]: s for s in STREAMING_SERVICES}
+    subs = user.get("subscriptions") or []
+    rows = []
+    for sid in services_by_id:
+        svc = services_by_id[sid]
+        on_this = [m for m in activity if sid in (m.get("available_on") or [])]
+        # value = # of titles you actually want, weighted by rating
+        value_score = sum((m.get("rating") or 0) for m in on_this)
+        rows.append({
+            "service_id": sid,
+            "name": svc["name"],
+            "logo_color": svc["logo_color"],
+            "price_monthly": svc["price_monthly"],
+            "subscribed": sid in subs,
+            "titles_count": len(on_this),
+            "value_score": round(value_score, 1),
+            "cost_per_title": round(svc["price_monthly"] / len(on_this), 2) if on_this else None,
+            "top_titles": [{"id": m["id"], "title": m["title"], "poster_url": m.get("poster_url")} for m in sorted(on_this, key=lambda x: x.get("rating", 0), reverse=True)[:4]],
+        })
+    rows.sort(key=lambda r: r["value_score"], reverse=True)
+    return {"services": rows, "watchlist_size": len(activity_ids)}
 
 
 @api.post("/user/action")

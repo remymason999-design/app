@@ -10,7 +10,7 @@ const tabs = [
 
 export default function BottomNav() {
     const { pathname } = useLocation();
-    const hide = ["/", "/login", "/register"].includes(pathname) || pathname.startsWith("/onboarding") || pathname.startsWith("/admin");
+    const hide = ["/", "/login", "/register"].includes(pathname) || pathname.startsWith("/onboarding") || pathname.startsWith("/admin") || pathname.startsWith("/search");
     if (hide) return null;
     return (
         <nav

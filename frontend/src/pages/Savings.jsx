@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingDown, ArrowUpRight, Sparkles } from "lucide-react";
+import { TrendingDown, ArrowUpRight, Sparkles, Trophy } from "lucide-react";
 import { apiGet } from "@/lib/api";
 import AccountMenu from "@/components/AccountMenu";
 
 export default function Savings() {
     const [data, setData] = useState(null);
+    const [value, setValue] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        apiGet("/savings")
-            .then(setData)
+        Promise.all([apiGet("/savings"), apiGet("/watchlist/value").catch(() => null)])
+            .then(([s, v]) => { setData(s); setValue(v); })
             .finally(() => setLoading(false));
     }, []);
 
@@ -136,6 +137,52 @@ export default function Savings() {
                 <ArrowUpRight className="w-3 h-3" />
                 Overlap detected on {data.overlap_titles} titles across your services.
             </div>
+
+            {value && value.services && value.watchlist_size > 0 && (
+                <div className="mt-10" data-testid="watchlist-value-section">
+                    <h2 className="font-heading text-lg mb-1 flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-amber" /> Best value for your watchlist
+                    </h2>
+                    <p className="text-xs text-zinc-500 mb-4">
+                        Across the {value.watchlist_size} title{value.watchlist_size === 1 ? "" : "s"} you've saved or watched, here's where you'd get the most for your money:
+                    </p>
+                    <ul className="space-y-2">
+                        {value.services.filter((s) => s.titles_count > 0).slice(0, 5).map((s) => (
+                            <li key={s.service_id} className="glass rounded-2xl p-4" data-testid={`value-${s.service_id}`}>
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded-lg" style={{ backgroundColor: s.logo_color }} />
+                                        <div>
+                                            <div className="font-heading text-sm">{s.name}</div>
+                                            <div className="text-[11px] text-zinc-500">
+                                                {s.subscribed ? "Subscribed" : "Not subscribed"} · ${s.price_monthly}/mo
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="font-heading text-base">{s.titles_count}</div>
+                                        <div className="text-[10px] uppercase text-zinc-500 tracking-wider">titles</div>
+                                    </div>
+                                </div>
+                                {s.cost_per_title && (
+                                    <div className="text-xs text-zinc-400">
+                                        ~${s.cost_per_title} per title in your list
+                                    </div>
+                                )}
+                                {s.top_titles.length > 0 && (
+                                    <div className="flex gap-1.5 mt-3 overflow-hidden">
+                                        {s.top_titles.map((t) => (
+                                            <div key={t.id} className="w-10 h-14 rounded bg-velvet overflow-hidden">
+                                                {t.poster_url && <img src={t.poster_url} alt={t.title} className="w-full h-full object-cover" />}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </div>
     );
 }

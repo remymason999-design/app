@@ -1,0 +1,67 @@
+{
+  "summary": "Iteration 4 backend + frontend testing of WatchSmart (search, sections, reviews, progress, notifications, watchlist value, immersive UI, swipe-down=watched, onboarding country/age). Backend: 56/56 pytest tests PASSED — added 25 new tests covering /search (local/empty/garbage-fallback), /sections/{upcoming,trending,popular-locally}, /movies/{id} enriched fields, /user/progress upsert + readback + 422 on bad season, /movies/{id}/reviews POST/GET upsert + 422 on bad rating + 400 on movie_id mismatch, /movies/{id}/similar, /notifications seeded on register + read-all, /watchlist/value sorted by value_score with all required keys, /discover excluded_categories filter, preferences country/age clamp, auth-gating on all iter4 endpoints. Frontend: Discover header shows search/notif-bell/account, all 4 tabs render and switch (For you / Trending / Upcoming / Popular near you), Filters sheet opens with anime/bollywood/country-GB/genre-Drama/save toggles, Notification bell + panel + read-all works, Search debounced with results, MovieDetail full-screen immersive banner with backdrop+genres, TV Frieren shows set-progress-btn → progress-modal → progress save persists (verified S1E4 via API), Reviews block (community + WatchSmart summary) + post-review (star-7 + textarea) creates review and shows user-review-0 + tmdb-review-0, More-like-this similar rail at bottom, Stream/Rent/Buy listings shown, swipe-down on card increments watched count from 0→1 via /api/auth/me. CRITICAL bug found and FIXED in OnboardingGenres.jsx: missing useState for `country`/`setCountry` and `age`/`setAge` caused 'country is not defined' ReferenceError that crashed the genres step. After fix, country/age UI renders correctly.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "OnboardingGenres",
+        "issue": "FIXED: Missing useState declarations for `country` and `age` caused ReferenceError 'country is not defined' on render — page crashed completely. Added `useState(user?.country || 'GB')` and `useState(user?.age || '')`.",
+        "selector": "[data-testid=onboarding-country], [data-testid=onboarding-age]",
+        "priority": "CRITICAL"
+      },
+      {
+        "component": "OnboardingGenres bottom bar",
+        "issue": "The fixed bottom-anchored 'Start discovering' button (genres-continue) is being intercepted by the Emergent badge (#emergent-badge) — pointer events are blocked. User can still tap on mobile if they hit the upper portion of the button, but on smaller viewports the watermark overlaps the action area. Recommend raising z-index of the fixed bottom bar above the Emergent badge or adding bottom padding.",
+        "selector": "[data-testid=genres-continue]",
+        "priority": "HIGH"
+      },
+      {
+        "component": "MovieDetail ProgressModal <select>",
+        "issue": "Hydration warning: '<span> cannot be a child of <option>'. This is caused by Emergent build-time injection of an x-source <span> wrapper around the option text (s.name). For valid HTML and accessibility, the seasons select should pass plain text, not React children that get wrapped. Functional impact: low (the modal still works), but produces a console hydration error every render.",
+        "selector": "[data-testid=progress-season] option",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "MovieDetail header buttons",
+        "issue": "data-testid 'btn-save' and 'btn-watched' are NOT present on the MovieDetail page (they only exist on Discover swipe cards). Task spec mentions 'save+watched buttons' on the detail page — verify whether these are intentionally omitted or have different testids. Save/watched can still be triggered via Discover swipe.",
+        "selector": "[data-testid=btn-save], [data-testid=btn-watched]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "VERIFY genres-continue button: lift bottom action bar above #emergent-badge (z-index + bottom safe-area) so user can complete onboarding",
+    "Confirm whether MovieDetail page should expose btn-save / btn-watched testids (task spec calls them out) — currently only on Discover swipe cards",
+    "Optional: fix hydration warning in ProgressModal by ensuring season <option> children are plain text"
+  ],
+  "critical_code_review_comments": [
+    "CRITICAL — OnboardingGenres.jsx referenced country/setCountry/age/setAge without declaring useState. Fixed by adding `const [country, setCountry] = useState(user?.country || 'GB')` and `const [age, setAge] = useState(user?.age || '')`. The fact that this shipped suggests the genres onboarding step was never opened in dev — recommend a smoke test for every onboarding step.",
+    "server.py is now 1042 lines — well past the 700-line split threshold flagged in iter 3. Strongly recommend splitting into routers: auth, admin, affiliate, discovery, sections, reviews, notifications, savings.",
+    "/sections/* endpoints hit TMDB live on every call with no caching — region-aware results add up to 3-5s latency. Recommend a short-TTL Mongo cache (e.g. 10 min) keyed by (endpoint, region).",
+    "watchlist_value iterates over ALL services (incl. ones not subscribed) and computes for every saved/watched title — fine at current scale but could add a top-N cap.",
+    "POST /movies/{id}/reviews has no XSS sanitisation on `text`; relies on frontend to render as text only. Pydantic Length 1-2000 bounds the size, but trim/escape suggested.",
+    "_seed_notifications_for_user is idempotent (checks existing >=3) — good, but the threshold means a user who marks all read and then re-registers via google-link could re-seed. Acceptable.",
+    "ProgressIn validates season>=1 and episode>=1 but does not bound upper limit; user could submit S999 E999. Minor.",
+    "/discover applies excluded_categories filter — works. /sections/upcoming and /sections/popular-locally do NOT apply the same filter (only /trending does). Inconsistent.",
+    "Search local-match uses substring matching on title and exact-match on genre but NOT on actor (task says 'title/actor/genre'). Actor search relies on TMDB-only — if local CATALOG had Tom Hanks credit metadata it'd never match. Acceptable for v1.",
+    "CORS is now properly locked to ALLOWED_ORIGINS env + preview regex (verified server.py:980-988). Good — addresses iter 3 finding.",
+    "ProgressModal hydration warning: <span> inside <option> caused by Emergent build-time injection. Likely cosmetic but produces console noise."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py",
+    "/app/frontend/src/pages/OnboardingGenres.jsx"
+  ],
+  "success_rate": { "backend": "100% (56/56)", "frontend": "~92% (1 critical bug fixed, 1 layering bug + 1 hydration warning + 1 missing testid remain)" },
+  "test_credentials": "admin@watchsmart.app / admin123 (seeded). Test users: tester_*/Test1234!, iter4_*/Test1234!, onb*/Test1234! created via /api/auth/register.",
+  "seed_data_creation": "Created several throwaway users for review/progress/notification tests. Posted user reviews on Frieren tmdb_tv_209867 (admin) and on the top discover movie (tester users). Set TV progress S1E4 and S2E5 on Frieren. Notification seeds (3 welcome) auto-created for every fresh registration.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest suite at /app/backend/tests/backend_test.py — 56 tests, run via REACT_APP_BACKEND_URL=<url> pytest backend/tests/backend_test.py -v. Iter4 testids: tab-{for-you,trending,upcoming,local}, open-filters, filter-cat-{anime,bollywood}, filter-country-{GB,US}, filter-genre-Drama, filters-save, notif-bell, notif-panel, notif-read-all, set-progress-btn, progress-modal, progress-season (SELECT), progress-episode (INPUT), progress-save, review-form, star-1..10, review-text, review-submit, user-review-0, tmdb-review-0, onboarding-country (SELECT), onboarding-age (number INPUT), genres-continue. Bypass tutorial: localStorage.setItem('ws_tutorial_v1_seen','1'). TMDB sections take 3-5s. Filters sheet backdrop intercepts pointer — close via Escape key or X button before clicking other UI. Onboarding 'genres-continue' currently overlaps Emergent badge — use page.evaluate or scroll/click in upper portion.",
+  "rca of the issue": "OnboardingGenres ReferenceError 'country is not defined': The component template referenced country/setCountry/age/setAge in JSX (lines 32-33, 76-77, 91-92) but never declared them via useState. Likely a copy-paste oversight when adding the new fields. Reproduction: register fresh user → navigate to /onboarding/genres → red runtime error overlay. Mitigation applied: added `const [country, setCountry] = useState(user?.country || 'GB')` and `const [age, setAge] = useState(user?.age || '')`. Verified: page renders, country selectable, age input editable, genre toggle works."
+}
