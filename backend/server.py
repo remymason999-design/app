@@ -554,10 +554,34 @@ async def post_review(movie_id: str, payload: ReviewIn, user: dict = Depends(req
 
 
 # --- Discover sections ----------------------------------------------------
+_SECTION_CACHE: dict = {}  # key: (path, region) -> (timestamp, data)
+_SECTION_TTL = 600  # 10 minutes
+
+
+async def _cached_endpoint(path: str, kind: str, region: str, pages: int = 1):
+    import time as _t
+    key = (path, region)
+    now = _t.time()
+    cached = _SECTION_CACHE.get(key)
+    if cached and (now - cached[0]) < _SECTION_TTL:
+        return cached[1]
+    items = await tmdb_client.fetch_endpoint(path, kind, pages=pages, region=region)
+    _SECTION_CACHE[key] = (now, items)
+    return items
+
+
+def _apply_user_filters(items: list, user: dict) -> list:
+    excluded = set(user.get("excluded_categories") or [])
+    if not excluded:
+        return items
+    return [m for m in items if not (set(m.get("tags") or []) & excluded)]
+
+
 @api.get("/sections/upcoming")
 async def section_upcoming(user: dict = Depends(require_user), limit: int = 12):
     region = (user.get("country") or "GB").upper()
-    items = await tmdb_client.fetch_endpoint("/movie/upcoming", "movie", pages=1, region=region)
+    items = await _cached_endpoint("/movie/upcoming", "movie", region)
+    items = _apply_user_filters(items, user)
     items.sort(key=lambda m: m.get("popularity", 0), reverse=True)
     return items[:limit]
 
@@ -567,9 +591,8 @@ async def section_trending(user: dict = Depends(require_user), limit: int = 12):
     region = (user.get("country") or "GB").upper()
     items = []
     for kind in ("movie", "tv"):
-        items.extend(await tmdb_client.fetch_endpoint(f"/trending/{kind}/week", kind, pages=1, region=region))
-    # Filter by user excludes
-    items = [m for m in items if not (set(m.get("tags") or []) & set(user.get("excluded_categories") or []))]
+        items.extend(await _cached_endpoint(f"/trending/{kind}/week", kind, region))
+    items = _apply_user_filters(items, user)
     items.sort(key=lambda m: m.get("popularity", 0), reverse=True)
     return items[:limit]
 
@@ -577,7 +600,8 @@ async def section_trending(user: dict = Depends(require_user), limit: int = 12):
 @api.get("/sections/popular-locally")
 async def section_popular_locally(user: dict = Depends(require_user), limit: int = 12):
     region = (user.get("country") or "GB").upper()
-    items = await tmdb_client.fetch_endpoint("/movie/popular", "movie", pages=1, region=region)
+    items = await _cached_endpoint("/movie/popular", "movie", region)
+    items = _apply_user_filters(items, user)
     items.sort(key=lambda m: m.get("popularity", 0), reverse=True)
     return items[:limit]
 

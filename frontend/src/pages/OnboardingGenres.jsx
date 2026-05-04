@@ -97,7 +97,7 @@ export default function OnboardingGenres() {
                 className="w-full bg-white/5 border border-white/10 rounded-2xl p-3 text-sm focus:border-amber/60 outline-none"
             />
 
-            <div className="fixed inset-x-0 bottom-0 glass-strong px-6 py-5">
+            <div className="fixed inset-x-0 bottom-0 glass-strong px-6 py-5 z-30" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}>
                 <div className="max-w-md mx-auto flex items-center justify-between gap-4">
                     <div className="text-sm text-zinc-400">
                         {selected.size} selected

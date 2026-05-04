@@ -53,6 +53,22 @@ top-tier UX. Affiliate links + future monetization.
 - **Iteration 1:** 15/15 backend pytest, full Playwright flow — 100%/100%
 - **Iteration 2:** 19/19 backend pytest, full Playwright flow including new features — 100%/100%
 - **Iteration 3:** 31/31 backend pytest, full Playwright flow — 100%/100%
+- **Iteration 4:** 56/56 backend pytest, full Playwright flow — 100%/~92% (1 critical OnboardingGenres useState bug fixed during testing)
+
+### Iteration 4 (Feb 2026 — biggest pack)
+- **Search** by title/genre (local fast path) with TMDB fallback for actors/missing titles
+- **Filters sheet:** anime / Bollywood toggles, country picker (14 countries), genre chips
+- **TV detail:** seasons rail with poster + episode counts, total runtime estimate, **per-user progress** ("Up to S2 E5") with progress modal
+- **Full-screen immersive movie banner** with backdrop, gradient overlay, hero title + actions
+- **Stream + Rent + Buy listings** (TMDB watch providers for the user's country)
+- **Reviews:** user-generated (1-10 + text) + TMDB community feed; avg rating cards
+- **Discover tabs:** For you / Trending / Upcoming / Popular in <country>
+- **In-app notification bell** with unread badge + welcome notifications seeded for new users
+- **Watchlist Value** section in Savings — best-value services for user's saved+watched titles, ranked
+- **Swipe-down → Watched** action with visual overlay during drag
+- **Onboarding** now collects country (default UK) + optional age
+- **Backend:** 10-min TTL cache on TMDB section calls; excluded_categories filter applied to all section endpoints; CORS verified locked-down
+- **Catalog:** 363 UK-localised titles
 
 ### Iteration 3 (Feb 2026)
 - **Real TMDB integration** — 265 titles (up from 24 seed) loaded from popular + top_rated + trending across movies & TV; concurrent enrichment with provider mapping & YouTube trailers; cached in `db.movies_cache`

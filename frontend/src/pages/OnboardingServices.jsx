@@ -83,7 +83,7 @@ export default function OnboardingServices() {
                 })}
             </div>
 
-            <div className="fixed inset-x-0 bottom-0 glass-strong px-6 py-5">
+            <div className="fixed inset-x-0 bottom-0 glass-strong px-6 py-5 z-30" style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom))" }}>
                 <div className="max-w-md mx-auto flex items-center justify-between gap-4">
                     <div>
                         <div className="text-xs text-zinc-500 uppercase tracking-wider">You spend</div>
