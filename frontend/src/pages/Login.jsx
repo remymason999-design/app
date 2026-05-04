@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
-import { apiPost, formatApiError } from "@/lib/api";
+import { apiPost, formatApiError, setToken } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
@@ -21,6 +21,7 @@ export default function Login() {
         setLoading(true);
         try {
             const data = await apiPost("/auth/login", { email, password });
+            if (data.access_token) setToken(data.access_token);
             setUser(data.user);
             toast.success(`Welcome back, ${data.user.name}`);
             const next = data.user.subscriptions?.length ? "/discover" : "/onboarding/services";

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { apiPost, formatApiError } from "@/lib/api";
+import { apiPost, formatApiError, setToken } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { Field, Divider, GoogleIcon, FieldStyles } from "@/pages/Login";
@@ -19,6 +19,7 @@ export default function Register() {
         setLoading(true);
         try {
             const data = await apiPost("/auth/register", { name, email, password });
+            if (data.access_token) setToken(data.access_token);
             setUser(data.user);
             toast.success("Account created");
             navigate("/onboarding/services");

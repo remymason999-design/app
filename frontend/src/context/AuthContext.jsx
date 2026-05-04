@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { apiGet, apiPost } from "@/lib/api";
+import { apiGet, apiPost, setToken } from "@/lib/api";
 
 const AuthCtx = createContext(null);
 
@@ -31,6 +31,7 @@ export function AuthProvider({ children }) {
         try {
             await apiPost("/auth/logout");
         } catch {}
+        setToken(null);
         setUser(null);
     };
 

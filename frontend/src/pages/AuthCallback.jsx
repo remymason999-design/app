@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiPost } from "@/lib/api";
+import { apiPost, setToken } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
 export default function AuthCallback() {
@@ -20,6 +20,7 @@ export default function AuthCallback() {
                 const data = await apiPost("/auth/google/session", null, {
                     headers: { "X-Session-ID": sessionId },
                 });
+                if (data.access_token) setToken(data.access_token);
                 setUser(data.user);
                 window.history.replaceState({}, "", "/discover");
                 const next = data.user.subscriptions?.length ? "/discover" : "/onboarding/services";

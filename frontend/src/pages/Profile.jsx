@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Settings, Tv2, Tag, Eye } from "lucide-react";
+import { LogOut, Settings, Tv2, Tag, Eye, TrendingUp } from "lucide-react";
 import { apiGet, apiPut, formatApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -12,11 +12,13 @@ export default function Profile() {
     const [services, setServices] = useState([]);
     const [genres, setGenres] = useState([]);
     const [watchedCount, setWatchedCount] = useState(0);
+    const [affiliate, setAffiliate] = useState({ total: 0, per_service: [] });
 
     useEffect(() => {
         apiGet("/services").then(setServices);
         apiGet("/genres").then(setGenres);
         apiGet("/watched").then((m) => setWatchedCount(m.length));
+        apiGet("/affiliate/me").then(setAffiliate).catch(() => {});
     }, []);
 
     const toggleService = async (id) => {
@@ -113,6 +115,34 @@ export default function Profile() {
                             </button>
                         );
                     })}
+                </div>
+            </Section>
+
+            <Section title="Supporting WatchSmart">
+                <div className="glass rounded-2xl p-5" data-testid="affiliate-card">
+                    <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-amber/15 grid place-items-center shrink-0">
+                            <TrendingUp className="h-5 w-5 text-amber" strokeWidth={1.6} />
+                        </div>
+                        <div className="flex-1">
+                            <div className="font-heading text-base">
+                                {affiliate.total} click{affiliate.total === 1 ? "" : "s"} to streaming partners
+                            </div>
+                            <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                                Every time you tap "Where to watch", we pass a referral tag. That helps keep WatchSmart free.
+                            </p>
+                            {affiliate.per_service.length > 0 && (
+                                <ul className="mt-3 space-y-1.5">
+                                    {affiliate.per_service.slice(0, 4).map((row) => (
+                                        <li key={row.service_id} className="flex items-center justify-between text-xs text-zinc-400">
+                                            <span>{row.service_name}</span>
+                                            <span className="font-heading text-zinc-200">{row.count}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </Section>
 

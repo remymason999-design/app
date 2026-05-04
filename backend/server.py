@@ -248,7 +248,9 @@ async def google_session(response: Response, x_session_id: str = Header(..., ali
     })
     response.set_cookie("session_token", session_token, httponly=True, secure=True,
                         samesite="none", max_age=60*60*24*7, path="/")
-    return {"user": clean_user(user)}
+    # Also issue a JWT access token so frontend can use Bearer header fallback
+    access = create_access_token(user["user_id"], email)
+    return {"user": clean_user(user), "access_token": access}
 
 
 # --- Reference data -------------------------------------------------------
@@ -467,6 +469,91 @@ async def explain(payload: ExplainIn, user: dict = Depends(require_user)):
         except Exception as e2:
             logger.error(f"Both LLMs failed: {e2}")
             return {"explanation": f"You'll likely enjoy {movie['title']} because it leans into {', '.join(movie.get('genres', [])[:2])} — a strong match for your taste."}
+
+
+class ClickIn(BaseModel):
+    movie_id: str
+    service_id: str
+
+
+def build_affiliate_url(base_url: str, user_id: str, movie_id: str, service_id: str) -> str:
+    from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl
+    parsed = urlparse(base_url)
+    existing = dict(parse_qsl(parsed.query))
+    existing.update({
+        "utm_source": "watchsmart",
+        "utm_medium": "referral",
+        "utm_campaign": "where-to-watch",
+        "utm_content": f"{service_id}:{movie_id}",
+        "ref": "watchsmart",
+        "sub_id": user_id,
+    })
+    return urlunparse(parsed._replace(query=urlencode(existing)))
+
+
+@api.post("/affiliate/click")
+async def affiliate_click(payload: ClickIn, request: Request, user: dict = Depends(require_user)):
+    services_by_id = {s["id"]: s for s in STREAMING_SERVICES}
+    svc = services_by_id.get(payload.service_id)
+    if not svc:
+        raise HTTPException(404, "Service not found")
+    movie = next((m for m in SEED_MOVIES if m["id"] == payload.movie_id), None)
+    if not movie:
+        raise HTTPException(404, "Movie not found")
+    tracked_url = build_affiliate_url(svc["affiliate_url"], user["user_id"], movie["id"], svc["id"])
+    await db.affiliate_clicks.insert_one({
+        "user_id": user["user_id"],
+        "movie_id": movie["id"],
+        "movie_title": movie["title"],
+        "service_id": svc["id"],
+        "service_name": svc["name"],
+        "base_url": svc["affiliate_url"],
+        "tracked_url": tracked_url,
+        "referer": request.headers.get("referer"),
+        "user_agent": request.headers.get("user-agent"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"url": tracked_url}
+
+
+@api.get("/affiliate/me")
+async def affiliate_me(user: dict = Depends(require_user)):
+    pipeline = [
+        {"$match": {"user_id": user["user_id"]}},
+        {"$group": {"_id": "$service_id", "count": {"$sum": 1}, "service_name": {"$first": "$service_name"}}},
+        {"$sort": {"count": -1}},
+    ]
+    per_service = []
+    async for row in db.affiliate_clicks.aggregate(pipeline):
+        per_service.append({
+            "service_id": row["_id"],
+            "service_name": row.get("service_name"),
+            "count": row["count"],
+        })
+    total = await db.affiliate_clicks.count_documents({"user_id": user["user_id"]})
+    return {"total": total, "per_service": per_service}
+
+
+@api.get("/affiliate/stats")
+async def affiliate_stats(user: dict = Depends(require_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin only")
+    pipeline = [
+        {"$group": {
+            "_id": "$service_id",
+            "count": {"$sum": 1},
+            "service_name": {"$first": "$service_name"},
+            "unique_users": {"$addToSet": "$user_id"},
+        }},
+        {"$project": {"service_id": "$_id", "service_name": 1, "count": 1, "unique_users": {"$size": "$unique_users"}, "_id": 0}},
+        {"$sort": {"count": -1}},
+    ]
+    per_service = []
+    async for row in db.affiliate_clicks.aggregate(pipeline):
+        per_service.append(row)
+    total_clicks = await db.affiliate_clicks.count_documents({})
+    total_users = len(await db.affiliate_clicks.distinct("user_id"))
+    return {"total_clicks": total_clicks, "unique_users": total_users, "per_service": per_service}
 
 
 @api.get("/")

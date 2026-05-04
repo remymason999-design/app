@@ -166,13 +166,18 @@ export default function MovieDetail() {
                             const s = servicesById[sid];
                             if (!s) return null;
                             return (
-                                <a
+                                <button
                                     key={sid}
-                                    href={s.affiliate_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    onClick={async () => {
+                                        try {
+                                            const { url } = await apiPost("/affiliate/click", { movie_id: id, service_id: sid });
+                                            window.open(url, "_blank", "noopener,noreferrer");
+                                        } catch {
+                                            window.open(s.affiliate_url, "_blank", "noopener,noreferrer");
+                                        }
+                                    }}
                                     data-testid={`watch-on-${sid}`}
-                                    className="flex items-center justify-between glass rounded-xl px-4 py-3 hover:bg-white/[0.06] transition-colors"
+                                    className="w-full flex items-center justify-between glass rounded-xl px-4 py-3 hover:bg-white/[0.06] transition-colors text-left"
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className="w-9 h-9 rounded-lg" style={{ backgroundColor: s.logo_color }} />
@@ -182,7 +187,7 @@ export default function MovieDetail() {
                                         </div>
                                     </div>
                                     <ExternalLink className="h-4 w-4 text-zinc-400" />
-                                </a>
+                                </button>
                             );
                         })}
                     </div>
