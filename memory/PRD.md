@@ -21,19 +21,37 @@ top-tier UX. Affiliate links + future monetization.
 2. **Indecisive Friday-night browser** — opens 3 apps, scrolls 20 minutes, gives up.
 3. **Curious explorer** — wants something genuinely tailored, not algorithmic noise.
 
-## What's been implemented (Feb 2026 — MVP)
+## What's been implemented (Feb 2026)
+
+### MVP (iteration 1)
 - Authentication: register / login / logout / me, Emergent Google session exchange
 - Onboarding: streaming services picker (8 services with prices) + genre picker (14 genres)
 - Discover: Framer Motion swipe stack — drag right to save, left to skip; action buttons for skip/watched/info/save
 - Movie Detail: poster, rating, runtime, where-to-watch affiliate links, YouTube trailer modal, AI "why you'll love this" via GPT-5.2
 - Watchlist (saved) and Profile (toggle services/genres, stats, logout)
 - Savings dashboard: monthly + yearly total, per-service activity, overlap count, AI-style cancel/rotate suggestions
-- Dark cinematic theme: Cabinet Grotesk + Satoshi fonts, Obsidian #060608 + Amber #F59E0B, glass morphism, grain texture
-- Bottom tab navigation (Discover / Watchlist / Savings / Profile), data-testid coverage on all interactive elements
 
-## Tested (iteration 1: 2026-02-04)
-Backend: 15/15 pytest passing — auth, services, genres, preferences, discover filtering, movie detail, action transitions, watchlist, watched, savings, GPT-5.2 explain.
-Frontend: full Playwright flow — landing → register → onboarding → discover → swipe + buttons → detail → trailer/explain → watchlist → savings → profile → logout.
+### Iteration 2 (Feb 2026, post-MVP)
+- **Rebrand:** Reelm → **WatchSmart** (logo, copy, admin email, AI persona)
+- **Auth bug fix:** added `Authorization: Bearer` token from localStorage as primary, cookies as secondary — works on Safari / private mode / cookie-blocked browsers
+- **CORS:** removed wildcard origin, switched to `allow_origin_regex` to allow credentialed cross-origin
+- **Affiliate tracking:**
+  - `POST /api/affiliate/click` logs click + returns URL with `utm_source/medium/campaign/content + ref + sub_id`
+  - `GET /api/affiliate/me` per-user totals (shown on Profile)
+  - `GET /api/affiliate/stats` admin aggregate (total/unique/per-service)
+  - `GET /api/affiliate/export.csv` admin CSV download (Content-Disposition attachment) — ready for partnership pitches
+- **Custom landing:** poster-fan hero, BETA badge, ambient gradient spotlight, services rail
+- **First-run tutorial:** 4-step coachmark overlay with animated gesture demo cards on Discover; replayable from Profile; localStorage persistence
+- **Self-learning recommendations:**
+  - `user.genre_weights` MongoDB dotted-path `$inc` on every action (save +2, watched +3, skip −1)
+  - Discover scoring blends rating + learned weights + onboarding prefs + jitter
+  - Each Discover card shows a personal "reason" pill (e.g., "Because you've been loving Sci-Fi")
+  - Profile shows weighted genre bars under "What we've learned about you"
+- **Trailer fix:** custom fullscreen modal (replaces shadcn Dialog), `youtube-nocookie.com` embed with `playsinline=1&autoplay=1&mute=1` for mobile autoplay compliance
+
+## Tested
+- **Iteration 1:** 15/15 backend pytest, full Playwright flow — 100%/100%
+- **Iteration 2:** 19/19 backend pytest, full Playwright flow including new features — 100%/100%
 
 ## Backlog
 ### P0 — Next priorities
