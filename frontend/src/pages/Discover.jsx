@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
-import { Heart, X, Eye, Info, Star } from "lucide-react";
+import { Heart, X, Eye, Info, Star, Sparkles } from "lucide-react";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import Tutorial, { shouldShowTutorial } from "@/components/Tutorial";
 
 export default function Discover() {
     const navigate = useNavigate();
@@ -13,6 +14,14 @@ export default function Discover() {
     const [services, setServices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [exiting, setExiting] = useState(null); // { id, dir }
+    const [tutorial, setTutorial] = useState(false);
+
+    useEffect(() => {
+        if (shouldShowTutorial()) {
+            const t = setTimeout(() => setTutorial(true), 600);
+            return () => clearTimeout(t);
+        }
+    }, []);
 
     const loadStack = async () => {
         setLoading(true);
@@ -62,6 +71,8 @@ export default function Discover() {
                     {(user?.name || "?").slice(0, 1).toUpperCase()}
                 </div>
             </header>
+
+            <Tutorial open={tutorial} onClose={() => setTutorial(false)} />
 
             <div className="relative" style={{ height: "70vh", maxHeight: 620 }}>
                 {loading ? (
@@ -198,6 +209,18 @@ function Card({ movie, services, isTop, stackPos, isExiting, exitDir, onSwipe, o
                         SKIP
                     </motion.div>
                 </>
+            )}
+
+            {isTop && movie.reason && (
+                <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="absolute top-5 left-5 right-5 flex items-center gap-2 glass-strong rounded-full pl-3 pr-4 py-1.5 max-w-fit"
+                >
+                    <Sparkles className="w-3.5 h-3.5 text-amber shrink-0" strokeWidth={2} />
+                    <span className="text-[11px] tracking-wide text-zinc-200 truncate">{movie.reason}</span>
+                </motion.div>
             )}
 
             <div className="absolute bottom-0 inset-x-0 p-6">

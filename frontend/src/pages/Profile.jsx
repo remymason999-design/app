@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Settings, Tv2, Tag, Eye, TrendingUp } from "lucide-react";
+import { LogOut, Settings, Tv2, Tag, Eye, TrendingUp, HelpCircle } from "lucide-react";
 import { apiGet, apiPut, formatApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import Tutorial, { resetTutorial } from "@/components/Tutorial";
 
 export default function Profile() {
     const { user, setUser, logout } = useAuth();
@@ -13,6 +14,7 @@ export default function Profile() {
     const [genres, setGenres] = useState([]);
     const [watchedCount, setWatchedCount] = useState(0);
     const [affiliate, setAffiliate] = useState({ total: 0, per_service: [] });
+    const [tutorial, setTutorial] = useState(false);
 
     useEffect(() => {
         apiGet("/services").then(setServices);
@@ -52,8 +54,19 @@ export default function Profile() {
 
     if (!user) return null;
 
+    const topLearned = Object.entries(user.genre_weights || {})
+        .filter(([, v]) => v > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    const replayTutorial = () => {
+        resetTutorial();
+        setTutorial(true);
+    };
+
     return (
         <div className="min-h-screen px-5 pt-10 pb-28 max-w-md mx-auto" data-testid="profile-page">
+            <Tutorial open={tutorial} onClose={() => setTutorial(false)} />
             <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -73,6 +86,35 @@ export default function Profile() {
                 <Stat label="Watched" value={watchedCount} icon={Eye} />
                 <Stat label="Services" value={user.subscriptions?.length || 0} icon={Tv2} />
             </div>
+
+            <Section title="What we've learned about you">
+                <div className="glass rounded-2xl p-5" data-testid="learning-card">
+                    {topLearned.length === 0 ? (
+                        <p className="text-sm text-zinc-400 leading-relaxed">
+                            Keep swiping, saving and marking watched — we'll start tuning your discovery feed within a few picks.
+                        </p>
+                    ) : (
+                        <>
+                            <p className="text-xs uppercase tracking-wider text-zinc-500 mb-3">Genres you actually engage with</p>
+                            <ul className="space-y-2">
+                                {topLearned.map(([g, w]) => {
+                                    const max = topLearned[0][1];
+                                    const pct = Math.max(8, Math.min(100, Math.round((w / max) * 100)));
+                                    return (
+                                        <li key={g} className="flex items-center gap-3" data-testid={`learned-${g}`}>
+                                            <span className="font-heading text-sm w-24 shrink-0">{g}</span>
+                                            <div className="flex-1 h-1.5 rounded-full bg-white/8 overflow-hidden">
+                                                <div className="h-full bg-amber" style={{ width: `${pct}%` }} />
+                                            </div>
+                                            <span className="text-xs text-zinc-500 w-6 text-right">{w}</span>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </>
+                    )}
+                </div>
+            </Section>
 
             <Section title="Streaming services">
                 <div className="grid grid-cols-2 gap-2">
@@ -147,9 +189,18 @@ export default function Profile() {
             </Section>
 
             <button
+                onClick={replayTutorial}
+                data-testid="replay-tutorial-btn"
+                className="mt-8 w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-white/10 text-zinc-300 hover:bg-white/5"
+            >
+                <HelpCircle className="w-4 h-4" />
+                Replay quick tour
+            </button>
+
+            <button
                 onClick={onLogout}
                 data-testid="logout-btn"
-                className="mt-10 w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-white/10 text-zinc-300 hover:bg-white/5"
+                className="mt-3 w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-white/10 text-zinc-300 hover:bg-white/5"
             >
                 <LogOut className="w-4 h-4" />
                 Sign out

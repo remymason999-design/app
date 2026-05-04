@@ -12,10 +12,13 @@ import secrets
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional, Literal
 
+import csv
+import io
 import bcrypt
 import jwt
 import httpx
 from fastapi import FastAPI, APIRouter, Request, Response, HTTPException, Depends, Header
+from fastapi.responses import StreamingResponse
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, Field, EmailStr
@@ -279,6 +282,10 @@ async def set_prefs(payload: PreferencesIn, user: dict = Depends(require_user)):
 
 
 # --- Movie discovery & actions -------------------------------------------
+# Action -> (field, genre_weight_delta)
+ACTION_WEIGHTS = {"save": 2, "watched": 3, "skip": -1}
+
+
 def _movie_matches(movie: dict, user: dict) -> bool:
     subs = set(user.get("subscriptions") or [])
     if subs and not (set(movie.get("available_on", [])) & subs):
@@ -287,12 +294,34 @@ def _movie_matches(movie: dict, user: dict) -> bool:
 
 
 def _movie_score(movie: dict, user: dict) -> float:
-    score = float(movie.get("rating", 7.0))
-    user_genres = set(user.get("genres") or [])
-    if user_genres:
-        overlap = len(set(movie.get("genres", [])) & user_genres)
-        score += overlap * 1.5
-    return score
+    """Personalised score: base rating + learned weights + onboarding prefs."""
+    score = float(movie.get("rating", 7.0)) / 2.0  # max ~5
+    mg = set(movie.get("genres", []))
+    # Learned genre weights from user's save/watch/skip activity
+    gw = user.get("genre_weights") or {}
+    learned = sum(gw.get(g, 0) for g in mg) * 0.5
+    # Onboarding genre prefs
+    prefs = set(user.get("genres") or [])
+    overlap = len(mg & prefs)
+    # Deterministic jitter per movie for variety without full randomness
+    jitter = (hash(movie["id"]) % 100) / 1000.0
+    return score + learned + overlap * 1.2 + jitter
+
+
+def _reason(movie: dict, user: dict) -> str:
+    mg = set(movie.get("genres", []))
+    gw = user.get("genre_weights") or {}
+    # Best-matching learned genre
+    top_learned = sorted(((g, gw.get(g, 0)) for g in mg), key=lambda x: x[1], reverse=True)
+    if top_learned and top_learned[0][1] >= 2:
+        return f"Because you've been loving {top_learned[0][0]}"
+    prefs = set(user.get("genres") or [])
+    overlap = list(mg & prefs)
+    if overlap:
+        return f"Matches your {overlap[0]} taste"
+    if movie.get("rating", 0) >= 8.5:
+        return f"Critically acclaimed · {movie.get('rating')}/10"
+    return "Worth a look tonight"
 
 
 @api.get("/discover")
@@ -300,7 +329,12 @@ async def discover(user: dict = Depends(require_user), limit: int = 20):
     seen = set((user.get("saved") or []) + (user.get("watched") or []) + (user.get("skipped") or []))
     pool = [m for m in SEED_MOVIES if m["id"] not in seen and _movie_matches(m, user)]
     pool.sort(key=lambda m: _movie_score(m, user), reverse=True)
-    return pool[:limit]
+    out = []
+    for m in pool[:limit]:
+        item = dict(m)
+        item["reason"] = _reason(m, user)
+        out.append(item)
+    return out
 
 
 @api.get("/movies/{movie_id}")
@@ -322,12 +356,17 @@ async def user_action(payload: ActionIn, user: dict = Depends(require_user)):
         await db.users.update_one({"user_id": uid}, {"$pull": {"saved": payload.movie_id}})
     else:
         field = field_map[payload.action]
-        # Remove from skipped if user later saves/watches
         await db.users.update_one(
             {"user_id": uid},
             {"$addToSet": {field: payload.movie_id},
              "$pull": {f: payload.movie_id for f in ["saved", "skipped", "watched"] if f != field}},
         )
+        # Update learned genre weights (only on forward actions, not unsave)
+        delta = ACTION_WEIGHTS.get(payload.action, 0)
+        if delta:
+            inc = {f"genre_weights.{g}": delta for g in movie.get("genres", [])}
+            if inc:
+                await db.users.update_one({"user_id": uid}, {"$inc": inc})
     fresh = await db.users.find_one({"user_id": uid}, {"_id": 0})
     return clean_user(fresh)
 
@@ -554,6 +593,31 @@ async def affiliate_stats(user: dict = Depends(require_user)):
     total_clicks = await db.affiliate_clicks.count_documents({})
     total_users = len(await db.affiliate_clicks.distinct("user_id"))
     return {"total_clicks": total_clicks, "unique_users": total_users, "per_service": per_service}
+
+
+@api.get("/affiliate/export.csv")
+async def affiliate_export_csv(user: dict = Depends(require_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin only")
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        "created_at", "user_id", "service_id", "service_name",
+        "movie_id", "movie_title", "tracked_url", "referer", "user_agent",
+    ])
+    cursor = db.affiliate_clicks.find({}, {"_id": 0}).sort("created_at", -1)
+    async for r in cursor:
+        writer.writerow([
+            r.get("created_at"), r.get("user_id"), r.get("service_id"), r.get("service_name"),
+            r.get("movie_id"), r.get("movie_title"), r.get("tracked_url"),
+            r.get("referer", ""), r.get("user_agent", ""),
+        ])
+    buf.seek(0)
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=watchsmart_affiliate_clicks.csv"},
+    )
 
 
 @api.get("/")

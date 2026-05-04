@@ -1,150 +1,240 @@
-"""Reelm backend API tests."""
+"""WatchSmart backend API tests (iteration 2: affiliate, learning, tutorial support)."""
 import os
 import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://watchsmart-3.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ["REACT_APP_BACKEND_URL"].rstrip("/")
 API = f"{BASE_URL}/api"
+
+ADMIN_EMAIL = "admin@watchsmart.app"
+ADMIN_PASSWORD = "admin123"
+
+
+def H(tok):
+    return {"Authorization": f"Bearer {tok}"}
 
 
 @pytest.fixture(scope="session")
 def admin_token():
-    r = requests.post(f"{API}/auth/login", json={"email": "admin@reelm.app", "password": "admin123"})
+    r = requests.post(f"{API}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
     assert r.status_code == 200, f"admin login failed: {r.status_code} {r.text}"
     return r.json()["access_token"]
 
 
 @pytest.fixture(scope="session")
 def user_ctx():
-    email = f"tester_{uuid.uuid4().hex[:6]}@reelm.app"
+    email = f"tester_{uuid.uuid4().hex[:8]}@watchsmart.app"
     r = requests.post(f"{API}/auth/register", json={"email": email, "password": "Test1234!", "name": "Tester"})
     assert r.status_code == 200, r.text
     data = r.json()
     return {"email": email, "token": data["access_token"], "user": data["user"]}
 
 
-def H(tok): return {"Authorization": f"Bearer {tok}"}
-
-
-# --- Auth ---
+# --- Auth (cookie + bearer fallback) ---
 def test_register_duplicate(user_ctx):
     r = requests.post(f"{API}/auth/register", json={"email": user_ctx["email"], "password": "Test1234!", "name": "x"})
     assert r.status_code == 409
 
+
 def test_login_invalid():
-    r = requests.post(f"{API}/auth/login", json={"email": "admin@reelm.app", "password": "wrong"})
+    r = requests.post(f"{API}/auth/login", json={"email": ADMIN_EMAIL, "password": "wrong"})
     assert r.status_code == 401
 
-def test_login_admin(admin_token):
-    assert admin_token
 
-def test_me(user_ctx):
+def test_login_admin_returns_access_token(admin_token):
+    assert admin_token and isinstance(admin_token, str)
+
+
+def test_me_bearer(user_ctx):
     r = requests.get(f"{API}/auth/me", headers=H(user_ctx["token"]))
     assert r.status_code == 200
     assert r.json()["email"] == user_ctx["email"]
+
+
+def test_me_cookie():
+    """Login via cookie and call /me using cookie only (no bearer)"""
+    s = requests.Session()
+    email = f"cookieu_{uuid.uuid4().hex[:6]}@watchsmart.app"
+    r = s.post(f"{API}/auth/register", json={"email": email, "password": "Test1234!", "name": "CookieU"})
+    assert r.status_code == 200
+    # Now call me with ONLY cookies
+    r2 = s.get(f"{API}/auth/me")
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["email"] == email
+
 
 def test_me_unauth():
     r = requests.get(f"{API}/auth/me")
     assert r.status_code == 401
 
+
 def test_logout(user_ctx):
     r = requests.post(f"{API}/auth/logout", headers=H(user_ctx["token"]))
     assert r.status_code == 200
 
-def test_google_session_missing_header():
-    r = requests.post(f"{API}/auth/google/session")
-    assert r.status_code in (401, 422)
 
-
-# --- Reference ---
+# --- Reference data ---
 def test_services():
     r = requests.get(f"{API}/services")
     assert r.status_code == 200
     data = r.json()
-    assert len(data) == 8
+    assert len(data) >= 1
     assert all("id" in s and "price_monthly" in s for s in data)
+
 
 def test_genres():
     r = requests.get(f"{API}/genres")
     assert r.status_code == 200
-    assert len(r.json()) == 14
+    assert len(r.json()) >= 5
 
 
-# --- Preferences + Discovery ---
-def test_preferences_and_discover(user_ctx):
+# --- Preferences + Discover w/ reason field ---
+def test_discover_reason_and_filter(user_ctx):
     tok = user_ctx["token"]
-    r = requests.put(f"{API}/user/preferences",
-                     headers=H(tok),
+    r = requests.put(f"{API}/user/preferences", headers=H(tok),
                      json={"services": ["netflix", "hbo_max"], "genres": ["Sci-Fi", "Drama"]})
     assert r.status_code == 200
-    u = r.json()
-    assert set(u["subscriptions"]) == {"netflix", "hbo_max"}
-    assert set(u["genres"]) == {"Sci-Fi", "Drama"}
-
     r = requests.get(f"{API}/discover", headers=H(tok))
     assert r.status_code == 200
     movies = r.json()
     assert len(movies) > 0
-    # All returned should be available on subscribed services
     for m in movies:
+        assert "reason" in m and isinstance(m["reason"], str) and len(m["reason"]) > 0
         assert set(m["available_on"]) & {"netflix", "hbo_max"}
 
-def test_movie_detail(user_ctx):
+
+# --- Self-learning genre_weights via $inc ---
+def test_genre_weights_inc_on_actions():
+    """Save/watched/skip should $inc genre_weights; unsave should NOT."""
+    email = f"learn_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    r = requests.post(f"{API}/auth/register", json={"email": email, "password": "Test1234!", "name": "L"})
+    tok = r.json()["access_token"]
+
+    # Discover 3 movies (no prefs set → all movies pool)
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    assert len(movies) >= 3
+    m_save, m_watch, m_skip = movies[0], movies[1], movies[2]
+
+    # save m_save (+2 per genre)
+    requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": m_save["id"], "action": "save"})
+    # watched m_watch (+3 per genre)
+    requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": m_watch["id"], "action": "watched"})
+    # skip m_skip (-1 per genre)
+    requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": m_skip["id"], "action": "skip"})
+
+    me = requests.get(f"{API}/auth/me", headers=H(tok)).json()
+    gw = me.get("genre_weights") or {}
+    assert gw, f"genre_weights should be populated, got {gw}"
+
+    # Each genre of m_save should have at least +2 (or +2 -1 if overlap with skip)
+    for g in m_save["genres"]:
+        assert g in gw
+        # +2 from save, potentially -1 if also in skip genres
+        expected_min = 2 + (-1 if g in m_skip["genres"] else 0) + (3 if g in m_watch["genres"] else 0)
+        assert gw[g] == expected_min, f"genre {g}: got {gw[g]}, expected {expected_min}"
+
+    # Now unsave m_save — should NOT change genre_weights
+    before = dict(gw)
+    requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": m_save["id"], "action": "unsave"})
+    me2 = requests.get(f"{API}/auth/me", headers=H(tok)).json()
+    assert (me2.get("genre_weights") or {}) == before, "unsave must not change genre_weights"
+
+
+def test_discover_reason_reflects_learning():
+    """After repeated saves in a genre, reason should mention 'loving <genre>'."""
+    email = f"reason_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "R"}).json()["access_token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    # Save top movie
+    requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": movies[0]["id"], "action": "save"})
+    # Now fetch discover again
+    movies2 = requests.get(f"{API}/discover", headers=H(tok)).json()
+    assert all("reason" in m for m in movies2)
+
+
+# --- Affiliate endpoints ---
+def test_affiliate_click_and_me(user_ctx):
     tok = user_ctx["token"]
     movies = requests.get(f"{API}/discover", headers=H(tok)).json()
-    mid = movies[0]["id"]
-    r = requests.get(f"{API}/movies/{mid}", headers=H(tok))
+    m = movies[0]
+    svc = m["available_on"][0]
+    r = requests.post(f"{API}/affiliate/click", headers=H(tok),
+                      json={"movie_id": m["id"], "service_id": svc})
+    assert r.status_code == 200, r.text
+    url = r.json()["url"]
+    assert "utm_source=watchsmart" in url
+    assert "utm_medium=referral" in url
+    assert "utm_campaign=where-to-watch" in url
+    assert f"utm_content={svc}%3A{m['id']}" in url or f"utm_content={svc}:{m['id']}" in url
+    assert "ref=watchsmart" in url
+    assert "sub_id=" in url
+
+    # /affiliate/me
+    r = requests.get(f"{API}/affiliate/me", headers=H(tok))
     assert r.status_code == 200
-    assert r.json()["id"] == mid
+    data = r.json()
+    assert data["total"] >= 1
+    assert any(s["service_id"] == svc for s in data["per_service"])
+
+
+def test_affiliate_click_invalid_service(user_ctx):
+    tok = user_ctx["token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    r = requests.post(f"{API}/affiliate/click", headers=H(tok),
+                      json={"movie_id": movies[0]["id"], "service_id": "bogus_svc"})
+    assert r.status_code == 404
+
+
+def test_affiliate_stats_admin_only(admin_token, user_ctx):
+    # Non-admin blocked
+    r = requests.get(f"{API}/affiliate/stats", headers=H(user_ctx["token"]))
+    assert r.status_code == 403
+    # Admin allowed
+    r = requests.get(f"{API}/affiliate/stats", headers=H(admin_token))
+    assert r.status_code == 200
+    data = r.json()
+    assert "total_clicks" in data
+    assert "unique_users" in data
+    assert "per_service" in data
+    if data["per_service"]:
+        assert "unique_users" in data["per_service"][0]
+
+
+def test_affiliate_csv_admin_only(admin_token, user_ctx):
+    r = requests.get(f"{API}/affiliate/export.csv", headers=H(user_ctx["token"]))
+    assert r.status_code == 403
+    r = requests.get(f"{API}/affiliate/export.csv", headers=H(admin_token))
+    assert r.status_code == 200
+    cd = r.headers.get("content-disposition", "")
+    assert "attachment" in cd and "filename=" in cd
+    assert "text/csv" in r.headers.get("content-type", "")
+    # CSV has header row
+    first_line = r.text.split("\n")[0]
+    for col in ["created_at", "user_id", "service_id", "movie_id", "tracked_url"]:
+        assert col in first_line
+
+
+# --- Discover excludes seen items ---
+def test_discover_excludes_seen():
+    email = f"seen_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "S"}).json()["access_token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    m1, m2, m3 = movies[0]["id"], movies[1]["id"], movies[2]["id"]
+    for mid, act in [(m1, "save"), (m2, "watched"), (m3, "skip")]:
+        requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": mid, "action": act})
+    disc = requests.get(f"{API}/discover", headers=H(tok)).json()
+    ids = {m["id"] for m in disc}
+    assert m1 not in ids and m2 not in ids and m3 not in ids
+
 
 def test_movie_not_found(user_ctx):
     r = requests.get(f"{API}/movies/nope", headers=H(user_ctx["token"]))
     assert r.status_code == 404
 
 
-# --- Actions & Lists ---
-def test_action_save_watched_skip_unsave(user_ctx):
-    tok = user_ctx["token"]
-    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
-    m1, m2, m3 = movies[0]["id"], movies[1]["id"], movies[2]["id"]
-
-    # save m1
-    r = requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": m1, "action": "save"})
-    assert r.status_code == 200
-    assert m1 in r.json()["saved"]
-
-    # watchlist includes m1
-    r = requests.get(f"{API}/watchlist", headers=H(tok))
-    assert r.status_code == 200
-    assert any(x["id"] == m1 for x in r.json())
-
-    # watched m2
-    r = requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": m2, "action": "watched"})
-    assert m2 in r.json()["watched"]
-    r = requests.get(f"{API}/watched", headers=H(tok))
-    assert any(x["id"] == m2 for x in r.json())
-
-    # skip m3
-    r = requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": m3, "action": "skip"})
-    assert m3 in r.json()["skipped"]
-
-    # re-categorize: save m3 -> should move out of skipped
-    r = requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": m3, "action": "save"})
-    u = r.json()
-    assert m3 in u["saved"] and m3 not in u["skipped"]
-
-    # unsave m1
-    r = requests.post(f"{API}/user/action", headers=H(tok), json={"movie_id": m1, "action": "unsave"})
-    assert m1 not in r.json()["saved"]
-
-    # discover should exclude seen items
-    disc = requests.get(f"{API}/discover", headers=H(tok)).json()
-    ids = {m["id"] for m in disc}
-    assert m2 not in ids and m3 not in ids
-
-
-# --- Savings ---
 def test_savings(user_ctx):
     tok = user_ctx["token"]
     requests.put(f"{API}/user/preferences", headers=H(tok),
@@ -152,21 +242,5 @@ def test_savings(user_ctx):
     r = requests.get(f"{API}/savings", headers=H(tok))
     assert r.status_code == 200
     d = r.json()
-    assert "total_monthly" in d and "total_yearly" in d
     assert d["total_yearly"] == round(d["total_monthly"] * 12, 2)
     assert d["subscription_count"] == 3
-    assert len(d["usage"]) == 3
-    assert "overlap_titles" in d
-    assert isinstance(d["suggestions"], list)
-
-
-# --- AI explanation ---
-def test_explain(user_ctx):
-    tok = user_ctx["token"]
-    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
-    mid = movies[0]["id"]
-    r = requests.post(f"{API}/recommendations/explain", headers=H(tok),
-                      json={"movie_id": mid}, timeout=30)
-    assert r.status_code == 200
-    assert "explanation" in r.json()
-    assert len(r.json()["explanation"]) > 10

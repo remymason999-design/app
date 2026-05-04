@@ -1,0 +1,28 @@
+{
+  "summary": "Iteration 2 full backend + frontend testing of WatchSmart (affiliate tracking, self-learning recommendations, tutorial coachmarks, fullscreen trailer modal, Bearer auth fallback). 19/19 backend pytest tests PASSED including new tests for cookie auth fallback, genre_weights $inc semantics, affiliate click UTM URL, /affiliate/me aggregation, admin-only /affiliate/stats and CSV export (non-admin 403), discover reason field, seen-exclusion. Frontend verified via Playwright: Landing (WatchSmart brand/BETA/poster fan), Register→Onboarding→Discover flow, Tutorial 4-step overlay (Next/Back/Done/Skip) with localStorage persistence, reason pill on top card ('Matches your Sci-Fi taste'), Profile learning card (5 genre bars) + replay tutorial + affiliate card, MovieDetail trailer modal using youtube-nocookie with autoplay=1&mute=1&playsinline=1, Watch-on affiliate click returning correctly tagged URL and opening new tab.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": { "ui_bugs": [], "integration_issues": [], "design_issues": [] },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py ~675 lines — still acceptable but approaching the 700-line split threshold. Consider splitting into routers: auth.py, discovery.py, affiliate.py, savings.py.",
+    "CORS allow_origin_regex='.*' + allow_credentials=True is permissive. Restrict to explicit REACT_APP_BACKEND_URL origin before production.",
+    "/api/auth/refresh endpoint still not implemented; cookies/JWT have 7-day expiry so user re-login is required after that. Low priority for MVP.",
+    "genre_weights is stored as a flat dict and modified via $inc on dotted path — works with MongoDB but means initial document has no 'genre_weights' field; Discover's user.genre_weights || {} guard correctly handles absence.",
+    "Affiliate URL builder uses urlencode + parse_qsl which will URL-encode ':' in utm_content to '%3A' — acceptable and backend test already accepts both forms. Downstream analytics may need decoding.",
+    "Tutorial.jsx uses a 600ms setTimeout in Discover before showing overlay; if user navigates away within that window and back, no flicker because shouldShowTutorial() re-checks localStorage. OK.",
+    "ActionIn Literal['save','skip','watched','unsave'] — good Pydantic validation.",
+    "Admin RBAC is email-seeded role='admin'; there is no /api/admin/users management UI, only CSV export. Fine for current scope."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": { "backend": "100%", "frontend": "100%" },
+  "test_credentials": "admin@watchsmart.app / admin123 (seeded); test users registered dynamically via /api/auth/register",
+  "seed_data_creation": "Playwright tests created ephemeral users with unique uuid-prefixed emails; backend pytest likewise. No persistent test data left behind except the affiliate_clicks collection rows.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest suite at /app/backend/tests/backend_test.py (19 tests). BASE_URL must come from REACT_APP_BACKEND_URL env var — export it before running pytest. Admin email is admin@watchsmart.app (updated from old 'reelm' domain). New endpoints to watch: /api/affiliate/click (POST), /api/affiliate/me, /api/affiliate/stats (admin), /api/affiliate/export.csv (admin), and /api/user/action now also $inc's user.genre_weights. Discover returns a 'reason' string per item. Frontend data-testids: tutorial-overlay, tutorial-next, tutorial-back, tutorial-skip, tutorial-done, discover-card-top, learning-card, learned-<genre>, replay-tutorial-btn, affiliate-card, play-trailer-btn, trailer-modal, trailer-close, watch-on-<service_id>. Tutorial has 600ms mount-to-show delay — wait >=1.5s. Preset localStorage ws_tutorial_v1_seen='1' if you need to bypass tutorial in later tests.",
+  "rca of the issue": "No issues found."
+}

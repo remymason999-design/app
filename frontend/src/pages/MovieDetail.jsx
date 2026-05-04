@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ArrowLeft, Heart, Eye, Star, Sparkles, Play, ExternalLink } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Heart, Eye, Star, Sparkles, Play, ExternalLink, X } from "lucide-react";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export default function MovieDetail() {
     const { id } = useParams();
@@ -120,9 +119,7 @@ export default function MovieDetail() {
                             onClick={() => act(isSaved ? "unsave" : "save")}
                             data-testid="detail-save-btn"
                             className={`py-3.5 rounded-2xl font-heading flex items-center justify-center gap-2 transition-colors ${
-                                isSaved
-                                    ? "bg-amber text-obsidian amber-glow"
-                                    : "border border-white/12 hover:bg-white/5"
+                                isSaved ? "bg-amber text-obsidian amber-glow" : "border border-white/12 hover:bg-white/5"
                             }`}
                         >
                             <Heart className={`w-4 h-4 ${isSaved ? "fill-obsidian" : ""}`} />
@@ -132,9 +129,7 @@ export default function MovieDetail() {
                             onClick={() => act("watched")}
                             data-testid="detail-watched-btn"
                             className={`py-3.5 rounded-2xl font-heading flex items-center justify-center gap-2 transition-colors ${
-                                isWatched
-                                    ? "bg-white/10 border border-white/15"
-                                    : "border border-white/12 hover:bg-white/5"
+                                isWatched ? "bg-white/10 border border-white/15" : "border border-white/12 hover:bg-white/5"
                             }`}
                         >
                             <Eye className="w-4 h-4" /> {isWatched ? "Watched" : "Mark watched"}
@@ -153,9 +148,7 @@ export default function MovieDetail() {
                         <div className="flex-1">
                             <div className="font-heading text-sm mb-1">Why you'll love this</div>
                             <p className="text-sm text-zinc-400 leading-relaxed">
-                                {explainLoading
-                                    ? "Thinking…"
-                                    : explanation || "Tap to get a personal take based on your taste."}
+                                {explainLoading ? "Thinking…" : explanation || "Tap to get a personal take based on your taste."}
                             </p>
                         </div>
                     </button>
@@ -194,24 +187,42 @@ export default function MovieDetail() {
                 </motion.div>
             </div>
 
-            <Dialog open={trailerOpen} onOpenChange={setTrailerOpen}>
-                <DialogContent className="bg-obsidian border-white/10 max-w-3xl p-0 overflow-hidden">
-                    <DialogTitle className="sr-only">{movie.title} trailer</DialogTitle>
-                    {trailerOpen && (
-                        <div className="aspect-video">
+            {/* Custom full-screen trailer modal — avoids shadcn Dialog sizing issues on mobile */}
+            <AnimatePresence>
+                {trailerOpen && movie.trailer_youtube_id && (
+                    <motion.div
+                        className="fixed inset-0 z-[60] bg-black/95 flex items-center justify-center"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setTrailerOpen(false)}
+                        data-testid="trailer-modal"
+                    >
+                        <button
+                            onClick={() => setTrailerOpen(false)}
+                            data-testid="trailer-close"
+                            className="absolute top-4 right-4 h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur grid place-items-center z-10"
+                            aria-label="close trailer"
+                        >
+                            <X className="h-5 w-5 text-white" />
+                        </button>
+                        <div
+                            className="w-full aspect-video max-w-5xl"
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             <iframe
-                                title="trailer"
+                                title={`${movie.title} trailer`}
                                 width="100%"
                                 height="100%"
-                                src={`https://www.youtube.com/embed/${movie.trailer_youtube_id}?autoplay=1`}
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                                src={`https://www.youtube-nocookie.com/embed/${movie.trailer_youtube_id}?playsinline=1&rel=0&modestbranding=1&autoplay=1&mute=1`}
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowFullScreen
+                                style={{ border: 0, background: "#000" }}
                             />
                         </div>
-                    )}
-                </DialogContent>
-            </Dialog>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
