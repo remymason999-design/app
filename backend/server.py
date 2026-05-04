@@ -26,18 +26,53 @@ from pydantic import BaseModel, Field, EmailStr
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 from movies_seed import SEED_MOVIES, STREAMING_SERVICES, GENRES
+import tmdb as tmdb_client
 
 # --- Setup ----------------------------------------------------------------
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("watchsmart")
 
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
+client = AsyncIOMotorClient(
+    mongo_url,
+    maxPoolSize=200,            # handle high concurrency
+    minPoolSize=10,
+    waitQueueTimeoutMS=5000,
+    serverSelectionTimeoutMS=5000,
+)
 db = client[os.environ['DB_NAME']]
 
 JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"
 EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
+
+# In-memory cache of movies — populated from MongoDB (which is seeded from TMDB).
+# Falls back to the bundled seed list if DB is empty / TMDB unavailable.
+CATALOG: List[dict] = list(SEED_MOVIES)
+
+
+async def _load_catalog_from_db():
+    """Load the movie catalog from MongoDB into the in-memory CATALOG."""
+    global CATALOG
+    docs = await db.movies_cache.find({}, {"_id": 0}).to_list(length=10000)
+    if docs:
+        CATALOG = docs
+        logger.info(f"Catalog loaded from MongoDB: {len(CATALOG)} titles")
+    else:
+        CATALOG = list(SEED_MOVIES)
+        logger.info(f"Catalog using seed: {len(CATALOG)} titles")
+
+
+async def _refresh_catalog_from_tmdb(pages: int = 3) -> int:
+    """Fetch from TMDB and replace MongoDB cache."""
+    items = await tmdb_client.fetch_catalog(pages=pages)
+    if not items:
+        return 0
+    await db.movies_cache.delete_many({})
+    if items:
+        await db.movies_cache.insert_many([dict(m) for m in items])
+    await _load_catalog_from_db()
+    return len(items)
 
 app = FastAPI(title="WatchSmart API")
 api = APIRouter(prefix="/api")
@@ -208,6 +243,34 @@ async def logout(response: Response, request: Request):
     return {"ok": True}
 
 
+@api.post("/auth/refresh")
+async def refresh_access_token(request: Request, response: Response):
+    """Issue a new access token from the refresh_token cookie or Authorization Bearer."""
+    token = request.cookies.get("refresh_token")
+    if not token:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            token = auth[7:]
+    if not token:
+        raise HTTPException(401, "No refresh token")
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "refresh":
+            raise HTTPException(401, "Invalid token type")
+        uid = payload["sub"]
+        user = await db.users.find_one({"user_id": uid}, {"_id": 0})
+        if not user:
+            raise HTTPException(401, "User not found")
+        access = create_access_token(uid, user["email"])
+        response.set_cookie(
+            "access_token", access, httponly=True, secure=True,
+            samesite="none", max_age=60*60*24*7, path="/",
+        )
+        return {"access_token": access}
+    except jwt.PyJWTError:
+        raise HTTPException(401, "Invalid refresh token")
+
+
 @api.get("/auth/me")
 async def me(user: dict = Depends(require_user)):
     return user
@@ -327,7 +390,11 @@ def _reason(movie: dict, user: dict) -> str:
 @api.get("/discover")
 async def discover(user: dict = Depends(require_user), limit: int = 20):
     seen = set((user.get("saved") or []) + (user.get("watched") or []) + (user.get("skipped") or []))
-    pool = [m for m in SEED_MOVIES if m["id"] not in seen and _movie_matches(m, user)]
+    pool = [m for m in CATALOG if m["id"] not in seen and _movie_matches(m, user)]
+    # Cap scoring work to top-N candidates by popularity to keep latency O(catalog) bounded
+    if len(pool) > 500:
+        pool.sort(key=lambda m: m.get("popularity", 0), reverse=True)
+        pool = pool[:500]
     pool.sort(key=lambda m: _movie_score(m, user), reverse=True)
     out = []
     for m in pool[:limit]:
@@ -339,7 +406,7 @@ async def discover(user: dict = Depends(require_user), limit: int = 20):
 
 @api.get("/movies/{movie_id}")
 async def get_movie(movie_id: str, user: dict = Depends(require_user)):
-    m = next((x for x in SEED_MOVIES if x["id"] == movie_id), None)
+    m = next((x for x in CATALOG if x["id"] == movie_id), None)
     if not m:
         raise HTTPException(404, "Movie not found")
     return m
@@ -347,7 +414,7 @@ async def get_movie(movie_id: str, user: dict = Depends(require_user)):
 
 @api.post("/user/action")
 async def user_action(payload: ActionIn, user: dict = Depends(require_user)):
-    movie = next((x for x in SEED_MOVIES if x["id"] == payload.movie_id), None)
+    movie = next((x for x in CATALOG if x["id"] == payload.movie_id), None)
     if not movie:
         raise HTTPException(404, "Movie not found")
     field_map = {"save": "saved", "skip": "skipped", "watched": "watched"}
@@ -372,7 +439,7 @@ async def user_action(payload: ActionIn, user: dict = Depends(require_user)):
 
 
 def _movies_by_ids(ids: List[str]) -> List[dict]:
-    by_id = {m["id"]: m for m in SEED_MOVIES}
+    by_id = {m["id"]: m for m in CATALOG}
     return [by_id[i] for i in ids if i in by_id]
 
 
@@ -406,8 +473,7 @@ async def savings(user: dict = Depends(require_user)):
         count = sum(1 for m in activity if sid in m.get("available_on", []))
         # availability for discovery (titles available on this service in seed pool not yet seen)
         seen = set(activity_ids + (user.get("skipped") or []))
-        avail_unseen = sum(
-            1 for m in SEED_MOVIES
+        avail_unseen = sum(1 for m in CATALOG
             if sid in m.get("available_on", []) and m["id"] not in seen
         )
         usage.append({
@@ -447,7 +513,7 @@ async def savings(user: dict = Depends(require_user)):
             "monthly_savings": round(total / len(subs), 2),
         })
 
-    overlap_titles = sum(1 for m in SEED_MOVIES if len(set(m.get("available_on", [])) & set(subs)) >= 2)
+    overlap_titles = sum(1 for m in CATALOG if len(set(m.get("available_on", [])) & set(subs)) >= 2)
 
     return {
         "total_monthly": round(total, 2),
@@ -462,7 +528,7 @@ async def savings(user: dict = Depends(require_user)):
 # --- AI explanation -------------------------------------------------------
 @api.post("/recommendations/explain")
 async def explain(payload: ExplainIn, user: dict = Depends(require_user)):
-    movie = next((x for x in SEED_MOVIES if x["id"] == payload.movie_id), None)
+    movie = next((x for x in CATALOG if x["id"] == payload.movie_id), None)
     if not movie:
         raise HTTPException(404, "Movie not found")
     saved_titles = [m["title"] for m in _movies_by_ids((user.get("saved") or [])[:5])]
@@ -536,7 +602,7 @@ async def affiliate_click(payload: ClickIn, request: Request, user: dict = Depen
     svc = services_by_id.get(payload.service_id)
     if not svc:
         raise HTTPException(404, "Service not found")
-    movie = next((m for m in SEED_MOVIES if m["id"] == payload.movie_id), None)
+    movie = next((m for m in CATALOG if m["id"] == payload.movie_id), None)
     if not movie:
         raise HTTPException(404, "Movie not found")
     tracked_url = build_affiliate_url(svc["affiliate_url"], user["user_id"], movie["id"], svc["id"])
@@ -622,7 +688,53 @@ async def affiliate_export_csv(user: dict = Depends(require_user)):
 
 @api.get("/")
 async def root():
-    return {"app": "WatchSmart", "status": "ok"}
+    return {"app": "WatchSmart", "status": "ok", "catalog_size": len(CATALOG)}
+
+
+# --- Admin -----------------------------------------------------------------
+@api.post("/admin/refresh-catalog")
+async def admin_refresh_catalog(user: dict = Depends(require_user), pages: int = 3):
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin only")
+    try:
+        n = await _refresh_catalog_from_tmdb(pages=pages)
+        return {"ok": True, "count": n}
+    except Exception as e:
+        logger.error(f"Catalog refresh failed: {e}")
+        raise HTTPException(502, f"TMDB refresh failed: {e}")
+
+
+@api.get("/admin/dashboard")
+async def admin_dashboard(user: dict = Depends(require_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(403, "Admin only")
+    total_users = await db.users.count_documents({})
+    total_clicks = await db.affiliate_clicks.count_documents({})
+    unique_click_users = len(await db.affiliate_clicks.distinct("user_id"))
+    pipeline = [
+        {"$group": {"_id": "$service_id", "count": {"$sum": 1}, "service_name": {"$first": "$service_name"}}},
+        {"$sort": {"count": -1}},
+    ]
+    by_service = []
+    async for row in db.affiliate_clicks.aggregate(pipeline):
+        by_service.append({"service_id": row["_id"], "service_name": row.get("service_name"), "count": row["count"]})
+    # Recent clicks
+    recent = []
+    async for r in db.affiliate_clicks.find({}, {"_id": 0}).sort("created_at", -1).limit(20):
+        recent.append({
+            "created_at": r.get("created_at"),
+            "user_id": r.get("user_id"),
+            "service_name": r.get("service_name"),
+            "movie_title": r.get("movie_title"),
+        })
+    return {
+        "catalog_size": len(CATALOG),
+        "total_users": total_users,
+        "total_clicks": total_clicks,
+        "unique_click_users": unique_click_users,
+        "by_service": by_service,
+        "recent": recent,
+    }
 
 
 # --- App config -----------------------------------------------------------
@@ -641,6 +753,8 @@ async def on_startup():
     await db.users.create_index("email", unique=True)
     await db.users.create_index("user_id", unique=True)
     await db.user_sessions.create_index("session_token", unique=True)
+    await db.movies_cache.create_index("id", unique=True)
+    await db.affiliate_clicks.create_index("created_at")
     # Seed admin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@watchsmart.app").lower()
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
@@ -667,6 +781,20 @@ async def on_startup():
             {"email": admin_email},
             {"$set": {"password_hash": hash_password(admin_password)}},
         )
+    elif existing.get("role") != "admin":
+        await db.users.update_one({"email": admin_email}, {"$set": {"role": "admin"}})
+
+    # Load catalog from DB; if empty, try TMDB seed in background
+    await _load_catalog_from_db()
+    if len(CATALOG) <= len(SEED_MOVIES) and os.environ.get("TMDB_BEARER_TOKEN"):
+        import asyncio
+        async def _bg():
+            try:
+                n = await _refresh_catalog_from_tmdb(pages=3)
+                logger.info(f"TMDB catalog seeded: {n} titles")
+            except Exception as e:
+                logger.warning(f"Initial TMDB seed failed (continuing with bundled seed): {e}")
+        asyncio.create_task(_bg())
 
 
 @app.on_event("shutdown")

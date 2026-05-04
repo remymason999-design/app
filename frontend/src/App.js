@@ -17,6 +17,7 @@ import Savings from "@/pages/Savings";
 import Profile from "@/pages/Profile";
 import MovieDetail from "@/pages/MovieDetail";
 import AuthCallback from "@/pages/AuthCallback";
+import Admin from "@/pages/Admin";
 
 function AppShell() {
     const location = useLocation();
@@ -81,6 +82,14 @@ function AppShell() {
                     element={
                         <ProtectedRoute>
                             <MovieDetail />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/admin"
+                    element={
+                        <ProtectedRoute>
+                            <Admin />
                         </ProtectedRoute>
                     }
                 />

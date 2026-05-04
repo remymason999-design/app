@@ -1,0 +1,28 @@
+{
+  "summary": "Iteration 3 backend + frontend testing of WatchSmart (TMDB 265-title catalog, /auth/refresh, admin control room, CORS lockdown). 31/31 pytest tests PASSED (12 new tests added covering catalog_size in root, TMDB pool size >=100, /auth/refresh via Bearer + cookie + missing token + invalid token + rejects access tokens as refresh, /admin/dashboard payload + RBAC, /admin/refresh-catalog RBAC without triggering TMDB call, admin role flag). Frontend Playwright verified at 390x844 mobile viewport: admin login via email/password → Discover page with reason badge 'Matches your Sci-Fi taste', Profile shows admin-link only for role=admin, /admin route renders control room (265 CATALOG / 28 USERS / 5 CLICKS stats, by-service bars, export-csv-btn, refresh-catalog-btn, recent-clicks list with Frieren/Stranger Things), non-admin user redirects /admin → /discover (observed redirect to /onboarding for fresh user pre-onboarding), admin-link correctly HIDDEN on non-admin Profile, MovieDetail trailer modal iframe uses youtube-nocookie.com with playsinline=1 autoplay=1 mute=1, Watch-on-hulu returns UTM-tagged hulu.com URL (utm_source=watchsmart, utm_campaign=where-to-watch, utm_content=hulu:tmdb_tv_209867, sub_id=user_...).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": { "ui_bugs": [], "integration_issues": [], "design_issues": [] },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is now 803 lines — has crossed the 700-line split threshold. Recommend extracting routers: auth.py (register/login/logout/refresh/me/google_session), admin.py (dashboard/refresh-catalog), affiliate.py (click/me/stats/export.csv), discovery.py (discover/movies/action/watchlist/watched), savings.py. Would also simplify maintenance of CORS/startup.",
+    "CORS middleware still uses allow_origin_regex='.*' + allow_credentials=True in server.py:745 — the PRD said it would be locked to ALLOWED_ORIGINS + preview regex but the code did NOT change; ALLOWED_ORIGINS env is read nowhere. SECURITY: allow_credentials with wildcard is effectively insecure (browsers block it but some HTTP clients accept, and any preview domain can ride). Should be: origins=ALLOWED_ORIGINS.split(',') + allow_origin_regex=r'https://.*\\.preview\\.emergentagent\\.com'.",
+    "/admin/refresh-catalog uses synchronous await _refresh_catalog_from_tmdb — call can take 30–90s and block the request; consider background task + status polling, or return 202 immediately and update a 'catalog_refresh_status' document.",
+    "admin_dashboard /recent list does not limit/paginate client-side by created_at index usage — though index exists on affiliate_clicks.created_at (good). No concerns for current scale.",
+    "MongoDB connection pool maxPoolSize=200 configured correctly but serverSelectionTimeoutMS=5000 is quite low for under-provisioned clusters; acceptable here.",
+    "tmdb.py — if TMDB rate-limits or errors, _refresh_catalog_from_tmdb returns 0 and deletes the existing cache only when items is truthy — good guard.",
+    "Admin seed on startup updates password_hash OR role but not both in same branch; if an admin email exists with correct password but wrong role, it'd be fixed on a later restart after the password check passes. Minor.",
+    "Frontend Admin.jsx correctly redirects non-admin to /discover (verified in test — new onboarding user was redirected to /onboarding/services before even reaching /discover).",
+    "axios interceptor for /auth/refresh on 401 not directly tested in UI, but backend refresh endpoint works via both cookie and Bearer."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": { "backend": "100% (31/31)", "frontend": "100%" },
+  "test_credentials": "admin@watchsmart.app / admin123 (seeded, role=admin); test users registered dynamically",
+  "seed_data_creation": "Playwright + pytest created ephemeral users (reg_*, tester_*, cookieu_*, learn_*, reason_*, seen_*, pool_*). No persistent state beyond affiliate_clicks entries.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest suite now 31 tests at /app/backend/tests/backend_test.py. Run with: REACT_APP_BACKEND_URL=<url> pytest backend/tests/backend_test.py -v. Iter3 new testids: admin-page, admin-stats, admin-back, admin-link, export-csv-btn, refresh-catalog-btn, recent-clicks, bys-<service>. BYPASS tutorial in Discover tests with localStorage.setItem('ws_tutorial_v1_seen','1'). Admin UI confirmed: 265 titles in catalog, 28 users in DB, ~5 affiliate clicks. /auth/refresh works via both httpOnly cookie and Authorization: Bearer <refresh_jwt>. CORS is still wildcard — not locked down as claimed; flagged for main agent."
+}

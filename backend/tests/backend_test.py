@@ -244,3 +244,113 @@ def test_savings(user_ctx):
     d = r.json()
     assert d["total_yearly"] == round(d["total_monthly"] * 12, 2)
     assert d["subscription_count"] == 3
+
+
+
+# --- Iteration 3: root catalog_size, refresh token, admin dashboard ---
+def test_root_catalog_size():
+    r = requests.get(f"{API}/")
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("app") == "WatchSmart"
+    assert "catalog_size" in data
+    assert isinstance(data["catalog_size"], int)
+    assert data["catalog_size"] >= 100, f"catalog too small: {data['catalog_size']}"
+
+
+def test_catalog_tmdb_size_discover_pool():
+    """When no preferences set, discover pool should still return 20 items from 100+ catalog."""
+    email = f"pool_{uuid.uuid4().hex[:6]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "P"}).json()["access_token"]
+    r = requests.get(f"{API}/discover", headers=H(tok))
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) >= 15, f"discover returned {len(data)} items, expected >=15"
+    # Each item must have reason field
+    for m in data:
+        assert "reason" in m and m["reason"]
+
+
+def test_auth_refresh_no_token():
+    r = requests.post(f"{API}/auth/refresh")
+    assert r.status_code == 401
+
+
+def test_auth_refresh_with_bearer():
+    """Login → take refresh token from cookie, then call /auth/refresh with Bearer."""
+    s = requests.Session()
+    r = s.post(f"{API}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
+    assert r.status_code == 200
+    # refresh_token is httpOnly cookie — use it via session cookies
+    refresh = s.cookies.get("refresh_token")
+    assert refresh, "refresh_token cookie not set"
+    # Call /auth/refresh with Bearer (no cookies)
+    r2 = requests.post(f"{API}/auth/refresh", headers={"Authorization": f"Bearer {refresh}"})
+    assert r2.status_code == 200, r2.text
+    data = r2.json()
+    assert "access_token" in data and len(data["access_token"]) > 20
+    # New access token should work for /auth/me
+    me = requests.get(f"{API}/auth/me", headers=H(data["access_token"]))
+    assert me.status_code == 200
+
+
+def test_auth_refresh_via_cookie():
+    s = requests.Session()
+    r = s.post(f"{API}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
+    assert r.status_code == 200
+    # Call /auth/refresh relying on cookies only
+    r2 = s.post(f"{API}/auth/refresh")
+    assert r2.status_code == 200
+    assert "access_token" in r2.json()
+
+
+def test_auth_refresh_invalid_token():
+    r = requests.post(f"{API}/auth/refresh", headers={"Authorization": "Bearer not-a-jwt"})
+    assert r.status_code == 401
+
+
+def test_auth_refresh_rejects_access_token():
+    """Access token should NOT work as a refresh token."""
+    r = requests.post(f"{API}/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
+    access = r.json()["access_token"]
+    r2 = requests.post(f"{API}/auth/refresh", headers={"Authorization": f"Bearer {access}"})
+    assert r2.status_code == 401
+
+
+def test_admin_dashboard_rbac(admin_token, user_ctx):
+    # Non-admin blocked
+    r = requests.get(f"{API}/admin/dashboard", headers=H(user_ctx["token"]))
+    assert r.status_code == 403
+    # Admin allowed
+    r = requests.get(f"{API}/admin/dashboard", headers=H(admin_token))
+    assert r.status_code == 200
+    data = r.json()
+    for key in ["catalog_size", "total_users", "total_clicks", "unique_click_users", "by_service", "recent"]:
+        assert key in data, f"missing key {key}"
+    assert isinstance(data["catalog_size"], int)
+    assert isinstance(data["total_users"], int) and data["total_users"] >= 1
+    assert isinstance(data["by_service"], list)
+    assert isinstance(data["recent"], list)
+
+
+def test_admin_refresh_catalog_rbac(user_ctx):
+    """Non-admin must get 403 without hitting TMDB."""
+    r = requests.post(f"{API}/admin/refresh-catalog", headers=H(user_ctx["token"]))
+    assert r.status_code == 403
+
+
+def test_admin_refresh_catalog_unauth():
+    r = requests.post(f"{API}/admin/refresh-catalog")
+    assert r.status_code == 401
+
+
+def test_admin_dashboard_unauth():
+    r = requests.get(f"{API}/admin/dashboard")
+    assert r.status_code == 401
+
+
+def test_admin_user_has_role_admin(admin_token):
+    r = requests.get(f"{API}/auth/me", headers=H(admin_token))
+    assert r.status_code == 200
+    assert r.json().get("role") == "admin"

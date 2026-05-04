@@ -34,6 +34,31 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
+let refreshing = null;
+api.interceptors.response.use(
+    (r) => r,
+    async (error) => {
+        const original = error.config || {};
+        if (error.response?.status === 401 && !original._retry && !original.url?.includes("/auth/")) {
+            original._retry = true;
+            try {
+                refreshing = refreshing || api.post("/auth/refresh").then((r) => {
+                    const tok = r.data?.access_token;
+                    if (tok) setToken(tok);
+                    return tok;
+                }).finally(() => { refreshing = null; });
+                const tok = await refreshing;
+                if (tok) {
+                    original.headers = original.headers || {};
+                    original.headers.Authorization = `Bearer ${tok}`;
+                    return api(original);
+                }
+            } catch {}
+        }
+        return Promise.reject(error);
+    }
+);
+
 export const apiGet = (url, config) => api.get(url, config).then((r) => r.data);
 export const apiPost = (url, data, config) => api.post(url, data, config).then((r) => r.data);
 export const apiPut = (url, data, config) => api.put(url, data, config).then((r) => r.data);

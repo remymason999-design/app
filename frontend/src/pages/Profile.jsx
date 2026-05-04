@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { LogOut, Settings, Tv2, Tag, Eye, TrendingUp, HelpCircle } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { LogOut, Settings, Tv2, Tag, Eye, TrendingUp, HelpCircle, Shield } from "lucide-react";
 import { apiGet, apiPut, formatApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -196,6 +196,18 @@ export default function Profile() {
                 <HelpCircle className="w-4 h-4" />
                 Replay quick tour
             </button>
+
+            {user.role === "admin" && (
+                <Link
+                    to="/admin"
+                    data-testid="admin-link"
+                    className="mt-3 w-full flex items-center justify-center gap-2 py-4 rounded-2xl border border-amber/40 bg-amber/10 text-amber hover:bg-amber/15 font-heading"
+                >
+                    <Shield className="w-4 h-4" />
+                    Admin control room
+                </Link>
+            )}
+
 
             <button
                 onClick={onLogout}
