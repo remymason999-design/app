@@ -38,7 +38,7 @@ export default function Register() {
     return (
         <div className="min-h-screen px-6 py-12 max-w-md mx-auto flex flex-col">
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-                <Link to="/" className="text-xs uppercase tracking-[0.25em] text-zinc-500" data-testid="link-home">Reelm</Link>
+                <Link to="/" className="text-xs uppercase tracking-[0.25em] text-zinc-500" data-testid="link-home">WatchSmart</Link>
                 <h1 className="font-display text-4xl mt-6 mb-2">Create your account</h1>
                 <p className="text-zinc-400 mb-8">Free forever. Cancel any time (yours and theirs).</p>
 

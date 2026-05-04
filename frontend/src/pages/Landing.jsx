@@ -33,9 +33,9 @@ export default function Landing() {
                 >
                     <div className="flex items-center gap-2 mb-12">
                         <div className="h-9 w-9 rounded-2xl bg-amber flex items-center justify-center text-obsidian font-display text-xl">
-                            R
+                            W
                         </div>
-                        <span className="font-heading text-xl tracking-tight">Reelm</span>
+                        <span className="font-heading text-xl tracking-tight">WatchSmart</span>
                     </div>
 
                     <h1 className="font-display text-5xl sm:text-6xl leading-[0.95] mb-6">
@@ -45,7 +45,7 @@ export default function Landing() {
                     </h1>
 
                     <p className="text-zinc-400 text-base leading-relaxed mb-10 max-w-sm">
-                        Reelm finds what's actually worth your time across every streaming
+                        WatchSmart finds what's actually worth your time across every streaming
                         service you pay for — and helps you cancel the ones you don't need.
                     </p>
 

@@ -1,4 +1,4 @@
-"""Reelm backend: streaming discovery + savings."""
+"""WatchSmart backend: streaming discovery + savings."""
 from dotenv import load_dotenv
 from pathlib import Path
 
@@ -26,7 +26,7 @@ from movies_seed import SEED_MOVIES, STREAMING_SERVICES, GENRES
 
 # --- Setup ----------------------------------------------------------------
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("reelm")
+logger = logging.getLogger("watchsmart")
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -36,7 +36,7 @@ JWT_SECRET = os.environ['JWT_SECRET']
 JWT_ALGORITHM = "HS256"
 EMERGENT_AUTH_URL = "https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data"
 
-app = FastAPI(title="Reelm API")
+app = FastAPI(title="WatchSmart API")
 api = APIRouter(prefix="/api")
 
 
@@ -429,7 +429,7 @@ async def explain(payload: ExplainIn, user: dict = Depends(require_user)):
     user_genres = user.get("genres") or []
 
     system = (
-        "You are Reelm, a sharp, friendly streaming concierge. "
+        "You are WatchSmart, a sharp, friendly streaming concierge. "
         "Write a single concise paragraph (max 55 words) explaining why a specific movie/show "
         "matches the user's taste. Reference the user's preferred genres and recent activity if relevant. "
         "Be specific, never generic. Never use bullet points or markdown."
@@ -471,7 +471,7 @@ async def explain(payload: ExplainIn, user: dict = Depends(require_user)):
 
 @api.get("/")
 async def root():
-    return {"app": "Reelm", "status": "ok"}
+    return {"app": "WatchSmart", "status": "ok"}
 
 
 # --- App config -----------------------------------------------------------
@@ -479,7 +479,6 @@ app.include_router(api)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
     allow_origin_regex=".*",
     allow_methods=["*"],
     allow_headers=["*"],
@@ -492,7 +491,7 @@ async def on_startup():
     await db.users.create_index("user_id", unique=True)
     await db.user_sessions.create_index("session_token", unique=True)
     # Seed admin
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@reelm.app").lower()
+    admin_email = os.environ.get("ADMIN_EMAIL", "admin@watchsmart.app").lower()
     admin_password = os.environ.get("ADMIN_PASSWORD", "admin123")
     existing = await db.users.find_one({"email": admin_email})
     if not existing:
