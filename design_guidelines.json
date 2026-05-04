@@ -1,0 +1,109 @@
+{
+  "theme": "DARK",
+  "archetype": "Archetype 5: Jewel & Luxury (Cinematic Edition)",
+  "rationale": "The app demands an immersive, cinematic feel. Using deep Obsidian and Velvet blacks with high-contrast Golden Ticket Amber and rich imagery creates a luxury theater experience directly on mobile. Textures and lighting take precedence over flat UI.",
+  "typography": {
+    "heading_font": "Cabinet Grotesk",
+    "body_font": "Satoshi",
+    "rules": [
+      "Use Cabinet Grotesk for bold, punchy display headings (H1, H2) with tight tracking (tracking-tight or tracking-tighter).",
+      "Use Satoshi for highly legible, modern body copy.",
+      "Maximum heading size: text-4xl on mobile, text-6xl on desktop.",
+      "Hierarchy gap: Jump between headings and subheadings should not exceed 2 Tailwind steps.",
+      "No generic defaults like Inter, Roboto, or Space Grotesk."
+    ],
+    "setup_instructions": [
+      "Install via @fontsource/cabinet-grotesk and @fontsource/satoshi, or import from Fontshare.",
+      "Extend Tailwind config to include font-heading: 'Cabinet Grotesk, sans-serif' and font-sans: 'Satoshi, sans-serif'."
+    ]
+  },
+  "colors": {
+    "background": {
+      "base": "#060608",
+      "surface": "#0C0C10",
+      "surface_elevated": "#1A1A20",
+      "glass": "rgba(255, 255, 255, 0.03)"
+    },
+    "text": {
+      "primary": "#F8F8F8",
+      "secondary": "#A1A1AA",
+      "tertiary": "#71717A"
+    },
+    "brand": {
+      "primary": "#F59E0B",
+      "primary_hover": "#D97706",
+      "danger": "#EF4444",
+      "success": "#10B981"
+    },
+    "rules": [
+      "Tinted Greys ONLY: Never use pure #000000. Base is Obsidian (#060608).",
+      "Text visibility: Ensure contrast ratios meet APCA standards. Use text shadows when layering over images.",
+      "Primary Brand (Amber) is strictly for interactive CTAs, swipe highlights, and key 'Savings' metrics."
+    ]
+  },
+  "spacing_and_layout": {
+    "system": "Generous Spacing (Tailwind Scale)",
+    "rules": [
+      "Mobile-first grids. Use generous padding (p-6, p-8) inside containers.",
+      "Movie detail cards must not exceed 80vh to prevent blocking UI.",
+      "Cardless or subtly rounded corners (max rounded-2xl).",
+      "Optical alignment: Padding left/right should account for icons."
+    ],
+    "patterns": [
+      "Swipe Discovery Stack: Absolute positioning with fluid Framer Motion transforms. The top card should be fully opaque, subsequent cards stacked beneath with decreasing scale and opacity.",
+      "Bottom Tab Navigation: Fixed at bottom, glassmorphic (backdrop-blur-2xl bg-black/60 border-t border-white/10).",
+      "Subscription Dashboard: High density 'Control Room' grid layout for savings data."
+    ]
+  },
+  "components_strategy": {
+    "buttons": "Flat, sharp or slightly rounded corners. Golden Amber bg with black text for Primary. Glassmorphic outlines for Secondary.",
+    "cards": "Movie discovery cards should be full-bleed image based with an aggressive gradient overlay (bg-gradient-to-t from-black via-black/40 to-transparent) to ensure text legibility.",
+    "inputs": "Shadcn based. Dark surfaces, amber focus rings (focus:ring-amber-500).",
+    "modals": "Shadcn Dialog. Use Crystal Glass backdrop (backdrop-blur-xl bg-black/60).",
+    "motion": "Use Framer Motion for swipe cards (drag='x', dragConstraints, exit animations for Save/Skip). Page transitions should fade and slide up."
+  },
+  "icons_and_assets": {
+    "icon_library": "lucide-react",
+    "rules": [
+      "Use Lucide icons with 1.5px stroke width for a lighter, premium feel.",
+      "Animate icons on hover where applicable."
+    ]
+  },
+  "media_urls": {
+    "hero_posters": [
+      {
+        "url": "https://static.prod-images.emergentagent.com/jobs/cf5f8b07-1194-40dc-9ecb-4d68f33c7072/images/84dd51c405657de2e8c143bff4b4533b6f3125f6e058ace14cb0bc522f5a6cee.png",
+        "description": "Sci-fi epic cinematic poster. Use for high-impact discovery card."
+      },
+      {
+        "url": "https://static.prod-images.emergentagent.com/jobs/cf5f8b07-1194-40dc-9ecb-4d68f33c7072/images/6b1cf22beda2170250a66659cafb7099ec631b3b59291ed20c1217b66f6e1dec.png",
+        "description": "Neo-noir thriller cinematic poster. Use for discovery card."
+      },
+      {
+        "url": "https://static.prod-images.emergentagent.com/jobs/cf5f8b07-1194-40dc-9ecb-4d68f33c7072/images/06882dd5a7679b9949266bbb2eb52ce36805984b7333ee59bfa687b2f08ab96c.png",
+        "description": "Fantasy epic cinematic poster. Use for discovery card."
+      }
+    ],
+    "backgrounds": [
+      {
+        "url": "https://images.unsplash.com/photo-1766153550988-121007d31002?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGRhcmslMjBjaW5lbWF0aWMlMjBiYWNrZ3JvdW5kfGVufDB8fHx8MTc3Nzg5NDY2Nnww&ixlib=rb-4.1.0&q=85",
+        "description": "Golden light flares on dark background. Use for onboarding/login screens behind glass overlays."
+      }
+    ],
+    "avatars": [
+      {
+        "url": "https://static.prod-images.emergentagent.com/jobs/cf5f8b07-1194-40dc-9ecb-4d68f33c7072/images/7a0c7d57ac8fd5592a7087eb1c4eb9fbe42bb90fc93c4b52f5e4eb9afb64453e.png",
+        "description": "User profile avatar for settings/profile page."
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "Strictly adhere to the dark theme colors provided.",
+    "Do NOT use pure black (#000000). Use the provided Obsidian black.",
+    "For the swipe interface, use Framer Motion for drag and drop interactions.",
+    "Implement bottom tab navigation for mobile layout.",
+    "Ensure all interactive elements have data-testid attributes.",
+    "Use Shadcn UI for standard components but heavily customize them to remove borders and apply the dark cinematic aesthetic.",
+    "Movie posters must have a gradient overlay to ensure text contrast at the bottom of the card."
+  ]
+}
