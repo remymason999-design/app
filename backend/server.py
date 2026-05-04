@@ -739,10 +739,12 @@ async def admin_dashboard(user: dict = Depends(require_user)):
 
 # --- App config -----------------------------------------------------------
 app.include_router(api)
+_cors_origins = [o.strip() for o in os.environ.get("ALLOWED_ORIGINS", "").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origin_regex=".*",
+    allow_origins=_cors_origins or ["http://localhost:3000"],
+    allow_origin_regex=r"https://[a-z0-9\-]+\.preview\.emergentagent\.com",
     allow_methods=["*"],
     allow_headers=["*"],
 )

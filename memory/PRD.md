@@ -52,6 +52,14 @@ top-tier UX. Affiliate links + future monetization.
 ## Tested
 - **Iteration 1:** 15/15 backend pytest, full Playwright flow — 100%/100%
 - **Iteration 2:** 19/19 backend pytest, full Playwright flow including new features — 100%/100%
+- **Iteration 3:** 31/31 backend pytest, full Playwright flow — 100%/100%
+
+### Iteration 3 (Feb 2026)
+- **Real TMDB integration** — 265 titles (up from 24 seed) loaded from popular + top_rated + trending across movies & TV; concurrent enrichment with provider mapping & YouTube trailers; cached in `db.movies_cache`
+- **Admin Control Room** at `/admin` (role-gated): catalog/users/clicks stats, per-service click bars, "Export CSV" download, "Refresh from TMDB" button, recent clicks feed
+- **`/api/auth/refresh`** + axios interceptor that auto-refreshes once on 401
+- **CORS lockdown:** explicit `ALLOWED_ORIGINS` env list + preview-domain regex; no wildcard
+- **100k-user scaling tweaks:** Mongo connection pool maxPoolSize=200; `/discover` capped to top-500 candidates by popularity to bound latency; indexes on `movies_cache.id` and `affiliate_clicks.created_at`
 
 ## Backlog
 ### P0 — Next priorities
