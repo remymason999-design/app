@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import Tutorial, { resetTutorial } from "@/components/Tutorial";
+import AccountMenu from "@/components/AccountMenu";
 
 export default function Profile() {
     const { user, setUser, logout } = useAuth();
@@ -75,10 +76,11 @@ export default function Profile() {
                 <div className="h-16 w-16 rounded-2xl bg-amber grid place-items-center text-obsidian font-display text-2xl">
                     {user.name?.slice(0, 1)?.toUpperCase()}
                 </div>
-                <div>
+                <div className="flex-1">
                     <h1 className="font-heading text-2xl">{user.name}</h1>
                     <p className="text-sm text-zinc-400">{user.email}</p>
                 </div>
+                <AccountMenu />
             </motion.div>
 
             <div className="grid grid-cols-3 gap-3 mt-6" data-testid="profile-stats">

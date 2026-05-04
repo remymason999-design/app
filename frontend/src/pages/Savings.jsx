@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { TrendingDown, ArrowUpRight, Sparkles } from "lucide-react";
 import { apiGet } from "@/lib/api";
+import AccountMenu from "@/components/AccountMenu";
 
 export default function Savings() {
     const [data, setData] = useState(null);
@@ -25,8 +26,13 @@ export default function Savings() {
 
     return (
         <div className="min-h-screen px-5 pt-10 pb-28 max-w-md mx-auto" data-testid="savings-page">
-            <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Your subscriptions</p>
-            <h1 className="font-display text-4xl mt-2 leading-tight">Spend less.<br />Watch more.</h1>
+            <div className="flex items-start justify-between">
+                <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Your subscriptions</p>
+                    <h1 className="font-display text-4xl mt-2 leading-tight">Spend less.<br />Watch more.</h1>
+                </div>
+                <AccountMenu />
+            </div>
 
             <motion.div
                 initial={{ opacity: 0, y: 12 }}

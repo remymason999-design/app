@@ -4,6 +4,7 @@ import { Heart, Star } from "lucide-react";
 import { apiGet, apiPost } from "@/lib/api";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import AccountMenu from "@/components/AccountMenu";
 
 export default function Watchlist() {
     const [items, setItems] = useState([]);
@@ -30,8 +31,13 @@ export default function Watchlist() {
 
     return (
         <div className="min-h-screen px-5 pt-10 pb-28 max-w-md mx-auto" data-testid="watchlist-page">
-            <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Saved for later</p>
-            <h1 className="font-display text-4xl mt-2 mb-8">Your Watchlist</h1>
+            <div className="flex items-start justify-between mb-8">
+                <div>
+                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Saved for later</p>
+                    <h1 className="font-display text-4xl mt-2">Your Watchlist</h1>
+                </div>
+                <AccountMenu />
+            </div>
 
             {loading ? (
                 <div className="grid place-items-center py-20">

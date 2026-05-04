@@ -6,6 +6,7 @@ import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import Tutorial, { shouldShowTutorial } from "@/components/Tutorial";
+import AccountMenu from "@/components/AccountMenu";
 
 export default function Discover() {
     const navigate = useNavigate();
@@ -67,9 +68,7 @@ export default function Discover() {
                     <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Hi {user?.name?.split(" ")[0]}</p>
                     <h1 className="font-display text-3xl leading-tight">For you tonight</h1>
                 </div>
-                <div className="h-11 w-11 rounded-full bg-amber flex items-center justify-center text-obsidian font-display">
-                    {(user?.name || "?").slice(0, 1).toUpperCase()}
-                </div>
+                <AccountMenu />
             </header>
 
             <Tutorial open={tutorial} onClose={() => setTutorial(false)} />
