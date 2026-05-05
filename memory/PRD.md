@@ -98,24 +98,37 @@ top-tier UX. Affiliate links + future monetization.
   - **AccountMenu**: "Friends & compare" entry added.
 - **Tests:** `/app/backend/tests/test_password_reset_and_sharing.py` — 12/12 passing. Frontend smoke: all required test ids render on /forgot-password, /reset-password (with & without token), /friends, /compare, /share/:code.
 
+### Iteration 8 (Feb 2026)
+- **Personalised 4-step Onboarding** (P0):
+  - **Step 1 — Taste**: genre chips + mood chips (Funny, Dark, Easy watch, Thought-provoking, Feel-good, Edge of seat, Romantic, Epic). Skippable.
+  - **Step 2 — Rate**: `GET /api/onboarding/titles` returns 18 diverse popular titles (greedy diversification, max 2 per genre+type bucket). Tap 👍 / 👎 / ⏭ on each — `POST /api/onboarding/rate` updates `genre_weights` (+3 like, −2 dislike, 0 skip) and `type_weights` live + adds movie to `user.onboarding_rated`. Idempotent on re-submit.
+  - **Step 3 — Filters**: anime toggle (strict), Bollywood toggle, Films/TV/Both segmented control, optional excluded-genre chips, country picker.
+  - **Step 4 — Streaming services**: existing service picker, prices in £.
+  - `POST /api/onboarding/complete` flips `onboarding_completed=true` and routes to /discover.
+- **Strict server-side filter enforcement** across `/discover`, `/sections/{trending,upcoming,popular-locally}`, `/search`, `/search/suggest`:
+  - `content_type` ('movie' | 'tv' | 'both') drops mismatched items.
+  - `excluded_categories` (anime, bollywood) and `excluded_genres` drop matched items.
+  - `/discover` additionally excludes anything in `user.onboarding_rated` so onboarding titles never reappear.
+- **Backfill migration**: existing users (admin etc.) auto-marked `onboarding_completed=true` on backend startup so they're not trapped in the new flow.
+- **Routing**: legacy `/onboarding/services` and `/onboarding/genres` redirect to `/onboarding`. ProtectedRoute now checks `onboarding_completed`.
+- **Tests:** `/app/backend/tests/test_onboarding_and_filters.py` — 12/12 passing. Frontend Playwright walk-through confirmed full 4-step flow lands on /discover with personalised picks and all filters enforced.
+
 ## Backlog
 ### P0 — Next priorities
 - (none currently)
 
 ### P1
-- Wire actual email delivery (Resend or SendGrid) for password reset — and remove inline `token` field from /forgot-password response payload at the same time
+- Wire actual email delivery (Resend or SendGrid) for password reset — and remove inline `token` field from /forgot-password response
 - Currency consistency: legacy `/api/savings` summary uses `$`; align UK locale to `£` across the whole Savings page
-- "Tonight's pick" weekly digest email (depends on email provider decision above)
+- "Tonight's pick" weekly digest email (depends on email provider above)
 - "Popular among similar users" / "Trending near you" recommendations powered by shared watchlists
 - Subscription price editing (let user override defaults)
 
 ### P2
 - Real-time WebSocket compare (currently 3s polling — equivalent UX, lower complexity)
 - WatchSmart Plus Stripe subscription tier
-- Web push notifications for new arrivals matching pinned tastes
+- Web push notifications, PWA install, native wrappers
 - Affiliate analytics deep-dive dashboard
-- PWA install + offline cache for last 50 cards
-- Native iOS / Android wrapper
 
 ## Test credentials
 See `/app/memory/test_credentials.md`.

@@ -101,25 +101,29 @@ async def onboarding_rate(payload: RateIn, user: dict = Depends(require_user)):
     uid = user["user_id"]
     now_iso = datetime.now(timezone.utc).isoformat()
 
+    # Idempotent: only update weights the first time a movie is rated.
+    # If it's already in onboarding_rated, treat the call as a no-op for scoring.
+    already = payload.movie_id in (user.get("onboarding_rated") or [])
+
     update = {
         "$addToSet": {"onboarding_rated": payload.movie_id},
         "$set": {"last_action_at": now_iso},
     }
     delta = ONBOARD_WEIGHTS.get(payload.rating, 0)
-    if delta:
+    if delta and not already:
         inc = {f"genre_weights.{g}": delta for g in movie.get("genres", [])}
         inc[f"type_weights.{movie.get('type','movie')}"] = delta
         if inc:
             update["$inc"] = inc
     await db.users.update_one({"user_id": uid}, update)
 
-    # Audit trail (same collection Admin analytics reads)
-    await db.user_actions.insert_one({
-        "user_id": uid,
-        "movie_id": payload.movie_id,
-        "action": f"onboard_{payload.rating}",
-        "created_at": now_iso,
-    })
+    if not already:
+        await db.user_actions.insert_one({
+            "user_id": uid,
+            "movie_id": payload.movie_id,
+            "action": f"onboard_{payload.rating}",
+            "created_at": now_iso,
+        })
 
     fresh = await db.users.find_one({"user_id": uid}, {"_id": 0})
     return {"ok": True, "user": clean_user(fresh)}
