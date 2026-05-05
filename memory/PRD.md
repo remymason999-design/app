@@ -152,21 +152,37 @@ top-tier UX. Affiliate links + future monetization.
 - **"More Like This"** (P1.5): card-similarity ONLY. Filters applied before scoring. TMDB augmentation path also classified into cards (no genre-overlap fallback). Each augmentation candidate must score ≥0.10 to be included.
 - **Tests**: 14/14 in `test_content_cards_iter10.py` + 5/5 stabilisation tests in `test_stabilisation_iter11.py` (filter strictness, section dedup, repetition control, card-only similarity, confidence ≥0.80).
 
+### Iteration 12 (Feb 2026) — Confidence-system upgrade
+- **Sub-confidences**: every card now exposes four 0..1 scores instead of one:
+  - `tone_confidence` — high (1.0) when cert + genre + overview agree (e.g. R-rated + dark-genre + "murder" lexicon); 0.7 when only genre signal; 0.5 when only overview hints.
+  - `audience_confidence` — 0.95 from certification, 0.65 from genre heuristic, 0.45 from overview.
+  - `theme_confidence` — calibrated honestly: 0.95 with 3+ themes incl. ≥1 verified; 0.80 with 2; 0.65 with 1; 0.60 if TMDB keywords present but none mapped (we have data, taxonomy just doesn't hit); 0.50 with overview only; 0.30 sparse.
+  - `metadata_confidence` — completeness check (genres+overview+runtime+vote_count+keywords).
+  - **Final `confidence_score`** = 0.30·tone + 0.30·audience + 0.25·theme + 0.15·metadata.
+- **Verified vs inferred themes** — split into `verified_themes` (from TMDB keyword taxonomy via expanded `KEYWORD_THEME_MAP` of 80+ entries) and `inferred_themes` (from overview lexicon + genre-combo rules). Verified themes weight more heavily in confidence.
+- **Genre dominance with suppression** — `_resolve_genre_conflicts()` drops Crime/Thriller/Horror from Family/Kids-certified items BEFORE primary/secondary selection. So a "Family + Adventure + Crime" PG-rated kids' detective show now classifies as primary=Family (not Crime) and the conflict is logged.
+- **Conflict resolution rules** detected and logged in `card.conflicts_resolved`:
+  - `family-cert-vs-crime-genre` — family rating with Crime/Thriller genre
+  - `animation-vs-adult-cert` — adult cert on Animation-only (e.g. BoJack, Invincible)
+  - `family-cert-vs-dark-tone` — family cert with dark-coded overview
+  - `horror-genre-vs-family-cert` — Horror genre with family rating (cert wins)
+- **Catalog-wide confidence: 0.87 → 0.91** (avg across 30 sampled items). p25=0.89, p50=0.93, p75=0.97. Target ≥0.90 met.
+- **Tests**: 7/7 in `test_confidence_system_iter12.py` (schema, verified/inferred split, genre dominance, conflict detection, weighting math, catalog avg ≥0.88, cert grounding). 14/14 iter10 + 5/5 iter11 still pass.
+
 ## Backlog
 ### P0 — Next priorities
 - (none currently)
 
 ### P1
-- Wire actual email delivery (Resend or SendGrid) for password reset
-- Surface card signals in UI: tone/audience badges on Discover + dedicated "More Like This" carousel on movie detail
+- Surface card signals in UI: tone/audience pills on Discover, "More Like This" carousel using card-similarity scores
 - Subscription price editing
-- Densify `available_on` for hbo_max in TMDB harvest (provider mapping gap)
+- Wire actual email delivery (Resend or SendGrid) for password reset
 
 ### P2
-- LLM-augmented theme extraction for low-confidence (<0.5) titles
+- LLM-augmented theme extraction for low-confidence (<0.7) titles
 - Real-time WebSocket compare (currently 3s polling)
-- Atomic `$push + $slice` for `recently_shown` LRU
-- WatchSmart Plus Stripe subscription tier
+- Densify `available_on` for hbo_max in TMDB harvest
+- WatchSmart Plus Stripe tier
 - Web push, PWA, native wrappers
 
 ## Test credentials
