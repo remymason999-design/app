@@ -113,22 +113,35 @@ top-tier UX. Affiliate links + future monetization.
 - **Routing**: legacy `/onboarding/services` and `/onboarding/genres` redirect to `/onboarding`. ProtectedRoute now checks `onboarding_completed`.
 - **Tests:** `/app/backend/tests/test_onboarding_and_filters.py` — 12/12 passing. Frontend Playwright walk-through confirmed full 4-step flow lands on /discover with personalised picks and all filters enforced.
 
+### Iteration 9 (Feb 2026)
+- **Continuous self-improving recommendation engine** (`/app/backend/engine.py`):
+  - **Pool building**: every `/api/discover` call assembles a per-user candidate pool from the catalog, applying ALL user filters strictly (subscriptions, excluded categories, excluded genres, content type) and de-duping against `saved + watched + onboarding_rated + recently_shown` (6h cooldown LRU on the user doc, last 200 entries).
+  - **Hybrid ranking** combines: quality (popularity ↘ as user matures, rating ↗), explicit onboarding genres + moods, learned `genre_weights` / `type_weights`, lightweight **collaborative filtering** (cosine similarity over genre_weights → boost titles saved by 5 nearest neighbours), recency boost (≤2 years), tiny per-id jitter.
+  - **Adaptive maturity** (0..1, reaches 1 around 50 interactions): cold-start users see popular content; mature users see niche personalised picks.
+  - **Controlled randomness**: 8% of returned slots are random-within-filter for diversity.
+  - **Cooldown re-introduction**: skipped >30 days ago AND now overlaps top learned genres → reappears with reason "Worth a second look" and `_signals.is_reintro=true`.
+  - **Background refill**: when filtered pool drops below `LOW_WATER=200`, `asyncio.create_task` fires deep TMDB sync (per-user lock to dedupe).
+  - **Transparency endpoint** `GET /api/me/engagement` returns maturity, total_interactions, by_action breakdown, top learned genres, type_weights, watchlist/watched counts.
+- **Deeper TMDB harvest** (`tmdb.py`): `fetch_catalog` now hits 5 endpoints per kind (popular, top_rated, trending, /discover sorted by release date, /discover sorted by vote_count) × pages=8 → catalog grew **363 → 953 titles** on first deep-sync; idempotent `bulk_write` upserts prevent duplicate-key races between concurrent refreshes.
+- **Admin dashboard**: `POST /api/admin/refresh-catalog` now defaults to pages=8 and returns `{ok, count: catalog_total, items_fetched, catalog_total}`.
+- **Tests**: 19/21 backend pytest passing in `/app/backend/tests/test_engine_iter9.py`. Two failures are spec-vs-data discrepancies (admin pool 234 vs target 300+ due to sparse `available_on` for hbo_max in TMDB harvest), not engine bugs. Frontend smoke verified Discover still renders cards with reasons and save advances feed.
+
 ## Backlog
 ### P0 — Next priorities
 - (none currently)
 
 ### P1
 - Wire actual email delivery (Resend or SendGrid) for password reset — and remove inline `token` field from /forgot-password response
-- Currency consistency: legacy `/api/savings` summary uses `$`; align UK locale to `£` across the whole Savings page
-- "Tonight's pick" weekly digest email (depends on email provider above)
-- "Popular among similar users" / "Trending near you" recommendations powered by shared watchlists
-- Subscription price editing (let user override defaults)
+- Densify `available_on` data in TMDB harvest (hbo_max maps to 0 catalog items today — provider mapping gap)
+- "Popular among similar users" / "Trending near you" UI section powered by the new collaborative signal
+- Subscription price editing (let users override defaults)
 
 ### P2
-- Real-time WebSocket compare (currently 3s polling — equivalent UX, lower complexity)
+- Real-time WebSocket compare (currently 3s polling)
+- Global refill semaphore + cooldown so concurrent low-water triggers don't hammer TMDB
+- Atomic `$push + $slice` for `recently_shown` LRU to remove read-modify-write race
 - WatchSmart Plus Stripe subscription tier
 - Web push notifications, PWA install, native wrappers
-- Affiliate analytics deep-dive dashboard
 
 ## Test credentials
 See `/app/memory/test_credentials.md`.

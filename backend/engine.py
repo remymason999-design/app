@@ -171,6 +171,7 @@ def _hybrid_score(
     maturity: float,
     collab_set: set,
     learned_top_genres: set,
+    current_year: int,
 ) -> float:
     """Hybrid score blending quality, explicit prefs, learned weights, collab,
     recency. `maturity` shifts emphasis from popularity to personalisation."""
@@ -201,22 +202,20 @@ def _hybrid_score(
 
     # Recency
     year = movie.get("year") or 0
-    current = datetime.now(timezone.utc).year
-    recency = 0.6 if year and (current - year) <= 2 else 0
+    recency = 0.6 if year and (current_year - year) <= 2 else 0
 
-    # Collaborative bonus — boost things people with similar tastes saved
+    # Collaborative bonus
     collab = COLLAB_BONUS if movie["id"] in collab_set else 0
 
-    # Re-intro bonus: skipped item but now overlaps user's top learned genres
+    # Re-intro bonus
     reintro = 0.5 if (mg & learned_top_genres) else 0
 
-    # Tiny per-id jitter so equal scores don't always tie the same way
     jitter = (hash(movie["id"]) % 100) / 1000.0
 
     return (
         quality
         + onboard_overlap * 1.0
-        + learned * 0.4 * (0.5 + 0.5 * maturity)  # learned matters more as maturity grows
+        + learned * 0.4 * (0.5 + 0.5 * maturity)
         + type_pref * 0.3
         + recency
         + collab
@@ -302,12 +301,14 @@ async def build_feed(user: dict, limit: int = 20) -> list[dict]:
     # Pull collaborative signal in parallel (doesn't block scoring)
     collab_set = await _collaborative_boost_set(user)
 
+    current_year = datetime.now(timezone.utc).year
     pool.sort(
         key=lambda m: _hybrid_score(
             m, user,
             maturity=maturity,
             collab_set=collab_set,
             learned_top_genres=learned_top_genres,
+            current_year=current_year,
         ),
         reverse=True,
     )

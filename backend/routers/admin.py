@@ -10,8 +10,9 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @router.post("/refresh-catalog")
 async def admin_refresh_catalog(user: dict = Depends(require_admin), pages: int = 8):
     try:
-        n = await refresh_catalog_from_tmdb(pages=pages)
-        return {"ok": True, "count": n}
+        fetched = await refresh_catalog_from_tmdb(pages=pages)
+        total = len(get_catalog())
+        return {"ok": True, "count": total, "items_fetched": fetched, "catalog_total": total}
     except Exception as e:
         logger.error(f"Catalog refresh failed: {e}")
         raise HTTPException(502, f"TMDB refresh failed: {e}")
