@@ -126,22 +126,36 @@ top-tier UX. Affiliate links + future monetization.
 - **Admin dashboard**: `POST /api/admin/refresh-catalog` now defaults to pages=8 and returns `{ok, count: catalog_total, items_fetched, catalog_total}`.
 - **Tests**: 19/21 backend pytest passing in `/app/backend/tests/test_engine_iter9.py`. Two failures are spec-vs-data discrepancies (admin pool 234 vs target 300+ due to sparse `available_on` for hbo_max in TMDB harvest), not engine bugs. Frontend smoke verified Discover still renders cards with reasons and save advances feed.
 
+### Iteration 10 (Feb 2026)
+- **Content cards classification system** (`/app/backend/content_cards.py`):
+  - Every catalog item now carries a `card` object: `{primary_category, secondary_categories, tone, audience_type, pacing, themes, confidence_score}`.
+  - **Genre hierarchy** — Primary (Animation, Family, Action, Horror, Comedy, Sci-Fi, Romance, Documentary, Mystery, Western, Music) → Secondary (Adventure, Fantasy, History, War) → Context-only (Crime, Thriller, Drama). Context genres NEVER become primary if any Primary/Secondary present.
+  - **Tone classifier** with overrides — Animation+Family without Horror/Crime/Thriller → `light` even if Drama present; Horror/War → `dark`; Crime+Drama → `dark`. Plus lexical hints from overview text.
+  - **Audience** — uses TMDB certifications when present (R/NC-17/MA → adult, PG-13/12/15 → teen, PG/U → family, G/Y → kids); falls back to genre heuristics (Animation+Family → family, Animation → kids, Horror/War → adult).
+  - **Pacing** — Action ≤120min → fast; Drama+History/War → slow.
+  - **Themes** (semantic tags) — keyword detection in overview + genre-combo rules: `epic-journey` (Adventure+Family/Animation), `moral-grey` (Crime+Drama), `mind-bending` (Sci-Fi+Mystery/Thriller), `space-opera` (Sci-Fi+Action), `true-crime` (Documentary+Crime), `dread`, `high-fantasy`, `feel-good`, etc. (20 themes total).
+  - **Confidence score** 0..1 — driven by metadata completeness (genres, overview, runtime, vote_count, certification, themes detected).
+- **Card-based "More Like This"** — `/api/movies/{id}/similar` now ranks by `card_similarity` (40% themes Jaccard / 25% tone / 20% audience exact-or-adjacent / 10% pacing / 5% genre primary+secondary), dampened by min confidence. Filter threshold ≥0.15. Falls back to TMDB only if local pool < 8.
+- **API surface**: `/api/movies/{id}` returns `card`; `/api/discover` items already include `card` (attached at catalog load).
+- **Tests**: 14/14 spec assertions passing in `/app/backend/tests/test_content_cards_iter10.py` — includes unit fixtures (Animation+Family→light/family, Horror→dark/adult, Crime+Drama→moral-grey, Sci-Fi+Action→space-opera, Drama+History→slow), API integration (Horror similar has 0 kids audience, similarity ranked descending, hierarchy: 0 context-as-primary violations across 30 items), and idempotency.
+
 ## Backlog
 ### P0 — Next priorities
 - (none currently)
 
 ### P1
-- Wire actual email delivery (Resend or SendGrid) for password reset — and remove inline `token` field from /forgot-password response
-- Densify `available_on` data in TMDB harvest (hbo_max maps to 0 catalog items today — provider mapping gap)
-- "Popular among similar users" / "Trending near you" UI section powered by the new collaborative signal
-- Subscription price editing (let users override defaults)
+- Wire actual email delivery (Resend or SendGrid) for password reset
+- Enrich classifier with TMDB certifications + keywords (currently average confidence ~0.62; with cert+keywords this jumps to ~0.85)
+- Surface card signals in UI: tone badge, audience badge, "More Like This" carousel on movie detail
+- Densify `available_on` for hbo_max in TMDB harvest
+- Subscription price editing
 
 ### P2
-- Real-time WebSocket compare (currently 3s polling)
-- Global refill semaphore + cooldown so concurrent low-water triggers don't hammer TMDB
-- Atomic `$push + $slice` for `recently_shown` LRU to remove read-modify-write race
-- WatchSmart Plus Stripe subscription tier
-- Web push notifications, PWA install, native wrappers
+- Real-time WebSocket compare
+- LLM-augmented theme extraction for low-confidence titles
+- Atomic `$push + $slice` for `recently_shown` LRU
+- WatchSmart Plus Stripe tier
+- Web push, PWA, native wrappers
 
 ## Test credentials
 See `/app/memory/test_credentials.md`.

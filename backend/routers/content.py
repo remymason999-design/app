@@ -6,6 +6,7 @@ from core import (
     db, require_user, get_catalog, find_movie, tmdb_client, logger,
     apply_user_filters,
 )
+from content_cards import build_card, card_similarity
 
 router = APIRouter(tags=["content"])
 
@@ -18,6 +19,9 @@ async def get_movie(movie_id: str, user: dict = Depends(require_user)):
     if not m:
         raise HTTPException(404, "Movie not found")
     out = dict(m)
+    # Ensure a content card is present (compute on demand for cold cache hits)
+    if not out.get("card"):
+        out["card"] = build_card(out)
     progress = (user.get("progress") or {}).get(movie_id)
     if progress:
         out["progress"] = progress
@@ -114,37 +118,30 @@ async def search_suggest(q: str, user: dict = Depends(require_user), limit: int 
 
 @router.get("/movies/{movie_id}/similar")
 async def similar(movie_id: str, user: dict = Depends(require_user)):
+    """Card-based 'More Like This'.
+
+    Uses `card_similarity` (40% themes / 25% tone / 20% audience / 10% pacing /
+    5% genre) instead of raw genre overlap. Falls back to TMDB similar API for
+    titles outside the local catalog.
+    """
     m = find_movie(movie_id)
     if not m:
         raise HTTPException(404, "Movie not found")
-    target_genres = set(m.get("genres") or [])
-    target_tags = set(m.get("tags") or [])
-    user_prefs = set(user.get("genres") or [])
+    target_card = m.get("card") or build_card(m)
 
-    def local_score(c):
-        cg = set(c.get("genres") or [])
-        ct = set(c.get("tags") or [])
-        # Genre overlap is strongest signal
-        s = len(cg & target_genres) * 3
-        # Same content type bonus
-        if c.get("type") == m.get("type"):
-            s += 1
-        # Same category tags (e.g. anime/anime, bollywood/bollywood)
-        s += len(ct & target_tags) * 2
-        # User preference match
-        s += len(cg & user_prefs)
-        # Quality
-        s += (c.get("rating") or 0) / 5.0
-        return s
+    def score(c: dict) -> float:
+        c_card = c.get("card") or build_card(c)
+        return card_similarity(target_card, c_card)
 
     candidates = [c for c in get_catalog() if c["id"] != movie_id]
-    candidates.sort(key=local_score, reverse=True)
-    local_top = [c for c in candidates if len(set(c.get("genres") or []) & target_genres) > 0][:12]
+    candidates.sort(key=score, reverse=True)
+    # Keep only items with non-trivial similarity (> 0.15)
+    local_top = [c for c in candidates if score(c) >= 0.15][:12]
 
     if len(local_top) >= 8 or not m.get("tmdb_id"):
         return local_top
 
-    # Augment with TMDB similar
+    # Augment with TMDB similar — classify on the fly
     region = (user.get("country") or "GB").upper()
     try:
         tmdb_sim = await tmdb_client.fetch_similar(m["type"], m["tmdb_id"], region=region)
@@ -153,6 +150,8 @@ async def similar(movie_id: str, user: dict = Depends(require_user)):
     seen_ids = {x["id"] for x in local_top}
     for t in tmdb_sim:
         if t["id"] not in seen_ids:
+            if not t.get("card"):
+                t["card"] = build_card(t)
             local_top.append(t)
             if len(local_top) >= 12:
                 break

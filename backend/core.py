@@ -42,7 +42,10 @@ async def load_catalog_from_db() -> None:
         CATALOG = docs
     else:
         CATALOG = list(SEED_MOVIES)
-    logger.info(f"Catalog loaded: {len(CATALOG)} titles")
+    # Attach content cards (idempotent — only fills `card` if missing)
+    from content_cards import attach_cards
+    attach_cards(CATALOG)
+    logger.info(f"Catalog loaded: {len(CATALOG)} titles (cards attached)")
 
 
 async def refresh_catalog_from_tmdb(pages: int = 3) -> int:
