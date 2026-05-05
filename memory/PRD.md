@@ -77,22 +77,29 @@ top-tier UX. Affiliate links + future monetization.
 - **CORS lockdown:** explicit `ALLOWED_ORIGINS` env list + preview-domain regex; no wildcard
 - **100k-user scaling tweaks:** Mongo connection pool maxPoolSize=200; `/discover` capped to top-500 candidates by popularity to bound latency; indexes on `movies_cache.id` and `affiliate_clicks.created_at`
 
+### Iteration 6 (Feb 2026)
+- **P0 — Admin dashboard crash fix**: defined missing `MiniStat` component in `Admin.jsx`, added optional chaining (`analytics?.dau ?? 0`) so engagement card no longer crashes while analytics fetch is pending.
+- **P1 — Subscription Value Insights** (new):
+  - **Backend** `GET /api/insights/subscriptions` — aggregates `db.user_actions` where `action='watched'` for the **current calendar month**, computes per-platform titles_watched + cost_per_watch + tone (low/ok/great) + headline/message + top_titles. Sorts unused services first. Returns `{currency: '£', month_label, total_monthly_cost, total_watched, services[], unused_services[], potential_savings, cached_at}`. In-memory per-user cache, 1-hour TTL, invalidated on every new `watched` action.
+  - **Frontend** Savings page now shows a "Subscription insights" section with potential savings, per-service cards (logo, watched count, cost-per-watch, top titles thumbnails) and tone-coded verdict messages.
+  - **Tests:** `/app/backend/tests/test_insights_and_admin.py` — 5/5 passing. Frontend smoke verified `[data-testid=subscription-insights]` + `[data-testid=engagement-card]` + all `mini-stat-*` cards.
+
 ## Backlog
 ### P0 — Next priorities
-- Real TMDB API integration (replace seed data) — drop in TMDB API key in `.env`, add fetch+cache layer
-- /api/auth/forgot-password & reset-password (basic flows)
-- Push title coverage 24 → 200+ via TMDB
+- (none currently — last P0 fixed in iteration 6)
 
 ### P1
-- Sharing: share-a-pick deep links (great for organic growth)
-- Streak / weekly digest email of new arrivals on user's services (SendGrid/Resend)
-- Subscription price editing (let user override defaults to local currency)
-- Rate limiting / brute-force lockout on auth
+- Watchlist sharing between users + view friends' watchlists (social)
+- "Popular among similar users" / "Trending near you" recommendations (depends on shared watchlists)
+- "Tonight's pick" daily push notification or weekly digest email (Resend or SendGrid — TBD)
+- Currency consistency: legacy `/api/savings` summary still uses `$`; align UK locale to `£` across the whole Savings page
+- /api/auth/forgot-password & reset-password
+- Subscription price editing (let user override defaults)
 
 ### P2
+- WatchSmart Plus Stripe subscription tier
 - Web push notifications for new arrivals matching pinned tastes
-- Friends/social: see what friends saved
-- Affiliate analytics dashboard (track click-throughs)
+- Affiliate analytics deep-dive dashboard
 - PWA install + offline cache for last 50 cards
 - Native iOS / Android wrapper
 
