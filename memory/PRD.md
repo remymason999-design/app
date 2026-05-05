@@ -169,17 +169,32 @@ top-tier UX. Affiliate links + future monetization.
 - **Catalog-wide confidence: 0.87 → 0.91** (avg across 30 sampled items). p25=0.89, p50=0.93, p75=0.97. Target ≥0.90 met.
 - **Tests**: 7/7 in `test_confidence_system_iter12.py` (schema, verified/inferred split, genre dominance, conflict detection, weighting math, catalog avg ≥0.88, cert grounding). 14/14 iter10 + 5/5 iter11 still pass.
 
+### Iteration 13 (Feb 2026) — UI integration + stress validation
+- **Classifier frozen** at iter12. No new signals, no new weights, no rule changes.
+- **Stable UI signals on Discover + Movie Detail** — `<CardSignals>` / `<DetailSignals>` components expose ONLY:
+  - **Tone pill** (Light / Dark — neutral hidden as noise)
+  - **Audience pill** (Kids / Family / Adult — teen collapsed into Adult per spec)
+  - **Verified ✓ badge** when `confidence_score ≥ 0.85`
+  - All other card data (`conflicts_resolved`, sub-confidences, verified/inferred theme split) NEVER reach the UI. Verified by HTML inspection — 0 leaks.
+- **Engine pool-health fix** (no classifier changes): two-tier emergency reintroduction when filtered pool drops critically low —
+  - `len(pool) < 30` AND skipped items exist → reintroduce skipped items into pool with "Worth a second look" reason.
+  - `len(pool) < 8` → ultra-emergency: also bypass the `recently_shown` cooldown LRU. Prevents empty-feed states for narrow-filter users (2 subs + 4 exclusions).
+- **Stress test suite** (`/app/backend/tests/stress_iter13.py`) — 3/3 scenarios passing:
+  - **Scenario A (500 swipes)**: 100% unique titles served, p95 latency 248ms, maturity 1.0, top genres learned.
+  - **Scenario B (filter-heavy 1000-swipe target)**: with very narrow filters (2 subs + Movies-only + 4 exclusions = 126 eligible titles), engine sustained **464 swipes via 3.7× emergency reuse**, **0 filter leaks** of any kind.
+  - **Scenario C (50 consecutive /discover calls)**: 254 unique titles, **0% consecutive overlap**, p95 249ms.
+
 ## Backlog
 ### P0 — Next priorities
 - (none currently)
 
 ### P1
-- Surface card signals in UI: tone/audience pills on Discover, "More Like This" carousel using card-similarity scores
-- Subscription price editing
+- Subscription price editing (let users override defaults)
 - Wire actual email delivery (Resend or SendGrid) for password reset
 
 ### P2
-- LLM-augmented theme extraction for low-confidence (<0.7) titles
+- "More Like This" carousel on Movie Detail page (data already exposed via `/api/movies/{id}/similar`)
+- LLM-augmented theme extraction for items still <0.7 confidence
 - Real-time WebSocket compare (currently 3s polling)
 - Densify `available_on` for hbo_max in TMDB harvest
 - WatchSmart Plus Stripe tier

@@ -232,6 +232,7 @@ function Card({ movie, services, isTop, stackPos, isExiting, exitDir, onSwipe, o
             )}
 
             <div className="absolute bottom-0 inset-x-0 p-6">
+                <CardSignals card={movie.card} />
                 <div className="flex flex-wrap gap-1.5 mb-3">
                     {(movie.genres || []).slice(0, 3).map((g) => (
                         <span key={g} className="text-[10px] uppercase tracking-wider bg-white/10 backdrop-blur px-2.5 py-1 rounded-full text-zinc-200">{g}</span>
@@ -256,6 +257,61 @@ function Card({ movie, services, isTop, stackPos, isExiting, exitDir, onSwipe, o
         </motion.div>
     );
 }
+// =====================================================================
+// CardSignals — minimal stable UI exposure of tone + audience + verified
+// (Iter 13 spec: never expose conflict logs / internal scores / raw mixes)
+// =====================================================================
+const TONE_PILL = {
+    light:   { label: "Light", className: "bg-amber/15 text-amber border-amber/30" },
+    dark:    { label: "Dark",  className: "bg-red-500/15 text-red-300 border-red-500/30" },
+    // neutral is intentionally hidden — too noisy to display
+};
+const AUDIENCE_PILL = {
+    kids:   { label: "Kids" },
+    family: { label: "Family" },
+    teen:   { label: "Adult" },   // collapsed into Adult per spec (Kids/Family/Adult)
+    adult:  { label: "Adult" },
+};
+
+function CardSignals({ card }) {
+    if (!card) return null;
+    const tone = TONE_PILL[card.tone];
+    const aud = AUDIENCE_PILL[card.audience_type];
+    const verified = (card.confidence_score ?? 0) >= 0.85;
+    if (!tone && !aud && !verified) return null;
+
+    return (
+        <div className="flex items-center gap-1.5 mb-2.5" data-testid="card-signals">
+            {tone && (
+                <span
+                    data-testid={`tone-pill-${card.tone}`}
+                    className={`text-[10px] uppercase tracking-[0.18em] px-2 py-0.5 rounded-full border ${tone.className}`}
+                >
+                    {tone.label}
+                </span>
+            )}
+            {aud && (
+                <span
+                    data-testid={`audience-pill-${card.audience_type}`}
+                    className="text-[10px] uppercase tracking-[0.18em] px-2 py-0.5 rounded-full border border-white/15 text-zinc-200 bg-white/5"
+                >
+                    {aud.label}
+                </span>
+            )}
+            {verified && (
+                <span
+                    data-testid="verified-badge"
+                    aria-label="Classification verified by multiple signals"
+                    className="text-[10px] tracking-wider px-1.5 py-0.5 rounded-full text-emerald-300/90 bg-emerald-500/8 border border-emerald-500/20"
+                >
+                    ✓
+                </span>
+            )}
+        </div>
+    );
+}
+
+
 
 function ActionBtn({ icon: Icon, onClick, ring, color, glow, small, testId, label }) {
     return (

@@ -86,6 +86,7 @@ export default function MovieDetail() {
                 {/* Hero content at bottom */}
                 <div className="absolute bottom-0 inset-x-0 px-5 pb-8">
                     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                        <DetailSignals card={movie.card} />
                         <div className="flex flex-wrap gap-1.5 mb-3">
                             {movie.genres.slice(0, 4).map((g) => (
                                 <span key={g} className="text-[10px] uppercase tracking-wider bg-white/12 backdrop-blur px-2.5 py-1 rounded-full">{g}</span>
@@ -444,3 +445,57 @@ function ProgressModal({ open, onClose, movie, onSaved }) {
         </AnimatePresence>
     );
 }
+
+// =====================================================================
+// DetailSignals — same minimal exposure as Discover (tone + audience pill +
+// optional verified tick). Hides neutral tone; collapses teen→Adult.
+// Never exposes conflict_logs / sub-confidences / raw genre mixes.
+// =====================================================================
+const DETAIL_TONE_PILL = {
+    light: { label: "Light", className: "bg-amber/15 text-amber border-amber/30" },
+    dark:  { label: "Dark",  className: "bg-red-500/15 text-red-300 border-red-500/30" },
+};
+const DETAIL_AUDIENCE_PILL = {
+    kids:   "Kids",
+    family: "Family",
+    teen:   "Adult",
+    adult:  "Adult",
+};
+
+function DetailSignals({ card }) {
+    if (!card) return null;
+    const tone = DETAIL_TONE_PILL[card.tone];
+    const audLabel = DETAIL_AUDIENCE_PILL[card.audience_type];
+    const verified = (card.confidence_score ?? 0) >= 0.85;
+    if (!tone && !audLabel && !verified) return null;
+    return (
+        <div className="flex items-center gap-1.5 mb-3" data-testid="detail-card-signals">
+            {tone && (
+                <span
+                    data-testid={`detail-tone-pill-${card.tone}`}
+                    className={`text-[10px] uppercase tracking-[0.18em] px-2 py-0.5 rounded-full border ${tone.className}`}
+                >
+                    {tone.label}
+                </span>
+            )}
+            {audLabel && (
+                <span
+                    data-testid={`detail-audience-pill-${card.audience_type}`}
+                    className="text-[10px] uppercase tracking-[0.18em] px-2 py-0.5 rounded-full border border-white/15 text-zinc-200 bg-white/5"
+                >
+                    {audLabel}
+                </span>
+            )}
+            {verified && (
+                <span
+                    data-testid="detail-verified-badge"
+                    aria-label="Classification verified"
+                    className="text-[10px] tracking-wider px-1.5 py-0.5 rounded-full text-emerald-300/90 bg-emerald-500/8 border border-emerald-500/20"
+                >
+                    ✓
+                </span>
+            )}
+        </div>
+    );
+}
+

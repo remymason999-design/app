@@ -291,6 +291,40 @@ async def build_feed(user: dict, limit: int = 20) -> list[dict]:
             continue
         pool.append(m)
 
+    # EMERGENCY REINTRODUCTION: if the filtered pool is critically small,
+    # reintroduce skipped items (they may have been rejected before tastes
+    # converged). This prevents empty-feed states for narrow-filter users.
+    POOL_EMERGENCY = 30
+    if len(pool) < POOL_EMERGENCY and skipped:
+        for m in catalog:
+            mid = m["id"]
+            if mid in permanently_seen or mid in cooldown_set:
+                continue
+            if mid not in skipped:
+                continue
+            if not movie_matches(m, user):
+                continue
+            reintro_eligible.add(mid)
+            pool.append(m)
+
+    # ULTRA-EMERGENCY: pool STILL near-empty (user swiped everything in their
+    # filtered universe within the cooldown window). Bypass the recently-shown
+    # LRU so they at least see something — these items still get a soft
+    # re-intro reason.
+    POOL_ULTRA_EMERGENCY = 8
+    if len(pool) < POOL_ULTRA_EMERGENCY:
+        existing = {m["id"] for m in pool}
+        for m in catalog:
+            mid = m["id"]
+            if mid in existing or mid in permanently_seen:
+                continue
+            if not movie_matches(m, user):
+                continue
+            reintro_eligible.add(mid)
+            pool.append(m)
+        if pool:
+            logger.info(f"Pool ultra-emergency: bypassed cooldown LRU, pool now {len(pool)}")
+
     # Adaptive popularity cap — keep more for cold-start, narrower for mature users
     maturity = _maturity(user)
     cap = max(500, int(TARGET_POOL * (1.0 - 0.6 * maturity)))
