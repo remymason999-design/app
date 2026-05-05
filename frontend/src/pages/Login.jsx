@@ -31,7 +31,7 @@ export default function Login() {
                 navigate(`/share/${pendingCode}`);
                 return;
             }
-            const next = data.user.subscriptions?.length ? "/discover" : "/onboarding/services";
+            const next = data.user.onboarding_completed ? "/discover" : "/onboarding";
             navigate(next);
         } catch (err) {
             toast.error(formatApiError(err.response?.data?.detail) || "Login failed");

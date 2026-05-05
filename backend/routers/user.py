@@ -30,12 +30,20 @@ async def set_prefs(payload: PreferencesIn, user: dict = Depends(require_user)):
         update["subscriptions"] = payload.services
     if payload.genres is not None:
         update["genres"] = payload.genres
+    if payload.moods is not None:
+        update["moods"] = payload.moods
     if payload.excluded_categories is not None:
         update["excluded_categories"] = payload.excluded_categories
+    if payload.excluded_genres is not None:
+        update["excluded_genres"] = payload.excluded_genres
+    if payload.content_type is not None:
+        update["content_type"] = payload.content_type
     if payload.country is not None:
         update["country"] = payload.country.upper()[:2]
     if payload.age is not None:
         update["age"] = max(1, min(120, payload.age))
+    if payload.onboarding_completed is not None:
+        update["onboarding_completed"] = bool(payload.onboarding_completed)
     if update:
         await db.users.update_one({"user_id": user["user_id"]}, {"$set": update})
     fresh = await db.users.find_one({"user_id": user["user_id"]}, {"_id": 0})

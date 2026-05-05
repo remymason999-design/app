@@ -1,0 +1,28 @@
+{
+  "summary": "Iteration 8 — Personalised Onboarding (4-step) + Strict Filter Enforcement. Backend pytest 12/12 passing covering GET /onboarding/titles (>=15 diverse titles, mix of types, >=8 distinct genres), POST /onboarding/rate (like +3, dislike -2, skip 0, onboarding_rated populated, not re-emitted by /discover), POST /onboarding/complete, PUT /user/preferences with new fields (moods, excluded_genres, content_type, onboarding_completed), and strict filter enforcement across /discover, /sections/trending, /sections/upcoming, /sections/popular-locally, /search, /search/suggest for content_type='movie' (no TV), excluded_categories=['anime'] (no anime tag), excluded_genres=['Horror'] (no Horror). Admin backfill confirmed: admin@watchsmart.app has onboarding_completed=true. Frontend Playwright happy-path verified: fresh register -> /onboarding; all 4 steps render every required data-testid ([onboarding-page], [onboarding-progress] with 'Step 1..4 of 4', [genre-Drama], [mood-funny], [rate-deck]+[rate-like/dislike/skip], [toggle-anime], [toggle-bollywood], [content-type-movie/tv/both], [exclude-genre-Horror], [onboarding-country], [service-netflix]); 'Continue' label on steps 1-3, 'Get my picks' on step 4; step2-helper correctly shows '3 rated' after 3 likes; final click navigates to /discover; legacy /onboarding/services and /onboarding/genres both redirect to /onboarding; admin login lands on /discover (backfill).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_onboarding_and_filters.py",
+    "/app/test_reports/pytest/iteration_8_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "onboarding.py POST /rate is correctly idempotent via $addToSet on onboarding_rated, but $inc is applied on every call — so if a client double-submits a 'like' for the same title, weights double. Consider guarding with a pre-check ($addToSet result) or moving weight updates into a separate branch when the id was newly added. Low priority (UI de-dupes).",
+    "core.py movie_matches + apply_user_filters now both enforce content_type + excluded_genres + excluded_categories consistently. Good DRY opportunity: extract the 3 filters into a single predicate reused by both paths (currently two near-identical implementations ~20 lines apart).",
+    "onboarding.py _pick_diverse_titles shuffles the top-N after diversity selection; resulting ordering is non-deterministic across calls which is fine for UX but makes caching impossible. If performance becomes an issue, cache the raw diverse list and only shuffle per-request.",
+    "server.py backfill (users.onboarding_completed=true) runs on every startup via update_many({onboarding_completed: {$ne: true}}); cheap after first run but still runs. Fine for now, consider gating behind a one-shot migration flag if catalog grows.",
+    "routers/content.py /search/suggest does substring match on ' {q}' which misses matches at start of words that aren't the first word (e.g. 'Shawshank' won't match 'shaw' via the ' {q}' branch, but does match via startswith). Edge case only.",
+    "onboarding.py /titles returns only 15-20 items. If a user has rated all diverse titles (edge case on small seed), response shrinks silently. Consider surfacing a done state explicitly (status field) — frontend currently shows [data-testid=rate-done]."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_onboarding_and_filters.py (new, 12 tests)"
+  ],
+  "success_rate": {"backend": "100% (12/12 pytest)", "frontend": "100% — all required testids present, full 4-step flow completes to /discover, legacy redirects working, admin backfill verified"},
+  "test_credentials": "Admin admin@watchsmart.app / admin123 (now onboarding_completed=true via backfill). Fresh users registered per-run with test_onb_<hex>@watchsmart.app / Test1234!",
+  "seed_data_creation": "12 pytest runs each register a fresh test_onb_* user; no cleanup. Plus 1 FE user (test_onb_<hex>). Identifiable by test_onb_ prefix.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run: `pytest backend/tests/test_onboarding_and_filters.py -v`. Admin is backfilled onboarding_completed=true so admin login -> /discover, not /onboarding. Fresh registrations land on /onboarding. Frontend expects progress text UPPERCASED via CSS (inner_text returns uppercased) — use case-insensitive assertions. Token in localStorage key 'ws_access_token'. ONBOARD_WEIGHTS: like=+3, dislike=-2, skip=0. step2-helper only increments on like/dislike (not skip).",
+  "rca_of_the_issue": "N/A — feature works end-to-end across API + UI."
+}

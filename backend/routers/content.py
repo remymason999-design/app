@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from core import (
     db, require_user, get_catalog, find_movie, tmdb_client, logger,
+    apply_user_filters,
 )
 
 router = APIRouter(tags=["content"])
@@ -76,15 +77,18 @@ async def search(q: str, user: dict = Depends(require_user), limit: int = 20):
         return {"results": [], "fallback": False}
     region = (user.get("country") or "GB").upper()
     local = _local_search(q, limit)
+    local = apply_user_filters(local, user)
     if local:
         return {"results": local, "fallback": False}
     try:
         tmdb_results = await tmdb_client.search_titles(q, region=region, limit=limit)
+        tmdb_results = apply_user_filters(tmdb_results or [], user)
         if tmdb_results:
             return {"results": tmdb_results, "fallback": False}
     except Exception as e:
         logger.warning(f"TMDB search failed: {e}")
-    fallback = sorted(get_catalog(), key=lambda m: m.get("rating", 0), reverse=True)[:limit]
+    fallback = sorted(get_catalog(), key=lambda m: m.get("rating", 0), reverse=True)
+    fallback = apply_user_filters(fallback, user)[:limit]
     return {"results": fallback, "fallback": True}
 
 
@@ -94,8 +98,9 @@ async def search_suggest(q: str, user: dict = Depends(require_user), limit: int 
     q = (q or "").strip().lower()
     if len(q) < 2:
         return {"suggestions": []}
+    candidates = apply_user_filters(get_catalog(), user)
     out = []
-    for m in get_catalog():
+    for m in candidates:
         title = (m.get("title") or "")
         if title.lower().startswith(q) or f" {q}" in title.lower():
             out.append({

@@ -12,7 +12,10 @@ router = APIRouter(tags=["discovery"])
 
 @router.get("/discover")
 async def discover(user: dict = Depends(require_user), limit: int = 20):
-    seen = set((user.get("saved") or []) + (user.get("watched") or []) + (user.get("skipped") or []))
+    seen = set(
+        (user.get("saved") or []) + (user.get("watched") or []) + (user.get("skipped") or []) +
+        (user.get("onboarding_rated") or [])
+    )
     pool = [m for m in get_catalog() if m["id"] not in seen and movie_matches(m, user)]
     if len(pool) > 500:
         pool.sort(key=lambda m: m.get("popularity", 0), reverse=True)

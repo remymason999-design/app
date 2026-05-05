@@ -15,13 +15,9 @@ export default function ProtectedRoute({ children, requireOnboarding = true }) {
     if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
 
     if (requireOnboarding) {
-        const needsServices = !(user.subscriptions?.length > 0);
-        const needsGenres = !(user.genres?.length > 0);
-        if (needsServices && location.pathname !== "/onboarding/services") {
-            return <Navigate to="/onboarding/services" replace />;
-        }
-        if (!needsServices && needsGenres && location.pathname !== "/onboarding/genres") {
-            return <Navigate to="/onboarding/genres" replace />;
+        const onboarded = user.onboarding_completed === true;
+        if (!onboarded && location.pathname !== "/onboarding") {
+            return <Navigate to="/onboarding" replace />;
         }
     }
     return children;

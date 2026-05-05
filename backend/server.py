@@ -19,7 +19,7 @@ from core import (
     hash_password, verify_password, get_catalog,
     SEED_MOVIES,
 )
-from routers import auth, user, discovery, content, reviews, notifications, affiliate, admin, savings, recommendations, insights, password_reset, sharing
+from routers import auth, user, discovery, content, reviews, notifications, affiliate, admin, savings, recommendations, insights, password_reset, sharing, onboarding
 
 import uuid
 
@@ -42,6 +42,7 @@ api.include_router(recommendations.router)
 api.include_router(insights.router)
 api.include_router(password_reset.router)
 api.include_router(sharing.router)
+api.include_router(onboarding.router)
 
 
 @api.get("/")
@@ -107,6 +108,13 @@ async def on_startup():
         )
     elif existing.get("role") != "admin":
         await db.users.update_one({"email": admin_email}, {"$set": {"role": "admin"}})
+
+    # Backfill: mark pre-existing users as onboarded so they don't get re-prompted
+    # by the new 4-step onboarding flow. New users will go through it normally.
+    await db.users.update_many(
+        {"onboarding_completed": {"$exists": False}},
+        {"$set": {"onboarding_completed": True}},
+    )
 
     await load_catalog_from_db()
     if len(get_catalog()) <= len(SEED_MOVIES) and os.environ.get("TMDB_BEARER_TOKEN"):

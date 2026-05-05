@@ -9,8 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Landing from "@/pages/Landing";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
-import OnboardingServices from "@/pages/OnboardingServices";
-import OnboardingGenres from "@/pages/OnboardingGenres";
+import Onboarding from "@/pages/Onboarding";
 import Discover from "@/pages/Discover";
 import Watchlist from "@/pages/Watchlist";
 import Savings from "@/pages/Savings";
@@ -39,20 +38,20 @@ function AppShell() {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/share/:code" element={<ShareLink />} />
                 <Route
-                    path="/onboarding/services"
+                    path="/onboarding"
                     element={
                         <ProtectedRoute requireOnboarding={false}>
-                            <OnboardingServices />
+                            <Onboarding />
                         </ProtectedRoute>
                     }
                 />
                 <Route
+                    path="/onboarding/services"
+                    element={<Navigate to="/onboarding" replace />}
+                />
+                <Route
                     path="/onboarding/genres"
-                    element={
-                        <ProtectedRoute requireOnboarding={false}>
-                            <OnboardingGenres />
-                        </ProtectedRoute>
-                    }
+                    element={<Navigate to="/onboarding" replace />}
                 />
                 <Route
                     path="/discover"

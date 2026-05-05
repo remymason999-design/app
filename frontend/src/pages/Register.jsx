@@ -22,7 +22,7 @@ export default function Register() {
             if (data.access_token) setToken(data.access_token);
             setUser(data.user);
             toast.success("Account created");
-            navigate("/onboarding/services");
+            navigate("/onboarding");
         } catch (err) {
             toast.error(formatApiError(err.response?.data?.detail) || "Registration failed");
         } finally {

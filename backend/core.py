@@ -178,9 +178,13 @@ class LoginIn(BaseModel):
 class PreferencesIn(BaseModel):
     services: Optional[List[str]] = None
     genres: Optional[List[str]] = None
+    moods: Optional[List[str]] = None
     excluded_categories: Optional[List[str]] = None
+    excluded_genres: Optional[List[str]] = None
+    content_type: Optional[Literal["movie", "tv", "both"]] = None
     country: Optional[str] = None
     age: Optional[int] = None
+    onboarding_completed: Optional[bool] = None
 
 
 class ProgressIn(BaseModel):
@@ -214,7 +218,7 @@ ACTION_WEIGHTS = {"save": 2, "watched": 3, "skip": -1}
 
 
 def movie_matches(movie: dict, user: dict) -> bool:
-    """Strict match: subscription + excluded categories.
+    """Strict match: subscription + excluded categories + content_type + excluded_genres.
 
     Anime is detected via the 'anime' tag (Japanese animation only) — Pixar/family
     animation does NOT carry the 'anime' tag.
@@ -224,6 +228,15 @@ def movie_matches(movie: dict, user: dict) -> bool:
         return False
     excluded = set(user.get("excluded_categories") or [])
     if excluded and (set(movie.get("tags") or []) & excluded):
+        return False
+    # Content type filter: "movie" | "tv" | "both" (default both)
+    content_type = user.get("content_type")
+    if content_type and content_type != "both":
+        if movie.get("type") != content_type:
+            return False
+    # Explicit excluded genres
+    excluded_genres = set(user.get("excluded_genres") or [])
+    if excluded_genres and (set(movie.get("genres") or []) & excluded_genres):
         return False
     return True
 
@@ -287,10 +300,24 @@ async def cached_section(path: str, kind: str, region: str, pages: int = 1):
 
 
 def apply_user_filters(items: list, user: dict) -> list:
+    """Applied to TMDB section results (trending/upcoming/popular).
+
+    Strict filters — if user excluded anime/bollywood or set content_type=tv,
+    those items MUST be dropped from every feed, not just Discover.
+    """
     excluded = set(user.get("excluded_categories") or [])
-    if not excluded:
-        return items
-    return [m for m in items if not (set(m.get("tags") or []) & excluded)]
+    excluded_genres = set(user.get("excluded_genres") or [])
+    content_type = user.get("content_type")
+    out = []
+    for m in items:
+        if excluded and (set(m.get("tags") or []) & excluded):
+            continue
+        if excluded_genres and (set(m.get("genres") or []) & excluded_genres):
+            continue
+        if content_type and content_type != "both" and m.get("type") != content_type:
+            continue
+        out.append(m)
+    return out
 
 
 # --- Seed welcome notifications ------------------------------------------
