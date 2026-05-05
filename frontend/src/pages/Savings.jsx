@@ -49,12 +49,12 @@ export default function Savings() {
                 <div className="flex items-end justify-between gap-4">
                     <div>
                         <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Monthly</div>
-                        <div className="font-display text-4xl">${data.total_monthly.toFixed(2)}</div>
+                        <div className="font-display text-4xl">£{data.total_monthly.toFixed(2)}</div>
                         <div className="text-xs text-zinc-500 mt-1">{data.subscription_count} services</div>
                     </div>
                     <div className="text-right">
                         <div className="text-xs uppercase tracking-wider text-zinc-500 mb-1">Yearly</div>
-                        <div className="font-heading text-2xl">${data.total_yearly.toFixed(0)}</div>
+                        <div className="font-heading text-2xl">£{data.total_yearly.toFixed(0)}</div>
                     </div>
                 </div>
                 {totalSavings > 0 && (
@@ -64,10 +64,10 @@ export default function Savings() {
                         </div>
                         <div>
                             <div className="font-heading text-base">
-                                Save ${totalSavings.toFixed(2)}/mo
+                                Save £{totalSavings.toFixed(2)}/mo
                             </div>
                             <div className="text-xs text-zinc-400">
-                                That's ${(totalSavings * 12).toFixed(0)} a year back in your pocket.
+                                That's £{(totalSavings * 12).toFixed(0)} a year back in your pocket.
                             </div>
                         </div>
                     </div>
@@ -200,7 +200,7 @@ export default function Savings() {
                             <div>
                                 <div className="font-heading text-sm">{u.name}</div>
                                 <div className="text-[11px] text-zinc-500">
-                                    ${u.price_monthly.toFixed(2)}/mo · {u.available_unseen} new for you
+                                    £{u.price_monthly.toFixed(2)}/mo · {u.available_unseen} new for you
                                 </div>
                             </div>
                         </div>
@@ -234,7 +234,7 @@ export default function Savings() {
                                         <div>
                                             <div className="font-heading text-sm">{s.name}</div>
                                             <div className="text-[11px] text-zinc-500">
-                                                {s.subscribed ? "Subscribed" : "Not subscribed"} · ${s.price_monthly}/mo
+                                                {s.subscribed ? "Subscribed" : "Not subscribed"} · £{s.price_monthly}/mo
                                             </div>
                                         </div>
                                     </div>
@@ -245,7 +245,7 @@ export default function Savings() {
                                 </div>
                                 {s.cost_per_title && (
                                     <div className="text-xs text-zinc-400">
-                                        ~${s.cost_per_title} per title in your list
+                                        ~£{s.cost_per_title} per title in your list
                                     </div>
                                 )}
                                 {s.top_titles.length > 0 && (

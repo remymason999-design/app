@@ -40,7 +40,7 @@ async def savings(user: dict = Depends(require_user)):
         if worst["activity_count"] <= 1:
             suggestions.append({
                 "type": "cancel", "service_id": worst["service_id"],
-                "headline": f"Cancel {worst['name']} to save ${worst['price_monthly']:.2f}/mo",
+                "headline": f"Cancel {worst['name']} to save £{worst['price_monthly']:.2f}/mo",
                 "reason": (
                     f"You've engaged with only {worst['activity_count']} title(s) on {worst['name']}. "
                     "Most of your activity lives on other services."
@@ -52,8 +52,8 @@ async def savings(user: dict = Depends(require_user)):
             "type": "rotate",
             "headline": "Rotate subscriptions monthly",
             "reason": (
-                f"With {len(subs)} services at ${total:.2f}/mo, rotate one in/out each month "
-                f"to save up to ${(total/len(subs)):.2f}/mo."
+                f"With {len(subs)} services at £{total:.2f}/mo, rotate one in/out each month "
+                f"to save up to £{(total/len(subs)):.2f}/mo."
             ),
             "monthly_savings": round(total / len(subs), 2),
         })
