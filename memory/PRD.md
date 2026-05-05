@@ -139,22 +139,34 @@ top-tier UX. Affiliate links + future monetization.
 - **API surface**: `/api/movies/{id}` returns `card`; `/api/discover` items already include `card` (attached at catalog load).
 - **Tests**: 14/14 spec assertions passing in `/app/backend/tests/test_content_cards_iter10.py` — includes unit fixtures (Animation+Family→light/family, Horror→dark/adult, Crime+Drama→moral-grey, Sci-Fi+Action→space-opera, Drama+History→slow), API integration (Horror similar has 0 kids audience, similarity ranked descending, hierarchy: 0 context-as-primary violations across 30 items), and idempotency.
 
+### Iteration 11 (Feb 2026) — Stabilisation pass
+- **TMDB enrichment** (P1.2): `_enrich` now uses `append_to_response=keywords,release_dates,content_ratings` — single TMDB call now returns full classification metadata. Each catalog item carries `certification` (UK BBFC preferred, US MPA fallback) and `keywords` (TMDB curated taxonomy, up to 30 per title).
+- **Classifier upgrades** (P1):
+  - `_extract_themes` now consumes TMDB keyword tags via `KEYWORD_THEME_MAP` (50+ keyword→theme mappings) layered above the existing overview-text + genre-combo rules.
+  - `_classify_tone` now respects adult certification: an Animation+Family title with cert "18"/R/TV-MA/etc. can't be classified `light` (was previously a known false-positive for INVINCIBLE-style adult animated shows).
+  - UK certifications (12, 12A, 15, 18, U, Uc) added explicitly to the audience tier sets.
+  - `_confidence` formula rebalanced: keywords now contribute up to +0.15, certification +0.25, themes +0.15. Cert+keyword-rich items now reach ~0.93 confidence; pure-genre fallback floors at ~0.40.
+  - **Catalog-wide confidence: 0.62 → 0.87** after one full TMDB resync.
+- **Strict filter enforcement** (P1.3): `_section()` helper in `routers/discovery.py` now applies `apply_user_filters` BEFORE sorting/ranking on every list endpoint. Sections also dedupe against `saved + watched + skipped + onboarding_rated + recently_shown` — so a saved item disappears from trending on the next refresh.
+- **Repetition control** (P1.4): consecutive `/discover` calls now show **0% overlap** in tests (LRU cooldown on user doc + section-side dedup).
+- **"More Like This"** (P1.5): card-similarity ONLY. Filters applied before scoring. TMDB augmentation path also classified into cards (no genre-overlap fallback). Each augmentation candidate must score ≥0.10 to be included.
+- **Tests**: 14/14 in `test_content_cards_iter10.py` + 5/5 stabilisation tests in `test_stabilisation_iter11.py` (filter strictness, section dedup, repetition control, card-only similarity, confidence ≥0.80).
+
 ## Backlog
 ### P0 — Next priorities
 - (none currently)
 
 ### P1
 - Wire actual email delivery (Resend or SendGrid) for password reset
-- Enrich classifier with TMDB certifications + keywords (currently average confidence ~0.62; with cert+keywords this jumps to ~0.85)
-- Surface card signals in UI: tone badge, audience badge, "More Like This" carousel on movie detail
-- Densify `available_on` for hbo_max in TMDB harvest
+- Surface card signals in UI: tone/audience badges on Discover + dedicated "More Like This" carousel on movie detail
 - Subscription price editing
+- Densify `available_on` for hbo_max in TMDB harvest (provider mapping gap)
 
 ### P2
-- Real-time WebSocket compare
-- LLM-augmented theme extraction for low-confidence titles
+- LLM-augmented theme extraction for low-confidence (<0.5) titles
+- Real-time WebSocket compare (currently 3s polling)
 - Atomic `$push + $slice` for `recently_shown` LRU
-- WatchSmart Plus Stripe tier
+- WatchSmart Plus Stripe subscription tier
 - Web push, PWA, native wrappers
 
 ## Test credentials

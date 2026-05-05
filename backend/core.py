@@ -306,6 +306,10 @@ async def cached_section(path: str, kind: str, region: str, pages: int = 1):
     if cached and (now - cached[0]) < _SECTION_TTL:
         return cached[1]
     items = await tmdb_client.fetch_endpoint(path, kind, pages=pages, region=region)
+    # Attach content cards so all surfaces (discover/trending/upcoming/popular)
+    # expose the same tone/audience/pacing/themes/confidence_score signals.
+    from content_cards import attach_cards
+    attach_cards(items)
     _SECTION_CACHE[key] = (now, items)
     return items
 

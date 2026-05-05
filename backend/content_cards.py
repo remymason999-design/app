@@ -38,7 +38,7 @@ CONTEXT_GENRES = ["Crime", "Thriller", "Drama"]
 DARK_GENRES = {"Horror", "War", "Crime", "Thriller"}
 LIGHT_GENRES = {"Animation", "Family", "Comedy", "Music", "Romance"}
 
-# Theme keyword detection in overview text (case-insensitive)
+# Theme keywords (matched against overview text + TMDB keyword tags)
 THEME_KEYWORDS = {
     "coming-of-age": ("coming of age", "teenager", "high school", "growing up"),
     "found-family": ("found family", "ragtag", "misfits", "unlikely team"),
@@ -61,11 +61,62 @@ THEME_KEYWORDS = {
     "espionage": ("spy", "agent", "double cross", "intelligence agency"),
 }
 
-# Audience by certification (when present, see _certification_audience)
+# Direct mapping from TMDB canonical keyword names → theme
+KEYWORD_THEME_MAP = {
+    "coming of age": "coming-of-age",
+    "teenager": "coming-of-age",
+    "high school": "coming-of-age",
+    "based on novel or book": "literary-adaptation",
+    "based on true story": "biographical",
+    "based on real person": "biographical",
+    "biography": "biographical",
+    "heist": "heist",
+    "robbery": "heist",
+    "post-apocalyptic future": "post-apocalyptic",
+    "post-apocalyptic": "post-apocalyptic",
+    "dystopia": "dystopian",
+    "dystopian future": "dystopian",
+    "space opera": "space-opera",
+    "space travel": "space-opera",
+    "spacecraft": "space-opera",
+    "interstellar travel": "space-opera",
+    "epic": "epic-journey",
+    "quest": "epic-journey",
+    "journey": "epic-journey",
+    "magic": "high-fantasy",
+    "wizard": "high-fantasy",
+    "dragon": "high-fantasy",
+    "kingdom": "high-fantasy",
+    "fantasy world": "high-fantasy",
+    "psychological thriller": "psychological",
+    "psychological horror": "psychological",
+    "psychological drama": "psychological",
+    "obsession": "psychological",
+    "true crime": "true-crime",
+    "serial killer": "true-crime",
+    "murder mystery": "mind-bending",
+    "twist ending": "mind-bending",
+    "mind game": "mind-bending",
+    "redemption": "redemption",
+    "found family": "found-family",
+    "spy": "espionage",
+    "secret agent": "espionage",
+    "espionage": "espionage",
+    "world war ii": "war-drama",
+    "world war i": "war-drama",
+    "battlefield": "war-drama",
+    "survival": "survival",
+    "stranded": "survival",
+    "wilderness": "survival",
+    "feel good": "feel-good",
+    "heartwarming": "feel-good",
+}
+
+# Audience by certification (region-specific). Includes UK BBFC + US MPA + TV ratings.
 ADULT_CERTS = {"R", "NC-17", "TV-MA", "18", "MA15+", "X"}
-TEEN_CERTS = {"PG-13", "TV-14", "12", "15", "12A", "M"}
+TEEN_CERTS = {"PG-13", "TV-14", "12", "12A", "15", "M"}
 FAMILY_CERTS = {"PG", "TV-PG", "TV-Y7", "TV-Y7-FV", "U"}
-KIDS_CERTS = {"G", "TV-Y", "TV-G"}
+KIDS_CERTS = {"G", "TV-Y", "TV-G", "Uc"}
 
 
 # ---------------------------------------------------------------------------
@@ -91,11 +142,19 @@ def _extract_themes(movie: dict) -> list[str]:
     overview = (movie.get("overview") or "").lower()
     genres = set(movie.get("genres") or [])
     themes: list[str] = []
+
+    # 1. TMDB canonical keywords (highest signal — curated taxonomy)
+    for kw in (movie.get("keywords") or []):
+        mapped = KEYWORD_THEME_MAP.get(kw.lower().strip())
+        if mapped:
+            themes.append(mapped)
+
+    # 2. Overview lexical hints
     for theme, needles in THEME_KEYWORDS.items():
         if any(n in overview for n in needles):
             themes.append(theme)
 
-    # Genre-combo derived themes (always reliable)
+    # 3. Genre-combo derived themes (always reliable)
     if "Adventure" in genres and ("Family" in genres or "Animation" in genres):
         themes.append("epic-journey")
     if "Crime" in genres and "Drama" in genres:
@@ -115,7 +174,7 @@ def _extract_themes(movie: dict) -> list[str]:
     if "Animation" in genres and "Family" in genres:
         themes.append("feel-good")
 
-    # Dedup & cap (keep order)
+    # Dedup & cap (keep insertion order — keyword themes ranked first)
     seen = set()
     out = []
     for t in themes:
@@ -129,31 +188,37 @@ def _classify_tone(movie: dict) -> str:
     """light / neutral / dark — overrides genre misclassification.
 
     Heuristic precedence:
-      1. Animation/Family without Horror/Crime/Thriller -> light (overrides Drama)
-      2. Horror or War or (Crime + Drama) or (Thriller + Crime) -> dark
-      3. Comedy/Music/Romance dominant -> light
-      4. otherwise neutral
+      1. Adult certification (18/R/TV-MA) -> at least "neutral", never "light"
+      2. Animation/Family without Horror/Crime/Thriller AND not adult-rated -> light
+      3. Horror or War or (Crime + Drama) or (Thriller + Crime) -> dark
+      4. Comedy/Music/Romance dominant -> light
+      5. otherwise neutral
     """
     g = set(movie.get("genres") or [])
     overview = (movie.get("overview") or "").lower()
+    cert = (movie.get("certification") or movie.get("content_rating") or "").upper().strip()
+    is_adult_rated = cert in ADULT_CERTS
 
-    # Strong overrides
-    if g & {"Animation", "Family"} and not (g & {"Horror", "Crime", "Thriller"}):
-        return "light"
+    # Hard genre signals first
     if "Horror" in g or "War" in g:
         return "dark"
     if ("Crime" in g and "Drama" in g) or ("Thriller" in g and "Crime" in g):
         return "dark"
 
-    # Lexical hints
+    # Family/Animation override — only when content is NOT adult-rated
+    if g & {"Animation", "Family"} and not (g & {"Horror", "Crime", "Thriller"}) and not is_adult_rated:
+        return "light"
+
+    # Lexical hints (only override if no adult cert)
     dark_words = ("murder", "death", "abuse", "trauma", "war", "torture", "tragedy", "killing")
     if any(w in overview for w in dark_words):
         return "dark"
-    light_words = ("hilarious", "comedy", "romantic", "heartwarming", "feel-good", "joyful")
-    if any(w in overview for w in light_words):
-        return "light"
+    if not is_adult_rated:
+        light_words = ("hilarious", "comedy", "romantic", "heartwarming", "feel-good", "joyful")
+        if any(w in overview for w in light_words):
+            return "light"
 
-    if g & LIGHT_GENRES and not (g & DARK_GENRES):
+    if g & LIGHT_GENRES and not (g & DARK_GENRES) and not is_adult_rated:
         return "light"
     if g & DARK_GENRES:
         return "dark"
@@ -215,17 +280,21 @@ def _confidence(movie: dict, themes: list[str], audience_from_cert: bool) -> flo
     """0.0..1.0 — completeness of signal we used to classify."""
     score = 0.0
     if movie.get("genres"):
-        score += 0.25
+        score += 0.20
     if movie.get("overview"):
-        score += 0.15
-    if movie.get("runtime"):
         score += 0.10
+    if movie.get("runtime"):
+        score += 0.05
     if (movie.get("vote_count") or 0) >= 50:
         score += 0.10
     if audience_from_cert:
-        score += 0.20
+        score += 0.25
+    if movie.get("keywords"):
+        # TMDB keyword signal — strong evidence we derived themes from a curated taxonomy
+        kw_count = len(movie["keywords"])
+        score += min(0.15, 0.02 * kw_count)  # caps at ~8 keywords
     if themes:
-        score += min(0.20, 0.05 * len(themes))
+        score += min(0.15, 0.04 * len(themes))
     return round(min(1.0, score), 2)
 
 

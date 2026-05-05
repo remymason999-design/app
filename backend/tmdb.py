@@ -97,8 +97,16 @@ async def _enrich(client: httpx.AsyncClient, item: dict, kind: str, region: str)
     date = item.get("release_date") if is_movie else item.get("first_air_date")
     if not tmdb_id or not title or not date:
         return None
+    # One-shot detail fetch with keywords + certifications appended
     try:
-        detail = await _get(client, f"/{kind}/{tmdb_id}")
+        if is_movie:
+            detail = await _get(client, f"/{kind}/{tmdb_id}", {
+                "append_to_response": "keywords,release_dates",
+            })
+        else:
+            detail = await _get(client, f"/{kind}/{tmdb_id}", {
+                "append_to_response": "keywords,content_ratings",
+            })
     except Exception:
         return None
 
@@ -149,6 +157,44 @@ async def _enrich(client: httpx.AsyncClient, item: dict, kind: str, region: str)
     if detail.get("original_language") and detail.get("original_language") not in ("en",):
         tags.add(f"lang:{detail['original_language']}")
 
+    # ---- Certification (region-specific, fall back to US) ----
+    certification: Optional[str] = None
+    if is_movie:
+        for entry in (detail.get("release_dates") or {}).get("results") or []:
+            if entry.get("iso_3166_1") == region:
+                for r in entry.get("release_dates") or []:
+                    if r.get("certification"):
+                        certification = r["certification"]
+                        break
+            if certification:
+                break
+        if not certification:
+            for entry in (detail.get("release_dates") or {}).get("results") or []:
+                if entry.get("iso_3166_1") == "US":
+                    for r in entry.get("release_dates") or []:
+                        if r.get("certification"):
+                            certification = r["certification"]
+                            break
+                if certification:
+                    break
+    else:
+        for entry in (detail.get("content_ratings") or {}).get("results") or []:
+            if entry.get("iso_3166_1") == region and entry.get("rating"):
+                certification = entry["rating"]
+                break
+        if not certification:
+            for entry in (detail.get("content_ratings") or {}).get("results") or []:
+                if entry.get("iso_3166_1") == "US" and entry.get("rating"):
+                    certification = entry["rating"]
+                    break
+
+    # ---- Keywords (canonical TMDB taxonomy, very useful for theme detection) ----
+    kw_root = detail.get("keywords") or {}
+    raw_keywords = kw_root.get("keywords") if is_movie else kw_root.get("results")
+    keywords: list[str] = []
+    if isinstance(raw_keywords, list):
+        keywords = [k.get("name") for k in raw_keywords if k.get("name")][:30]
+
     return {
         "id": f"tmdb_{kind}_{tmdb_id}",
         "tmdb_id": tmdb_id,
@@ -171,6 +217,8 @@ async def _enrich(client: httpx.AsyncClient, item: dict, kind: str, region: str)
         "buy_on": providers["buy"],
         "popularity": detail.get("popularity") or 0,
         "original_language": detail.get("original_language"),
+        "certification": certification,
+        "keywords": keywords,
     }
 
 

@@ -120,39 +120,52 @@ async def search_suggest(q: str, user: dict = Depends(require_user), limit: int 
 async def similar(movie_id: str, user: dict = Depends(require_user)):
     """Card-based 'More Like This'.
 
-    Uses `card_similarity` (40% themes / 25% tone / 20% audience / 10% pacing /
-    5% genre) instead of raw genre overlap. Falls back to TMDB similar API for
-    titles outside the local catalog.
+    Uses ONLY card_similarity (40% themes / 25% tone / 20% audience /
+    10% pacing / 5% genre). Falls back to TMDB ONLY when local pool is too
+    sparse (<8 results above similarity floor) — and TMDB results are also
+    classified into cards before re-scoring (no genre-overlap fallback).
     """
     m = find_movie(movie_id)
     if not m:
         raise HTTPException(404, "Movie not found")
     target_card = m.get("card") or build_card(m)
 
-    def score(c: dict) -> float:
-        c_card = c.get("card") or build_card(c)
-        return card_similarity(target_card, c_card)
-
+    # Apply user filters before scoring — never recommend filtered content
     candidates = [c for c in get_catalog() if c["id"] != movie_id]
-    candidates.sort(key=score, reverse=True)
-    # Keep only items with non-trivial similarity (> 0.15)
-    local_top = [c for c in candidates if score(c) >= 0.15][:12]
+    candidates = apply_user_filters(candidates, user)
+
+    scored = []
+    for c in candidates:
+        c_card = c.get("card") or build_card(c)
+        sim = card_similarity(target_card, c_card)
+        if sim >= 0.15:
+            scored.append((sim, c))
+    scored.sort(key=lambda x: x[0], reverse=True)
+    local_top = [c for _, c in scored[:12]]
 
     if len(local_top) >= 8 or not m.get("tmdb_id"):
         return local_top
 
-    # Augment with TMDB similar — classify on the fly
+    # Augment with TMDB similar — classify each into a card and re-score
     region = (user.get("country") or "GB").upper()
     try:
         tmdb_sim = await tmdb_client.fetch_similar(m["type"], m["tmdb_id"], region=region)
     except Exception:
         tmdb_sim = []
+    tmdb_sim = apply_user_filters(tmdb_sim or [], user)
     seen_ids = {x["id"] for x in local_top}
+    aug = []
     for t in tmdb_sim:
-        if t["id"] not in seen_ids:
-            if not t.get("card"):
-                t["card"] = build_card(t)
-            local_top.append(t)
-            if len(local_top) >= 12:
-                break
+        if t["id"] in seen_ids:
+            continue
+        if not t.get("card"):
+            t["card"] = build_card(t)
+        sim = card_similarity(target_card, t["card"])
+        if sim >= 0.10:  # slightly lower floor for augmentation pool
+            aug.append((sim, t))
+    aug.sort(key=lambda x: x[0], reverse=True)
+    for _, t in aug:
+        local_top.append(t)
+        if len(local_top) >= 12:
+            break
     return local_top
