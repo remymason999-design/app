@@ -11,6 +11,7 @@ export default function Admin() {
     const { user, loading } = useAuth();
     const navigate = useNavigate();
     const [data, setData] = useState(null);
+    const [analytics, setAnalytics] = useState(null);
     const [refreshing, setRefreshing] = useState(false);
 
     useEffect(() => {
@@ -23,6 +24,7 @@ export default function Admin() {
             toast.error("Couldn't load admin dashboard");
             navigate("/discover");
         });
+        apiGet("/admin/analytics").then(setAnalytics).catch(() => {});
     }, [user, loading, navigate]);
 
     const refreshCatalog = async () => {
@@ -90,6 +92,31 @@ export default function Admin() {
                 <Stat icon={Users} label="Users" value={data.total_users} />
                 <Stat icon={MousePointerClick} label="Clicks" value={data.total_clicks} />
             </div>
+
+            {analytics && (
+                <div className="glass rounded-2xl p-5 mb-6" data-testid="engagement-card">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="font-heading text-base">Engagement</div>
+                        <span className="text-[10px] uppercase tracking-wider text-zinc-500">7-day window</span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-3 mb-4">
+                        <MiniStat label="DAU" value={analytics.dau} />
+                        <MiniStat label="WAU" value={analytics.wau} />
+                        <MiniStat label="MAU" value={analytics.mau} />
+                        <MiniStat label="Save rate" value={`${analytics.save_rate_pct}%`} />
+                    </div>
+                    {Object.keys(analytics.swipes_7d || {}).length > 0 && (
+                        <div className="flex items-center gap-3 text-xs text-zinc-400">
+                            {Object.entries(analytics.swipes_7d).map(([action, count]) => (
+                                <span key={action} className="flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber" />
+                                    {action} <span className="font-heading text-zinc-200">{count}</span>
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="glass rounded-2xl p-5 mb-6">
                 <div className="flex items-center justify-between mb-3">
