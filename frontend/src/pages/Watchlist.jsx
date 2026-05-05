@@ -65,7 +65,7 @@ export default function Watchlist() {
                             data-testid={`watchlist-item-${m.id}`}
                         >
                             <Link to={`/movie/${m.id}`} className="block relative aspect-[2/3] rounded-2xl overflow-hidden card-shadow">
-                                <img src={m.poster_url} alt={m.title} className="absolute inset-0 w-full h-full object-cover" />
+                                <img loading="lazy" src={m.poster_url} alt={m.title} className="absolute inset-0 w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/30 to-transparent" />
                                 <div className="absolute bottom-0 inset-x-0 p-3">
                                     <div className="font-heading text-sm leading-tight line-clamp-2">{m.title}</div>

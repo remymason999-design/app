@@ -89,7 +89,7 @@ export default function Search() {
                                 className="w-full flex gap-3 glass rounded-2xl p-3 hover:bg-white/[0.05] text-left"
                             >
                                 <div className="w-16 h-24 rounded-lg overflow-hidden bg-velvet shrink-0">
-                                    {m.poster_url && <img src={m.poster_url} alt={m.title} className="w-full h-full object-cover" />}
+                                    {m.poster_url && <img loading="lazy" src={m.poster_url} alt={m.title} className="w-full h-full object-cover" />}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="font-heading text-base leading-tight truncate">{m.title}</div>

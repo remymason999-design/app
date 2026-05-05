@@ -213,7 +213,7 @@ function Card({ movie, services, isTop, stackPos, isExiting, exitDir, onSwipe, o
             }
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
         >
-            <img src={movie.poster_url} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+            <img loading="lazy" src={movie.poster_url} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" draggable={false} />
             <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/65 to-transparent" />
             {isTop && (
                 <>

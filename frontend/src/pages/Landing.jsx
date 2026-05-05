@@ -65,8 +65,7 @@ export default function Landing() {
                                 }}
                                 className="absolute top-2 w-[140px] h-[210px] rounded-2xl overflow-hidden card-shadow"
                             >
-                                <img
-                                    src={p.url}
+                                <img loading="lazy" src={p.url}
                                     alt={p.title}
                                     className="absolute inset-0 w-full h-full object-cover"
                                     draggable={false}

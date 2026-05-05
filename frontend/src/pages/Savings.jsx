@@ -173,7 +173,7 @@ export default function Savings() {
                                     <div className="flex gap-1.5 mt-3 overflow-hidden">
                                         {s.top_titles.map((t) => (
                                             <div key={t.id} className="w-10 h-14 rounded bg-velvet overflow-hidden">
-                                                {t.poster_url && <img src={t.poster_url} alt={t.title} className="w-full h-full object-cover" />}
+                                                {t.poster_url && <img loading="lazy" src={t.poster_url} alt={t.title} className="w-full h-full object-cover" />}
                                             </div>
                                         ))}
                                     </div>

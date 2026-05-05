@@ -67,7 +67,7 @@ export default function MovieDetail() {
         <div className="min-h-screen pb-28 bg-obsidian" data-testid="movie-detail-page">
             {/* Full-screen immersive banner */}
             <div className="relative h-screen max-h-[100svh] -mt-1">
-                <img src={movie.backdrop_url || movie.poster_url} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
+                <img loading="lazy" src={movie.backdrop_url || movie.poster_url} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-obsidian/30" />
                 <div className="absolute inset-0 bg-gradient-to-r from-obsidian/40 to-transparent" />
 
@@ -162,7 +162,7 @@ export default function MovieDetail() {
                                 <div key={s.season_number} data-testid={`season-${s.season_number}`}
                                     className="shrink-0 w-28 glass rounded-xl p-2">
                                     <div className="aspect-[2/3] rounded-lg overflow-hidden bg-velvet mb-2">
-                                        {s.poster_path && <img src={s.poster_path} alt={s.name} className="w-full h-full object-cover" />}
+                                        {s.poster_path && <img loading="lazy" src={s.poster_path} alt={s.name} className="w-full h-full object-cover" />}
                                     </div>
                                     <div className="font-heading text-xs leading-tight truncate">{s.name}</div>
                                     <div className="text-[10px] text-zinc-500">{s.episode_count} ep{s.episode_count === 1 ? "" : "s"}</div>
@@ -233,7 +233,7 @@ export default function MovieDetail() {
                                 <button key={m.id} onClick={() => navigate(`/movie/${m.id}`)}
                                     className="shrink-0 w-32 text-left">
                                     <div className="aspect-[2/3] rounded-xl overflow-hidden bg-velvet mb-2">
-                                        {m.poster_url && <img src={m.poster_url} alt={m.title} className="w-full h-full object-cover" />}
+                                        {m.poster_url && <img loading="lazy" src={m.poster_url} alt={m.title} className="w-full h-full object-cover" />}
                                     </div>
                                     <div className="font-heading text-xs leading-tight truncate">{m.title}</div>
                                     <div className="text-[10px] text-zinc-500 flex items-center gap-1">
@@ -416,8 +416,12 @@ function ProgressModal({ open, onClose, movie, onSaved }) {
                             <span className="text-[10px] uppercase tracking-wider text-zinc-500">Season</span>
                             <select value={season} onChange={(e) => { setSeason(+e.target.value); setEpisode(1); }}
                                 data-testid="progress-season"
-                                className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl p-3 text-sm">
-                                {seasons.map((s) => <option key={s.season_number} value={s.season_number}>{s.name} ({s.episode_count} ep)</option>)}
+                                className="w-full mt-1 bg-velvet border border-white/10 rounded-xl p-3 text-sm text-foreground">
+                                {seasons.map((s) => (
+                                    <option key={s.season_number} value={s.season_number} className="bg-velvet text-foreground">
+                                        {s.name} ({s.episode_count} ep)
+                                    </option>
+                                ))}
                             </select>
                         </label>
                         <label className="block mb-6">

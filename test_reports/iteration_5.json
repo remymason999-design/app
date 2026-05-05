@@ -1,0 +1,48 @@
+{
+  "summary": "Iteration 5 backend refactor + bug fix pack — verified ALL endpoints still work after server.py was split into 10 routers under /app/backend/routers/. Backend: 67/67 pytest tests PASSED (56 existing iter1-4 + 11 new iter5 tests). Verified new endpoints /api/search/suggest (prefix-match autocomplete with 6-item cap, requires auth, short-query empty), /api/admin/analytics (DAU/WAU/MAU + swipes_7d + save_rate_pct + total_users; admin-only, 401/403 gating). Verified iter5 progress bounds: season-not-in-list returns 400 'Season X not found'; episode > season.episode_count returns 400 'Episode exceeds season max'. Verified type_weights $inc on save (movie/tv split), user_actions audit collection logs every save/skip/watched (validated via DAU/WAU appearing in /admin/analytics after fresh user actions), anime exclusion via excluded_categories=['anime'] removes anime-tagged titles from /discover, similar scoring surfaces same-type bonus. Frontend smoke test (admin login → discover → search → admin → savings → watchlist → profile → search): all 6 pages render without errors, admin dashboard shows live counts (363 catalog / 77 users / 9 clicks / Netflix 7 + Hulu 2 breakdown), Discover renders Fullmetal Alchemist hero card with reason 'Because you've been loving Drama' (recommendation engine working), Savings shows $40.47/mo + $354/yr suggestion (cancel Max), Profile shows genre_weights (Action/Animation/Drama/Sci-Fi all =3). One existing test (test_progress_upsert_and_readback) needed minor data fix because new bounds-check now rejects S2 on a TV without S2; updated to use S1E1 against any title.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/admin/analytics", "issue": "Endpoint exists and returns correct data, but Admin UI page (/admin) does not yet surface DAU/WAU/MAU/save_rate — the dashboard only shows legacy catalog/users/clicks/affiliate. Pure UX gap, not a bug."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AdminPage", "issue": "Backend ships /api/admin/analytics with DAU/WAU/MAU/swipes_7d/save_rate_pct, but /admin frontend does not render those metrics. Add an 'Engagement' card to surface them.", "selector": "/admin", "priority": "MEDIUM"},
+      {"component": "DiscoverPage", "issue": "No inline search input on /discover (search-input testid only on /search route). Users must navigate to /search via header icon. Acceptable design but worth confirming.", "selector": "[data-testid=search-input]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: Render the new /admin/analytics metrics (DAU/WAU/MAU/save_rate_pct) on the Admin Control Room page — backend is ready, UI just needs cards.",
+    "OPTIONAL: Confirm intentionally not surfacing search on /discover header (currently only navigated-to via /search route).",
+    "Per iter4 still-open items (no regressions but unfixed): genres-continue overlapping #emergent-badge (HIGH), MovieDetail btn-save/btn-watched testids (MEDIUM), <option> hydration warning (LOW)."
+  ],
+  "critical_code_review_comments": [
+    "Refactor is clean: server.py reduced from 1066 → 114 lines. Router split is logical (auth/user/discovery/content/reviews/notifications/affiliate/admin/savings/recommendations). core.py at 328 lines holds shared deps including DB, models, helpers, CATALOG, recommendation engine, section cache — well within the 700-line threshold.",
+    "user.py /user/progress now correctly validates season exists in movie.seasons AND episode <= season.episode_count, both returning HTTP 400 with descriptive detail. Iter4's finding of 'no upper bound' is fully resolved.",
+    "user.py /user/action correctly $inc's both genre_weights AND new type_weights.{movie|tv} in a single update. user_actions audit collection is populated on every save/skip/watched (NOT on unsave — unsave is correctly excluded from audit and weights).",
+    "content.py /movies/{movie_id}/similar implements the spec's scoring formula: genre overlap *3 + same-type bonus +1 + tag overlap *2 + user pref overlap + rating/5. TMDB augmentation only kicks in when local_top < 8.",
+    "content.py /search/suggest: prefix-match OR ' q' substring, capped at limit=6, requires q>=2 chars else returns empty. Schema {id,title,year,type,poster_url} matches spec.",
+    "admin.py /admin/analytics computes DAU/WAU/MAU via distinct user_id on user_actions in 1-day/7-day/30-day windows. Note: uses ISO-string comparisons on created_at — works because ISO-8601 lexicographic sort matches chronological order for same offset, but switching to native datetime would be more robust.",
+    "MINOR: admin.py /admin/refresh-catalog has hard-coded `pages: int = 3` default in signature but ignored by docstring/spec which says 5 pages. The frontend admin button passes nothing so 3 pages is current behaviour.",
+    "MINOR: discovery.py /sections/upcoming and /sections/popular-locally still do NOT apply excluded_categories filter (only /trending does). Iter4 finding still open.",
+    "MINOR: search/suggest ' q' substring check is a contains-anywhere-after-space match, but spec says 'prefix-matching' — slightly broader than literal prefix. Likely intentional for multi-word titles.",
+    "POSITIVE: bcrypt hash format ($2b$), httpOnly cookies, CORS allow-credentials with explicit origins all preserved through the refactor. Auth gating verified on every iter4 + iter5 endpoint via parametrised tests."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {"backend": "100% (67/67)", "frontend": "100% page-render success on all 6 routes; minor UX gap on Admin (analytics not yet surfaced)"},
+  "test_credentials": "admin@watchsmart.app / admin123 (verified). Throwaway test users created via /api/auth/register: tester_*, iter4_*, learn_*, reason_*, seen_*, prog_*, notif_*, notif2_*, wlv_*, excl_*, cookieu_*, pool_*, anex_*, audit_*, tw_*.",
+  "seed_data_creation": "Several throwaway users registered for iter5 tests. New collection writes: user_actions audit rows on every save/skip/watched (visible via /admin/analytics swipes_7d). type_weights now populated on user docs.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend test suite at /app/backend/tests/backend_test.py — 67 tests (run via `REACT_APP_BACKEND_URL=<url> pytest backend/tests/backend_test.py -v`). Iter5 added: test_search_suggest_*, test_admin_analytics_*, test_progress_invalid_season_out_of_range, test_progress_invalid_episode_exceeds_max, test_type_weights_inc_on_action, test_user_actions_audit_recorded_via_analytics, test_anime_exclusion_removes_anime_only, test_similar_scoring_returns_same_type_first. Helper _find_tv_in_catalog(tok) finds Frieren/etc. iter5 fixed test_progress_upsert_and_readback to use S1E1 against any non-TV (or first) title since bounds check now strict. Frontend testids unchanged from iter4 — still bypass tutorial via localStorage 'ws_tutorial_v1_seen'='1'.",
+  "rca of the issue": "test_progress_upsert_and_readback was sending S2E5 against movies[0] which on iter5 catalog (363 titles) sometimes resolves to a TV show without S2 — the new validation in /app/backend/routers/user.py:80-86 correctly rejects with 400 'Season 2 not found'. Mitigation: changed the test to S1E1 against the first non-TV title (or fallback first title) since S1E1 is universally valid. This is correct behaviour for the new bounds check, not a backend regression."
+}

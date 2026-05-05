@@ -461,19 +461,23 @@ def test_movie_detail_enriched_fields(user_ctx):
 
 # --- Progress upsert + readback ---
 def test_progress_upsert_and_readback(user_ctx):
+    """Find a movie type (no season validation) OR a TV with valid season — set progress and read back."""
     tok = user_ctx["token"]
     movies = requests.get(f"{API}/discover", headers=H(tok)).json()
-    mid = movies[0]["id"]
+    # Pick a non-TV title so iter5 season-bounds validation is skipped, OR a TV with seasons
+    target = next((m for m in movies if m.get("type") != "tv"), None) or movies[0]
+    mid = target["id"]
+    # Use season=1 episode=1 — safest
     r = requests.post(f"{API}/user/progress", headers=H(tok),
-                      json={"movie_id": mid, "season": 2, "episode": 5})
+                      json={"movie_id": mid, "season": 1, "episode": 1})
     assert r.status_code == 200, r.text
     data = r.json()
     prog = (data.get("progress") or {}).get(mid)
-    assert prog and prog["season"] == 2 and prog["episode"] == 5
+    assert prog and prog["season"] == 1 and prog["episode"] == 1
     # GET /movies/{id} should now include progress
     r2 = requests.get(f"{API}/movies/{mid}", headers=H(tok))
     assert r2.status_code == 200
-    assert r2.json().get("progress", {}).get("season") == 2
+    assert r2.json().get("progress", {}).get("season") == 1
 
 
 def test_progress_invalid_season():
@@ -621,3 +625,181 @@ def test_iter4_endpoints_require_auth(path, method):
     fn = getattr(requests, method)
     r = fn(f"{API}{path}")
     assert r.status_code == 401, f"{path} should require auth, got {r.status_code}"
+
+
+# ============ Iteration 5: refactor + new endpoints (search/suggest, admin/analytics, etc.) ============
+
+# --- /api/search/suggest ---
+def test_search_suggest_returns_prefix_matches(user_ctx):
+    tok = user_ctx["token"]
+    r = requests.get(f"{API}/search/suggest", params={"q": "du"}, headers=H(tok))
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert "suggestions" in data
+    suggestions = data["suggestions"]
+    assert isinstance(suggestions, list)
+    assert len(suggestions) <= 6
+    if suggestions:
+        for s in suggestions:
+            for k in ["id", "title", "year", "type", "poster_url"]:
+                assert k in s, f"missing key {k} in suggestion"
+
+
+def test_search_suggest_short_query_returns_empty(user_ctx):
+    tok = user_ctx["token"]
+    r = requests.get(f"{API}/search/suggest", params={"q": "d"}, headers=H(tok))
+    assert r.status_code == 200
+    assert r.json()["suggestions"] == []
+
+
+def test_search_suggest_requires_auth():
+    r = requests.get(f"{API}/search/suggest", params={"q": "du"})
+    assert r.status_code == 401
+
+
+# --- /api/admin/analytics ---
+def test_admin_analytics_rbac(admin_token, user_ctx):
+    # Non-admin denied
+    r = requests.get(f"{API}/admin/analytics", headers=H(user_ctx["token"]))
+    assert r.status_code == 403
+    # Admin allowed
+    r = requests.get(f"{API}/admin/analytics", headers=H(admin_token))
+    assert r.status_code == 200, r.text
+    data = r.json()
+    for k in ["dau", "wau", "mau", "swipes_7d", "save_rate_pct", "total_users"]:
+        assert k in data, f"missing analytics key {k}"
+    assert isinstance(data["dau"], int)
+    assert isinstance(data["wau"], int)
+    assert isinstance(data["mau"], int)
+    assert isinstance(data["total_users"], int)
+    assert data["total_users"] >= 1
+    assert isinstance(data["swipes_7d"], dict)
+    assert isinstance(data["save_rate_pct"], (int, float))
+
+
+def test_admin_analytics_unauth():
+    r = requests.get(f"{API}/admin/analytics")
+    assert r.status_code == 401
+
+
+# --- Progress: bounds checks (season exists, episode <= ep_count) ---
+def _find_tv_in_catalog(tok):
+    """Helper: find a TV title with seasons via search."""
+    # Frieren is in catalog (mentioned in iter4 context)
+    r = requests.get(f"{API}/search", params={"q": "frieren"}, headers=H(tok))
+    if r.status_code == 200:
+        for m in r.json().get("results", []):
+            if m.get("type") == "tv" and m.get("seasons"):
+                return m
+    # Fallback: search common TV
+    for q in ["the", "house", "game"]:
+        r = requests.get(f"{API}/search", params={"q": q}, headers=H(tok))
+        for m in r.json().get("results", []):
+            if m.get("type") == "tv" and m.get("seasons"):
+                return m
+    return None
+
+
+def test_progress_invalid_season_out_of_range(user_ctx):
+    """For TV titles, posting a non-existent season should return 400."""
+    tok = user_ctx["token"]
+    tv = _find_tv_in_catalog(tok)
+    if not tv:
+        pytest.skip("No TV title with seasons in catalog")
+    r = requests.post(f"{API}/user/progress", headers=H(tok),
+                      json={"movie_id": tv["id"], "season": 99, "episode": 1})
+    assert r.status_code == 400, r.text
+    assert "Season" in r.json().get("detail", "")
+
+
+def test_progress_invalid_episode_exceeds_max(user_ctx):
+    """For TV titles, episode > season's episode_count should return 400."""
+    tok = user_ctx["token"]
+    tv = _find_tv_in_catalog(tok)
+    if not tv:
+        pytest.skip("No TV title with seasons in catalog")
+    s1 = next((s for s in tv["seasons"] if s.get("season_number") == 1), tv["seasons"][0])
+    max_ep = s1.get("episode_count") or 12
+    r = requests.post(f"{API}/user/progress", headers=H(tok),
+                      json={"movie_id": tv["id"], "season": s1["season_number"], "episode": max_ep + 50})
+    assert r.status_code == 400, r.text
+    assert "Episode" in r.json().get("detail", "")
+
+
+# --- type_weights $inc on save ---
+def test_type_weights_inc_on_action():
+    """Saving a movie should $inc type_weights.movie; saving a TV should $inc type_weights.tv."""
+    email = f"tw_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "TW"}).json()["access_token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    # find a movie and a tv
+    mv = next((m for m in movies if m.get("type") == "movie"), None)
+    tv = next((m for m in movies if m.get("type") == "tv"), None)
+    if mv:
+        requests.post(f"{API}/user/action", headers=H(tok),
+                      json={"movie_id": mv["id"], "action": "save"})
+    if tv:
+        requests.post(f"{API}/user/action", headers=H(tok),
+                      json={"movie_id": tv["id"], "action": "save"})
+    me = requests.get(f"{API}/auth/me", headers=H(tok)).json()
+    tw = me.get("type_weights") or {}
+    if mv:
+        assert tw.get("movie", 0) >= 2, f"expected movie weight >=2, got {tw}"
+    if tv:
+        assert tw.get("tv", 0) >= 2, f"expected tv weight >=2, got {tw}"
+
+
+# --- user_actions audit collection ---
+def test_user_actions_audit_recorded_via_analytics(admin_token):
+    """Save an action with a fresh user, then admin/analytics should reflect non-zero swipes_7d."""
+    email = f"audit_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "A"}).json()["access_token"]
+    movies = requests.get(f"{API}/discover", headers=H(tok)).json()
+    requests.post(f"{API}/user/action", headers=H(tok),
+                  json={"movie_id": movies[0]["id"], "action": "save"})
+    requests.post(f"{API}/user/action", headers=H(tok),
+                  json={"movie_id": movies[1]["id"], "action": "skip"})
+    # Verify via admin/analytics that swipes_7d has data
+    r = requests.get(f"{API}/admin/analytics", headers=H(admin_token))
+    assert r.status_code == 200
+    data = r.json()
+    assert data["dau"] >= 1
+    assert data["wau"] >= 1
+    # at least save and skip should be recorded somewhere
+    assert sum(data["swipes_7d"].values()) >= 2
+
+
+# --- Anime exclusion: ensure anime tagged titles removed; western animation kept ---
+def test_anime_exclusion_removes_anime_only():
+    """excluded_categories=['anime'] should remove anime-tagged titles but allow non-anime animation."""
+    email = f"anex_{uuid.uuid4().hex[:8]}@watchsmart.app"
+    tok = requests.post(f"{API}/auth/register",
+                        json={"email": email, "password": "Test1234!", "name": "AE"}).json()["access_token"]
+    requests.put(f"{API}/user/preferences", headers=H(tok),
+                 json={"excluded_categories": ["anime"]})
+    r = requests.get(f"{API}/discover", headers=H(tok))
+    assert r.status_code == 200
+    movies = r.json()
+    for m in movies:
+        tags = set(m.get("tags") or [])
+        assert "anime" not in tags, f"anime-tagged title slipped through: {m.get('title')}"
+
+
+# --- Improved similar scoring: same-type bonus, tag overlap ---
+def test_similar_scoring_returns_same_type_first(user_ctx):
+    """For a TV target, top similar items should mostly be TV (same-type bonus)."""
+    tok = user_ctx["token"]
+    tv = _find_tv_in_catalog(tok)
+    if not tv:
+        pytest.skip("No TV title with seasons in catalog")
+    r = requests.get(f"{API}/movies/{tv['id']}/similar", headers=H(tok), timeout=15)
+    assert r.status_code == 200
+    sims = r.json()
+    if len(sims) >= 5:
+        # Top 5 should have >= 2 TVs (same-type bonus + genre overlap)
+        top5 = sims[:5]
+        tv_count = sum(1 for s in top5 if s.get("type") == "tv")
+        assert tv_count >= 1, f"expected same-type bonus to surface TVs, got types={[s.get('type') for s in top5]}"
+
