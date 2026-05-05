@@ -19,7 +19,7 @@ from core import (
     hash_password, verify_password, get_catalog,
     SEED_MOVIES,
 )
-from routers import auth, user, discovery, content, reviews, notifications, affiliate, admin, savings, recommendations, insights
+from routers import auth, user, discovery, content, reviews, notifications, affiliate, admin, savings, recommendations, insights, password_reset, sharing
 
 import uuid
 
@@ -40,6 +40,8 @@ api.include_router(admin.router)
 api.include_router(savings.router)
 api.include_router(recommendations.router)
 api.include_router(insights.router)
+api.include_router(password_reset.router)
+api.include_router(sharing.router)
 
 
 @api.get("/")
@@ -71,6 +73,13 @@ async def on_startup():
     await db.user_actions.create_index("created_at")
     await db.user_reviews.create_index([("movie_id", 1), ("user_id", 1)], unique=True)
     await db.notifications.create_index([("user_id", 1), ("created_at", -1)])
+
+    await db.password_resets.create_index("token", unique=True)
+    await db.password_resets.create_index("expires_at")
+    await db.share_requests.create_index("request_id", unique=True)
+    await db.share_requests.create_index([("to_user_id", 1), ("status", 1), ("created_at", -1)])
+    await db.share_requests.create_index([("from_user_id", 1), ("status", 1)])
+    await db.users.create_index("share_code", unique=True, sparse=True)
 
     # Seed admin
     admin_email = os.environ.get("ADMIN_EMAIL", "admin@watchsmart.app").lower()

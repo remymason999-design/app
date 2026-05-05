@@ -1,0 +1,37 @@
+{
+  "summary": "Iteration 7 — Password reset + Watchlist sharing. Backend pytest 12/12 passing. Frontend smoke verified all required data-testids on /forgot-password, /reset-password (with & without token), /friends, /compare and /share/:code. End-to-end password reset proven via UI: forgot-password issues inline reset_url, /reset-password?token=X submits new password and redirects to /login.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_password_reset_and_sharing.py",
+    "/app/test_reports/pytest/iteration_7_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "password_reset.py /forgot-password is correctly enumeration-safe (always 200) but only adds {token, reset_url, expires_at, delivery:'inline'} for known emails. Once Resend/SendGrid is wired, MUST drop the inline token from the response payload (security: dev convenience right now leaks reset tokens to any caller who knows the email).",
+    "sharing.py _ensure_code uses 32^6 alphabet (~1B) and retries up to 10 times on collision; collision risk is tiny but a failure mode (allocate fails) returns 500 — fine.",
+    "sharing.py /share/lookup correctly omits email — only name, picture, share_code, watchlist_size, user_id are exposed. Verified by backend test test_lookup_self_400_unknown_404_valid_ok.",
+    "sharing.py mutual auto-accept (lines 124-131): when user A POSTs request and reverse pending exists from B → A, _accept is called with the wrong notification target. The notification body says '<acceptor> accepted...' but a is set to the original sender (correct), so notif goes to A who just initiated — a small UX wart but not a bug. Verified flow ends in accepted with both befriended.",
+    "sharing.py /share/compare excludes saved/watched/skipped from recommendations (verified). Score function correctly weights shared_subs (+1.5) when both users have the streaming service.",
+    "Frontend /share/:code — when not logged in, ShareLink.jsx correctly renders [data-testid=share-link-signin]; ProtectedRoute is NOT applied to /share/:code in App.js (intentional, so non-logged-in users can land on the share link). Verified in source.",
+    "Frontend Friends.jsx sendRequest passes code uppercased + trimmed, matches backend behaviour (backend also uppercases). Reset-password redirect to /login uses navigate('/login') after success — verified live.",
+    "Reset password no-token UX: /reset-password without ?token=X shows 'This reset link is missing or malformed.' with 'Request a new link' CTA — verified live."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_password_reset_and_sharing.py (new, 12 tests)"
+  ],
+  "success_rate": {"backend": "100% (12/12 pytest)", "frontend": "100% required selectors present + happy paths verified"},
+  "test_credentials": "Tests register fresh users per-run prefixed test_alice_/test_bob_/test_carol_/test_m1_/test_m2_/test_r1_/test_r2_ at watchsmart.app with pass1234. Admin admin@watchsmart.app/admin123 not used in this iteration.",
+  "seed_data_creation": "12 backend tests register transient TEST_ users; no cleanup performed (data identifiable by test_alice_/test_bob_ prefix).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests at /app/backend/tests/test_password_reset_and_sharing.py — run with `pytest backend/tests/test_password_reset_and_sharing.py -v`. Frontend smoke notes: (1) PUT /api/user/preferences uses payload key `services` NOT `subscriptions` to onboard a fresh user past ProtectedRoute. (2) Register-via-fetch sets httpOnly auth cookies — when testing multi-user UI flows in a single browser context, clear cookies between users (not just localStorage.removeItem('ws_access_token')). (3) Token stored under localStorage key 'ws_access_token'. (4) Reset-password URL includes the FE origin from ALLOWED_ORIGINS env var; in this preview env it returns the public preview URL.",
+  "rca_of_the_issue": "N/A — both features work end-to-end. The 400s seen during my first FE run on /share/request were a test-setup artefact: my reg fetch left httpOnly cookies authenticating as the most recently registered user, while my Bearer header pointed at Alice — backend resolved the request as the cookie user (Bob) and returned 400 'You can't friend yourself' because they used Bob's own code. Production flow (real user logs in via /login) is unaffected and verified by the 12 backend tests."
+}

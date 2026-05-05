@@ -19,6 +19,11 @@ import MovieDetail from "@/pages/MovieDetail";
 import AuthCallback from "@/pages/AuthCallback";
 import Search from "@/pages/Search";
 import Admin from "@/pages/Admin";
+import ForgotPassword from "@/pages/ForgotPassword";
+import ResetPassword from "@/pages/ResetPassword";
+import Friends from "@/pages/Friends";
+import Compare from "@/pages/Compare";
+import ShareLink from "@/pages/ShareLink";
 
 function AppShell() {
     const location = useLocation();
@@ -30,6 +35,9 @@ function AppShell() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/share/:code" element={<ShareLink />} />
                 <Route
                     path="/onboarding/services"
                     element={
@@ -99,6 +107,22 @@ function AppShell() {
                     element={
                         <ProtectedRoute>
                             <Admin />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/friends"
+                    element={
+                        <ProtectedRoute>
+                            <Friends />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/compare/:friendId"
+                    element={
+                        <ProtectedRoute>
+                            <Compare />
                         </ProtectedRoute>
                     }
                 />

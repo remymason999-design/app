@@ -62,6 +62,7 @@ api.interceptors.response.use(
 export const apiGet = (url, config) => api.get(url, config).then((r) => r.data);
 export const apiPost = (url, data, config) => api.post(url, data, config).then((r) => r.data);
 export const apiPut = (url, data, config) => api.put(url, data, config).then((r) => r.data);
+export const apiDelete = (url, config) => api.delete(url, config).then((r) => r.data);
 
 export function formatApiError(detail) {
     if (detail == null) return "Something went wrong. Please try again.";

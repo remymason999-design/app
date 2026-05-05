@@ -7,7 +7,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon, PiggyBank, Heart, Shield } from "lucide-react";
+import { LogOut, User as UserIcon, PiggyBank, Heart, Shield, Users } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
@@ -67,6 +67,13 @@ export default function AccountMenu() {
                     className="gap-2 cursor-pointer focus:bg-white/5"
                 >
                     <PiggyBank className="w-4 h-4" /> Savings
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    data-testid="menu-friends"
+                    onClick={() => navigate("/friends")}
+                    className="gap-2 cursor-pointer focus:bg-white/5"
+                >
+                    <Users className="w-4 h-4" /> Friends & compare
                 </DropdownMenuItem>
                 {user.role === "admin" && (
                     <DropdownMenuItem

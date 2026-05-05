@@ -24,6 +24,13 @@ export default function Login() {
             if (data.access_token) setToken(data.access_token);
             setUser(data.user);
             toast.success(`Welcome back, ${data.user.name}`);
+            // Resume a pending share-link flow if present
+            let pendingCode = null;
+            try { pendingCode = sessionStorage.getItem("pending_share_code"); } catch {}
+            if (pendingCode) {
+                navigate(`/share/${pendingCode}`);
+                return;
+            }
             const next = data.user.subscriptions?.length ? "/discover" : "/onboarding/services";
             navigate(next);
         } catch (err) {
@@ -90,6 +97,11 @@ export default function Login() {
                     >
                         {loading ? "Signing in…" : "Sign in"}
                     </button>
+                    <div className="text-right">
+                        <Link to="/forgot-password" className="text-xs text-zinc-400 hover:text-amber" data-testid="link-forgot">
+                            Forgot password?
+                        </Link>
+                    </div>
                 </form>
 
                 <Divider>or</Divider>
