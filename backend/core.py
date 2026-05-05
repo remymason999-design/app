@@ -49,9 +49,17 @@ async def refresh_catalog_from_tmdb(pages: int = 3) -> int:
     items = await tmdb_client.fetch_catalog(pages=pages)
     if not items:
         return 0
-    await db.movies_cache.delete_many({})
-    if items:
-        await db.movies_cache.insert_many([dict(m) for m in items])
+    # Idempotent upsert avoids duplicate-key races when two refreshes run concurrently
+    from pymongo import UpdateOne
+    ops = [
+        UpdateOne({"id": m["id"]}, {"$set": {k: v for k, v in m.items() if k != "_id"}}, upsert=True)
+        for m in items
+    ]
+    if ops:
+        try:
+            await db.movies_cache.bulk_write(ops, ordered=False)
+        except Exception as e:
+            logger.warning(f"bulk_write had non-fatal errors: {type(e).__name__}")
     await load_catalog_from_db()
     return len(items)
 

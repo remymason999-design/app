@@ -1,0 +1,53 @@
+{
+  "summary": "Iteration 9 — Recommendation engine (build_feed) thoroughly tested. 19/21 backend pytest passing. /api/discover returns 20 items with full _signals contract (in_collab, is_reintro, maturity, pool_size). All filters strictly applied on engine path (content_type, excluded_categories=anime, excluded_genres=Horror — none leaked). Permanent exclusions verified (saved/watched/onboarding_rated never re-emitted). Recently-shown LRU rotates correctly: 3 consecutive /discover calls produced 0–5 overlap and >40 distinct ids. Random injection diversifies feed. Adaptive maturity ~0.02 for fresh users. Cooldown re-intro path WORKS: backdated user_actions skip (>30d) + boosted genre weight reappears with reason='Worth a second look' and is_reintro=true. Collaborative filtering WORKS: 3 synthetic neighbours saving target movie + matching weights → target appears with in_collab=true. Background refill (_do_refill) runs without raising. Catalog size 958 (>=900 ✅). All regression endpoints (/sections/{trending,upcoming,popular-locally}, /search, /search/suggest) return 200. /api/me/engagement contract complete. Frontend smoke: admin login → /discover renders cards (testids: discover-page, discover-card-top, btn-save/skip/watched/info, action-buttons), reason banner shows 'Because you\\'ve been loving Animation', save action advances feed and shows 'Saved to Watchlist' toast.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "GET /api/discover (admin)",
+        "issue": "Admin pool_size=234 vs target >=300 from spec. Root cause: TMDB harvest produces sparse streaming-provider data — 312/958 catalog titles have empty `available_on`, and `hbo_max` matches 0 items in catalog. Admin's 3 subs (netflix, hbo_max, prime_video) only yield 435 candidates before applying watched/recently_shown/skipped exclusions, leaving 234. Engine + filters are correct; data harvest under-populates `available_on` for hbo_max."
+      },
+      {
+        "endpoint": "POST /api/admin/refresh-catalog?pages=3",
+        "issue": "Returns {ok:true, count:375}. Spec asks count>=900. The endpoint returns `len(items)` from THIS fetch (deduped across 5 TMDB endpoints × pages=3), not total catalog size. Either contract should be: count = total catalog count after refresh (await db.movies_cache.count_documents({})), or the spec expectation needs higher `pages` value (pages=8 default produces ~900+). Current behaviour is also semantically confusing — calling with pages=3 doesn't shrink catalog (idempotent upsert) but also doesn't return a count that reflects the full catalog state."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_engine_iter9.py",
+    "/app/test_reports/pytest/iteration_9_results.xml"
+  ],
+  "action_items": [
+    "Decide on /api/admin/refresh-catalog count semantics: either return total catalog count post-upsert (recommended for transparency), or document that `count` = items fetched in this call. If the latter, update the iteration-9 acceptance test to use pages=8.",
+    "Investigate why hbo_max yields 0 items in TMDB harvest — likely the watch-provider lookup isn't running for that provider id, or hbo_max isn't mapped. Increasing admin pool to 300+ requires either (a) populating `available_on` for more titles, or (b) treating empty `available_on` as 'available everywhere' (currently filtered out)."
+  ],
+  "critical_code_review_comments": [
+    "engine.py _do_refill calls refresh_catalog_from_tmdb(pages=8) on every low-water trigger — that's a heavy TMDB call (5 endpoints × 2 kinds × 8 pages = 80 requests). Multiple users dropping below LOW_WATER ~simultaneously each spawn a refill (per-user lock only), so simultaneous distinct users could hammer TMDB. Consider a global refill semaphore / cooldown.",
+    "engine.py build_feed calls _eligible_skip_reintros() which loads user_actions cursor then iterates the full catalog dict comprehension — fine at 958 titles but O(N) per user per /discover call. As catalog grows, prefer projecting catalog ids first.",
+    "engine.py _hybrid_score recomputes datetime.now() for every movie scored (line 204) — should be hoisted to caller.",
+    "engine.py _record_shown does a read-then-write (find_one + update_one) without a transaction; concurrent /discover calls for the same user can race and lose entries from the LRU. Acceptable since LRU is best-effort, but worth a $push + $slice atomic update.",
+    "core.refresh_catalog_from_tmdb returns len(items) which is fetched count, not catalog total. Misleading for the admin endpoint contract. Suggest returning {items_fetched, catalog_total_after}.",
+    "engine.py module-level _REFILL_LOCK is a plain dict — not thread-safe, but FastAPI runs single-event-loop so this is fine in practice. Document or convert to asyncio.Lock-keyed dict.",
+    "tmdb.py with TMDB_BEARER_TOKEN expiry — token in .env is hardcoded and will eventually expire; no fallback / health check. Consider /tmdb/health admin endpoint.",
+    "engine._reason_for: when in_collab AND is_reintro both true, is_reintro wins which is correct, but unit-test only covers each path separately."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_engine_iter9.py (new, 21 tests)",
+    "/app/backend/tests/pytest.ini (asyncio_mode=auto)"
+  ],
+  "success_rate": {
+    "backend": "90% (19/21 pytest); 2 failures are spec-vs-data mismatches, not engine bugs",
+    "frontend": "100% — /discover loads, card renders, save advances feed, toast shows"
+  },
+  "test_credentials": "Admin admin@watchsmart.app / admin123 (catalog 958, 3 subs). Fresh test_eng_<hex>@watchsmart.app users registered per test for engine isolation.",
+  "seed_data_creation": "Per-run synthetic users: test_eng_<hex>@... (~6 per run, no cleanup). Cooldown-reintro test inserts a backdated user_actions doc and cleans it up. Collab test inserts 3 synthetic_neighbour_<hex> user docs into db.users and cleans them up after assertion.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run: `pytest backend/tests/test_engine_iter9.py -v`. The 2 failing tests document spec-vs-data discrepancies (admin pool 234<300 due to sparse hbo_max data, refresh-catalog count 375<900 due to pages=3 returning fetched-count not catalog-total). Engine code itself is solid. Cooldown re-intro and collaborative filtering both verified via direct mongo writes (backdated skip + synthetic neighbours). Frontend testids of note: [discover-page], [discover-card-top], [btn-save], [btn-skip], [btn-watched], [btn-info], [action-buttons], [tab-for-you/trending/upcoming/local]. NOTE: card title is inside [data-testid=discover-card-top] — h1/h2/h3 query returns the page header 'For you tonight', not the card title. Token in localStorage key 'ws_access_token'.",
+  "rca_of_the_issue": "1) Admin pool < 300: data sparsity in TMDB harvest — `available_on` empty for 312/958 titles, hbo_max matches 0; engine filters subscriptions strictly so admin's 3 subs only match 435 candidates pre-LRU. Mitigation: populate streaming providers more densely OR treat empty `available_on` as universally available. 2) refresh-catalog count=375 instead of 900: endpoint returns items fetched in this call (deduped across 5 TMDB endpoints × pages=3), not total catalog. Mitigation: change return shape to {items_fetched, catalog_total} or use pages=8 default in the test."
+}

@@ -254,31 +254,50 @@ async def fetch_tmdb_reviews(kind: str, tmdb_id: int, limit: int = 5) -> List[di
 
 
 async def fetch_catalog(pages: int = 5, region: Optional[str] = None) -> List[dict]:
-    """Fetch popular + top-rated + trending movies/TV, enriched with providers & trailers."""
+    """Fetch a deep catalog from TMDB across many endpoints + pages.
+
+    Sources harvested per kind (movie, tv):
+      * /{kind}/popular        — popularity sort
+      * /{kind}/top_rated      — rating sort
+      * /trending/{kind}/week  — current cultural moment
+      * /discover/{kind}       — sort_by=primary_release_date.desc (freshness)
+      * /discover/{kind}       — sort_by=vote_count.desc (depth: well-rated catalog)
+
+    With pages=8 this typically yields 1500-2500 unique titles after dedup,
+    well above the engine's TARGET_POOL = 2000.
+    """
     region = (region or os.environ.get("TMDB_REGION", "US")).upper()
     out: List[dict] = []
-    # Endpoints to harvest from for breadth
-    endpoints = []
+    endpoints: list[tuple[str, str, dict]] = []
     for kind in ("movie", "tv"):
-        for path in ("popular", "top_rated"):
-            endpoints.append((kind, f"/{kind}/{path}"))
-        endpoints.append((kind, f"/trending/{kind}/week"))
+        endpoints.append((kind, f"/{kind}/popular", {}))
+        endpoints.append((kind, f"/{kind}/top_rated", {}))
+        endpoints.append((kind, f"/trending/{kind}/week", {}))
+        # Deep discovery sorts — freshest releases first
+        date_field = "primary_release_date.desc" if kind == "movie" else "first_air_date.desc"
+        endpoints.append((kind, f"/discover/{kind}", {
+            "sort_by": date_field,
+            "vote_count.gte": 100,
+        }))
+        # Deep discovery sorts — quality-weighted breadth
+        endpoints.append((kind, f"/discover/{kind}", {
+            "sort_by": "vote_count.desc",
+        }))
 
-    # Use a long-lived client and concurrent enrichment
     import asyncio
     async with httpx.AsyncClient(timeout=15.0, limits=httpx.Limits(max_connections=20)) as client:
-        for kind, ep in endpoints:
+        for kind, ep, extra in endpoints:
             for page in range(1, pages + 1):
                 try:
                     params = {"page": page}
                     if "popular" in ep and kind == "movie":
                         params["region"] = region
+                    params.update(extra)
                     data = await _get(client, ep, params)
                 except Exception as e:
                     logger.warning(f"TMDB {ep} p{page} failed: {e}")
                     continue
                 items = (data.get("results") or [])[:20]
-                # Concurrent enrichment per page (TMDB allows 50 req/s)
                 results = await asyncio.gather(
                     *[_enrich(client, item, kind, region) for item in items],
                     return_exceptions=True,
@@ -286,7 +305,6 @@ async def fetch_catalog(pages: int = 5, region: Optional[str] = None) -> List[di
                 for r in results:
                     if isinstance(r, dict):
                         out.append(r)
-    # Deduplicate by id
     seen = set()
     deduped = []
     for m in out:

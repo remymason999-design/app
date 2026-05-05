@@ -1,32 +1,18 @@
-"""Discovery router: /discover and /sections/*."""
+"""Discovery router: /discover, /sections/*, and engine engagement summary."""
 import os
 from fastapi import APIRouter, Depends
 
 from core import (
-    require_user, get_catalog, movie_matches, movie_score, movie_reason,
-    cached_section, apply_user_filters,
+    require_user, cached_section, apply_user_filters,
 )
+from engine import build_feed, engagement_summary
 
 router = APIRouter(tags=["discovery"])
 
 
 @router.get("/discover")
 async def discover(user: dict = Depends(require_user), limit: int = 20):
-    seen = set(
-        (user.get("saved") or []) + (user.get("watched") or []) + (user.get("skipped") or []) +
-        (user.get("onboarding_rated") or [])
-    )
-    pool = [m for m in get_catalog() if m["id"] not in seen and movie_matches(m, user)]
-    if len(pool) > 500:
-        pool.sort(key=lambda m: m.get("popularity", 0), reverse=True)
-        pool = pool[:500]
-    pool.sort(key=lambda m: movie_score(m, user), reverse=True)
-    out = []
-    for m in pool[:limit]:
-        item = dict(m)
-        item["reason"] = movie_reason(m, user)
-        out.append(item)
-    return out
+    return await build_feed(user, limit=limit)
 
 
 @router.get("/sections/upcoming")
@@ -56,3 +42,9 @@ async def section_popular_locally(user: dict = Depends(require_user), limit: int
     items = apply_user_filters(items, user)
     items.sort(key=lambda m: m.get("popularity", 0), reverse=True)
     return items[:limit]
+
+
+@router.get("/me/engagement")
+async def me_engagement(user: dict = Depends(require_user)):
+    """Transparency endpoint — what the engine knows about me right now."""
+    return await engagement_summary(user)

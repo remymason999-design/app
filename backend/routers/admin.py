@@ -8,7 +8,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.post("/refresh-catalog")
-async def admin_refresh_catalog(user: dict = Depends(require_admin), pages: int = 3):
+async def admin_refresh_catalog(user: dict = Depends(require_admin), pages: int = 8):
     try:
         n = await refresh_catalog_from_tmdb(pages=pages)
         return {"ok": True, "count": n}

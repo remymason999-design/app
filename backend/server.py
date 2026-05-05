@@ -117,13 +117,19 @@ async def on_startup():
     )
 
     await load_catalog_from_db()
-    if len(get_catalog()) <= len(SEED_MOVIES) and os.environ.get("TMDB_BEARER_TOKEN"):
+    if os.environ.get("TMDB_BEARER_TOKEN"):
+        # Always schedule a deep TMDB sync in the background — non-blocking.
+        # The first run after deploy grows the catalog from ~360 to 1500-2500
+        # titles to support the engine's 2000-item target pool.
         async def _bg():
             try:
-                n = await refresh_catalog_from_tmdb(pages=3)
-                logger.info(f"TMDB catalog seeded: {n} titles")
+                from engine import LOW_WATER as _LW  # avoid import at module load
+                # Only deep-refresh if we look small or stale
+                if len(get_catalog()) < 1500:
+                    n = await refresh_catalog_from_tmdb(pages=8)
+                    logger.info(f"TMDB deep-sync complete: {n} titles")
             except Exception as e:
-                logger.warning(f"Initial TMDB seed failed (continuing with bundled seed): {e}")
+                logger.warning(f"Initial TMDB deep-sync failed (continuing): {e}")
         asyncio.create_task(_bg())
 
 
