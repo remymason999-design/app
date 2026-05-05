@@ -19,7 +19,7 @@ from core import (
     hash_password, verify_password, get_catalog,
     SEED_MOVIES,
 )
-from routers import auth, user, discovery, content, reviews, notifications, affiliate, admin, savings, recommendations
+from routers import auth, user, discovery, content, reviews, notifications, affiliate, admin, savings, recommendations, insights
 
 import uuid
 
@@ -39,6 +39,7 @@ api.include_router(affiliate.router)
 api.include_router(admin.router)
 api.include_router(savings.router)
 api.include_router(recommendations.router)
+api.include_router(insights.router)
 
 
 @api.get("/")

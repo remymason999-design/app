@@ -100,12 +100,12 @@ export default function Admin() {
                         <span className="text-[10px] uppercase tracking-wider text-zinc-500">7-day window</span>
                     </div>
                     <div className="grid grid-cols-4 gap-3 mb-4">
-                        <MiniStat label="DAU" value={analytics.dau} />
-                        <MiniStat label="WAU" value={analytics.wau} />
-                        <MiniStat label="MAU" value={analytics.mau} />
-                        <MiniStat label="Save rate" value={`${analytics.save_rate_pct}%`} />
+                        <MiniStat label="DAU" value={analytics?.dau ?? 0} />
+                        <MiniStat label="WAU" value={analytics?.wau ?? 0} />
+                        <MiniStat label="MAU" value={analytics?.mau ?? 0} />
+                        <MiniStat label="Save rate" value={`${analytics?.save_rate_pct ?? 0}%`} />
                     </div>
-                    {Object.keys(analytics.swipes_7d || {}).length > 0 && (
+                    {Object.keys(analytics?.swipes_7d || {}).length > 0 && (
                         <div className="flex items-center gap-3 text-xs text-zinc-400">
                             {Object.entries(analytics.swipes_7d).map(([action, count]) => (
                                 <span key={action} className="flex items-center gap-1.5">
@@ -206,6 +206,15 @@ function Stat({ icon: Icon, label, value }) {
             <Icon className="w-4 h-4 text-amber mx-auto mb-2" strokeWidth={1.6} />
             <div className="font-display text-2xl">{value}</div>
             <div className="text-[10px] uppercase tracking-wider text-zinc-500 mt-1">{label}</div>
+        </div>
+    );
+}
+
+function MiniStat({ label, value }) {
+    return (
+        <div className="rounded-xl bg-white/5 border border-white/8 px-3 py-2.5 text-center" data-testid={`mini-stat-${label.toLowerCase().replace(/\s+/g, "-")}`}>
+            <div className="font-heading text-xl text-zinc-100">{value ?? "—"}</div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-zinc-500 mt-0.5">{label}</div>
         </div>
     );
 }

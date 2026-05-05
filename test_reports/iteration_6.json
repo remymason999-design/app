@@ -1,0 +1,37 @@
+{
+  "summary": "Verified P0 admin dashboard fix and P1 Subscription Value Insights (backend + frontend). 5/5 pytest backend tests pass; admin /admin and /savings pages render all required test ids. Insights endpoint returns correct shape, currency £, sorting (unused first), cache invalidation on watched action.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Savings page", "issues": ["Currency inconsistency: summary card shows monthly cost in $ ($40.47) while the new Subscription Insights section shows £ (potential_savings £40.47, per-service £/mo). UK localization is partial — the legacy /api/savings response & UI still uses $. Not blocking but visually mixed."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_insights_and_admin.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional) Align legacy Savings summary + 'Activity per service' card to use £ to match the new Subscription Insights section for consistent UK localization.",
+    "(Optional) Consider exposing month_label using server timezone — current host clock shows 'May 2026' which is fine for the spec but may surprise users; ensure prod clock/timezone is correct."
+  ],
+  "critical_code_review_comments": [
+    "insights.py: in-memory _INSIGHTS_CACHE is per-process — under multi-worker uvicorn deploy, cache hit rate will be inconsistent across workers. Acceptable for MVP; consider Redis later.",
+    "insights.py sort key uses `-(r['cost_per_watch'] or 0)` which means among 'used' services, higher cost-per-watch (worse value) ranks first — correct for the stated intent but worth a code comment so future devs don't 'fix' it.",
+    "Admin.jsx MiniStat label='Save rate' produces data-testid 'mini-stat-save-rate' (whitespace replaced with '-') — matches the contract; good. Defensive optional chaining `analytics?.dau ?? 0` correctly prevents the previous crash."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_insights_and_admin.py (new)"
+  ],
+  "success_rate": {"backend": "100% (5/5)", "frontend": "100% (all required selectors rendered)"},
+  "test_credentials": "admin@watchsmart.app / admin123 (admin); fresh user registered per-test for isolation",
+  "seed_data_creation": "Tests register a TEST_insights_<random>@watchsmart.app user, set subscriptions via PUT /api/user/preferences, and log a watched action via POST /api/user/action. No cleanup performed (test data is identifiable by TEST_ prefix).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests live in /app/backend/tests/test_insights_and_admin.py (pytest). Frontend smoke covered admin engagement card + savings insights section; both render 3 service cards for admin (subscriptions=netflix,hbo_max,prime_video). Note the host server reports current month as 'May 2026' which propagates to month_label — purely environmental. Cache invalidation verified end-to-end: posting a watched action immediately reflects in /api/insights/subscriptions without ?refresh.",
+  "rca_of_the_issue": "P0 admin crash RCA (already fixed by main agent and verified): Admin.jsx referenced <MiniStat> JSX but the component was undefined, causing a render-time ReferenceError that took down the page. Fix: defined MiniStat at the bottom of Admin.jsx and added optional chaining (analytics?.dau ?? 0) to guard against analytics being null while loading. Verified: /admin loads, all four mini-stat-* test ids present."
+}

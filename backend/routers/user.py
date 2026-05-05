@@ -8,6 +8,7 @@ from core import (
     movies_by_ids, find_movie, ACTION_WEIGHTS,
     STREAMING_SERVICES, GENRES,
 )
+from routers.insights import invalidate_insights_cache
 
 router = APIRouter(tags=["user"])
 
@@ -70,6 +71,8 @@ async def user_action(payload: ActionIn, user: dict = Depends(require_user)):
             "user_id": uid, "movie_id": payload.movie_id, "action": payload.action,
             "created_at": now_iso,
         })
+        if payload.action == "watched":
+            invalidate_insights_cache(uid)
     fresh = await db.users.find_one({"user_id": uid}, {"_id": 0})
     return clean_user(fresh)
 

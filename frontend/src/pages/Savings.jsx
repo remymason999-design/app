@@ -1,17 +1,22 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { TrendingDown, ArrowUpRight, Sparkles, Trophy } from "lucide-react";
+import { TrendingDown, ArrowUpRight, Sparkles, Trophy, Gauge, Tv2 } from "lucide-react";
 import { apiGet } from "@/lib/api";
 import AccountMenu from "@/components/AccountMenu";
 
 export default function Savings() {
     const [data, setData] = useState(null);
     const [value, setValue] = useState(null);
+    const [insights, setInsights] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        Promise.all([apiGet("/savings"), apiGet("/watchlist/value").catch(() => null)])
-            .then(([s, v]) => { setData(s); setValue(v); })
+        Promise.all([
+            apiGet("/savings"),
+            apiGet("/watchlist/value").catch(() => null),
+            apiGet("/insights/subscriptions").catch(() => null),
+        ])
+            .then(([s, v, i]) => { setData(s); setValue(v); setInsights(i); })
             .finally(() => setLoading(false));
     }, []);
 
@@ -68,6 +73,80 @@ export default function Savings() {
                     </div>
                 )}
             </motion.div>
+
+            {insights && insights.services && insights.services.length > 0 && (
+                <div className="mt-10" data-testid="subscription-insights">
+                    <div className="flex items-end justify-between mb-3">
+                        <div>
+                            <h2 className="font-heading text-lg flex items-center gap-2">
+                                <Gauge className="w-4 h-4 text-amber" /> Subscription insights
+                            </h2>
+                            <p className="text-xs text-zinc-500 mt-0.5">{insights.month_label} · {insights.total_watched} title{insights.total_watched === 1 ? "" : "s"} watched</p>
+                        </div>
+                        {insights.potential_savings > 0 && (
+                            <div className="text-right">
+                                <div className="text-[10px] uppercase tracking-wider text-zinc-500">Could save</div>
+                                <div className="font-display text-xl text-amber" data-testid="insights-potential-savings">
+                                    {insights.currency}{insights.potential_savings.toFixed(2)}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <ul className="space-y-2.5">
+                        {insights.services.map((s, i) => (
+                            <motion.li
+                                key={s.service_id}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                                className="glass rounded-2xl p-4"
+                                data-testid={`insight-${s.service_id}`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-9 h-9 rounded-lg shrink-0" style={{ backgroundColor: s.logo_color }} />
+                                        <div className="min-w-0">
+                                            <div className="font-heading text-sm truncate">{s.name}</div>
+                                            <div className="text-[11px] text-zinc-500">
+                                                {insights.currency}{s.price_monthly.toFixed(2)}/mo
+                                                {s.cost_per_watch != null && (
+                                                    <> · {insights.currency}{s.cost_per_watch.toFixed(2)} per watch</>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right shrink-0 pl-3">
+                                        <div className="font-display text-2xl leading-none">{s.titles_watched}</div>
+                                        <div className="text-[9px] uppercase tracking-wider text-zinc-500 mt-1">watched</div>
+                                    </div>
+                                </div>
+                                <div className={`flex items-start gap-2 mt-2 pt-2.5 border-t border-white/5 text-xs ${s.tone === "great" ? "text-emerald-300" : s.tone === "low" ? "text-amber" : "text-zinc-300"}`}>
+                                    {s.tone === "great" ? (
+                                        <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                    ) : s.tone === "low" ? (
+                                        <TrendingDown className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                    ) : (
+                                        <Tv2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                                    )}
+                                    <div>
+                                        <span className="font-heading mr-1.5">{s.headline}.</span>
+                                        <span className="text-zinc-400">{s.message}</span>
+                                    </div>
+                                </div>
+                                {s.top_titles.length > 0 && (
+                                    <div className="flex gap-1.5 mt-3 overflow-hidden">
+                                        {s.top_titles.map((t) => (
+                                            <div key={t.id} className="w-9 h-12 rounded bg-velvet overflow-hidden">
+                                                {t.poster_url && <img loading="lazy" src={t.poster_url} alt={t.title} className="w-full h-full object-cover" />}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </motion.li>
+                        ))}
+                    </ul>
+                </div>
+            )}
 
             <h2 className="font-heading text-lg mt-10 mb-3">Smart suggestions</h2>
             {data.suggestions.length === 0 ? (
