@@ -84,19 +84,33 @@ top-tier UX. Affiliate links + future monetization.
   - **Frontend** Savings page now shows a "Subscription insights" section with potential savings, per-service cards (logo, watched count, cost-per-watch, top titles thumbnails) and tone-coded verdict messages.
   - **Tests:** `/app/backend/tests/test_insights_and_admin.py` — 5/5 passing. Frontend smoke verified `[data-testid=subscription-insights]` + `[data-testid=engagement-card]` + all `mini-stat-*` cards.
 
+### Iteration 7 (Feb 2026)
+- **Password reset** (P1, no email yet by user choice):
+  - `POST /api/auth/forgot-password` issues a single-use 1-hour token; returns `{token, reset_url, expires_at, delivery:"inline"}` for known emails (always 200 to prevent enumeration). When email is wired (Resend/SendGrid) the inline token MUST be removed from the response.
+  - `POST /api/auth/reset-password` consumes token, rotates `password_hash`. Old password rejected after; token is single-use.
+  - Frontend: `/forgot-password` (email + copyable inline link) and `/reset-password?token=…` (new password + confirm); `Forgot password?` link added to Login page.
+- **Watchlist sharing — mutual opt-in + live compare** (P1):
+  - Each user gets a unique 6-char `share_code` (no I/O/0/1) generated lazily on `GET /api/share/me`. Share URL `<frontend>/share/<code>`.
+  - Friend-request flow: `POST /share/request` (by code) → recipient sees in `GET /share/requests` → `POST /share/requests/{id}/{accept|reject}`. Mutual auto-accept if reverse pending request exists. Both directions bonded in `users.watchlist_friends`. `DELETE /share/friends/{id}` unfriends both sides.
+  - In-app notification fired on incoming request and on accept.
+  - `GET /share/compare/{friend_id}` returns `{you, them, overlap_count, overlap[], only_me[], only_them[], recommendations[], pick_tonight, synced_at}`. Recommendations exclude any movie either user touched and prefer titles on shared subscriptions.
+  - **Frontend**: `/friends` (manage code, requests, friends), `/compare/:friendId` (3-column tabbed compare with "Pick tonight" hero, polls every 3s — pulses live indicator on change), `/share/:code` (deep link → auto-applies code, prompts sign-in if needed via `sessionStorage.pending_share_code`).
+  - **AccountMenu**: "Friends & compare" entry added.
+- **Tests:** `/app/backend/tests/test_password_reset_and_sharing.py` — 12/12 passing. Frontend smoke: all required test ids render on /forgot-password, /reset-password (with & without token), /friends, /compare, /share/:code.
+
 ## Backlog
 ### P0 — Next priorities
-- (none currently — last P0 fixed in iteration 6)
+- (none currently)
 
 ### P1
-- Watchlist sharing between users + view friends' watchlists (social)
-- "Popular among similar users" / "Trending near you" recommendations (depends on shared watchlists)
-- "Tonight's pick" daily push notification or weekly digest email (Resend or SendGrid — TBD)
-- Currency consistency: legacy `/api/savings` summary still uses `$`; align UK locale to `£` across the whole Savings page
-- /api/auth/forgot-password & reset-password
+- Wire actual email delivery (Resend or SendGrid) for password reset — and remove inline `token` field from /forgot-password response payload at the same time
+- Currency consistency: legacy `/api/savings` summary uses `$`; align UK locale to `£` across the whole Savings page
+- "Tonight's pick" weekly digest email (depends on email provider decision above)
+- "Popular among similar users" / "Trending near you" recommendations powered by shared watchlists
 - Subscription price editing (let user override defaults)
 
 ### P2
+- Real-time WebSocket compare (currently 3s polling — equivalent UX, lower complexity)
 - WatchSmart Plus Stripe subscription tier
 - Web push notifications for new arrivals matching pinned tastes
 - Affiliate analytics deep-dive dashboard
