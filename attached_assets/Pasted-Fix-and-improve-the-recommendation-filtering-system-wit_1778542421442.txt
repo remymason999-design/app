@@ -1,0 +1,216 @@
+Fix and improve the recommendation/filtering system without redesigning the UI.
+
+CORE FILTERING RULES
+- Treat Family/Kids as audience classifications, not normal genres.
+- If Family/Kids is disabled, exclude any title with:
+  - Family genre
+  - Kids genre/category
+  - audience_type = kids or family
+  - children/family certifications
+  - animation + family/comedy/adventure signals
+- This exclusion must happen BEFORE genre matching/ranking.
+- Comedy + Family must not appear in adult Comedy.
+- Action + Family must not appear in adult Action.
+- Adventure + Kids must not appear in adult Adventure.
+
+ANIME / BOLLYWOOD FILTERING
+- Keep Anime and Bollywood disabled by default.
+- Only allow them if user explicitly enables them.
+- Anime filtering should detect:
+  - anime genres
+  - anime studios/tags
+  - Japanese animation metadata/signals
+- Bollywood filtering should detect:
+  - Indian cinema tags
+  - Hindi/Telugu/Tamil metadata
+  - Bollywood production signals
+
+SUBSCRIPTION FILTERING
+- User subscription filters must work correctly.
+- Only show titles available on selected services when provider data exists.
+- If provider data is unknown, handle safely without collapsing the pool.
+- Support provider tiers later, but keep current system stable first.
+
+NO REPEATS / MEMORY SYSTEM
+- Track every movie shown to the user, not just watched/saved/skipped.
+- Store shown_at timestamps per user/movie.
+- Never show the same movie twice in the same session.
+- Saved, watched, skipped, disliked, and recently shown titles must not reappear.
+- Exclude duplicates across all tabs.
+- If the pool becomes low, only reintroduce old movies after a cooldown period.
+- Increase cooldown if user repeatedly skips the same movie.
+
+PERSONALIZATION LEARNING
+- Learn from:
+  - saves
+  - watched
+  - skips
+  - detail-page opens
+  - trailer opens
+  - watchlist behavior
+- Increase/decrease genre affinity scores over time.
+- Use weighted ranking, not hard genre loops.
+- Keep recommendations varied while still personal.
+- Prevent echo chambers and repetitive genre recycling.
+
+DAILY USER POOL REFRESH
+- Refresh each user’s Discover pool daily.
+- Use:
+  - latest catalog imports
+  - subscriptions
+  - hard filters
+  - watched/saved/skipped exclusions
+  - recently shown exclusions
+  - learned preferences
+- Store last_pool_refresh_at per user.
+- Add fresh titles daily without resetting user history.
+
+GLOBAL MOVIE CATALOG
+- Keep importing movies daily from TMDB.
+- Use multiple endpoints and pagination.
+- Deduplicate by tmdb_id.
+- Convert poster_path to full poster_url.
+- Exclude movies with no posters from Discover.
+- Maintain a very large rotating pool.
+
+DEBUG / VALIDATION
+Add debug stats for:
+- total catalog size
+- pool size after filters
+- after family/anime/Bollywood exclusions
+- after watched/saved/skipped exclusions
+- after recently shown exclusions
+- final Discover pool size
+- top learned genres
+- number of new titles added daily
+
+GOAL
+The app should feel highly personal, intelligent, strict with deal-breaker filters, varied enough to avoid repetition, and refreshed daily per user without recycling the same titles.
+
+
+
+
+
+Polish the current UI without redesigning the app or changing the layout.
+
+Goal:
+Make the app feel more premium, smoother, and more trustworthy while keeping the existing black/gold cinematic style.
+
+UI POLISH TASKS:
+
+1. Improve poster loading
+- Add clean loading skeletons
+- Avoid blank poster states
+- Use a polished fallback for missing posters
+
+2. Improve card hierarchy
+- Make title, rating, runtime, genres, and reason clearer
+- Add stronger visual focus to the main recommendation
+- Keep the current card layout
+
+3. Improve buttons
+- Make Save / Skip / Watched / Info feel more premium
+- Improve tap feedback and spacing
+- Do not change their core actions
+
+4. Improve search UX
+- Add a clear way to exit search
+- Improve empty search results state
+- Make selected movie navigation feel smooth
+
+5. Improve loading states
+- Add better loading indicators for Discover, Trending, Upcoming, Search, and Watchlist
+- Avoid sudden layout jumps
+
+6. Improve empty states
+- Make “no movies found”, “watchlist empty”, and “no results” screens feel polished and helpful
+
+7. Improve onboarding/tutorial visuals
+- Make first-time tutorial clearer and more premium
+- Keep it short and simple
+
+8. Remove visual clutter
+- Remove beta tag
+- Hide anything that feels unfinished
+- Keep UI clean and launch-ready
+
+9. Add subtle premium polish
+- consistent spacing
+- smoother animations
+- subtle gradients/glows
+- consistent font sizes
+- consistent pill/badge styling
+
+10. Improve notifications
+- Add ability to clear notifications
+- Add “mark all as read”
+- Prevent duplicate notifications
+- Keep notification UI simple and clean
+- Keep the current design style
+
+Rules:
+- Do not redesign the app.
+- Do not change the navigation structure.
+- Do not change backend logic.
+- Do not change recommendation logic.
+- Keep the existing dark cinematic design.
+- Make small commits and test after changes.
+
+
+
+Fix onboarding so the first-time setup and swipe training actually powers the recommendation system.
+
+Current problem:
+The onboarding genre selection and first 18 swipes feel generic and are not meaningfully affecting recommendations.
+
+Requirements:
+
+ONBOARDING GENRE SELECTION
+- Save selected genres to the user profile.
+- Use selected genres as initial recommendation weighting.
+- Use selected genres to shape the first Discover pool.
+
+FIRST 18 SWIPE TRAINING
+- Treat the onboarding swipes as real recommendation training data.
+- Every onboarding swipe must update the user preference profile immediately.
+
+Examples:
+- Save/like → increase affinity for genres, tone, themes, audience type, runtime range, popularity profile.
+- Skip/dislike → reduce affinity scores.
+- Watched → moderate positive affinity.
+- Repeated skips → stronger negative weighting.
+
+LEARNING SIGNALS
+Track and learn from:
+- genres
+- tone/mood
+- audience type
+- animation/anime signals
+- runtime
+- movie vs TV
+- popularity/mainstream vs niche
+- release decade
+- themes/tags if available
+
+STRICT FILTERS
+- Anime, Bollywood, Kids/Family settings must still behave as hard filters if disabled.
+- Onboarding should respect those settings immediately.
+
+FIRST DISCOVER EXPERIENCE
+- After onboarding, Discover should feel noticeably personalized.
+- The first feed should clearly reflect onboarding behavior.
+- Avoid generic/random recommendations after setup.
+
+PERSISTENCE
+- Save onboarding learning to the user account permanently.
+- Do not lose onboarding preference data after refresh/relogin.
+
+DEBUGGING
+Add debug stats/logging for:
+- onboarding genres selected
+- onboarding swipe actions
+- generated preference weights
+- resulting Discover pool composition
+
+GOAL
+The onboarding process should genuinely teach the app what the user likes so the app feels personal from the very first session instead of generic.

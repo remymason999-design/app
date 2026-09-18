@@ -1,0 +1,15 @@
+My App Store publish keeps failing, and clicking "View logs on Expo" just shows EXPO_UNAUTHORIZED, so I can't see why. Please diagnose and fix it. Do NOT run eas/expo CLI publish or submit commands — Replit owns the build/submit flow and I'll retry from the Publish pane. Work through this in order:
+
+Read the real build logs (this avoids the broken Expo link). Consult your Expo publish-failure-debugging reference and call getExpoLaunchLogs() (no arguments). Find the latest ios workflow with status FAILURE or ACTION_REQUIRED. Report back:
+
+the workflow status and dashboardUrl, and
+if FAILURE: the first actionable build error in the final log window (not the cascade after it). If it's not in the last 7,000 chars, read an earlier window.
+if ACTION_REQUIRED: tell me exactly what Expo-account / Apple credential action I need to complete in the Publish pane — this is not a code bug.
+Check how the mobile app is registered as an artifact. The Expo app lives in mobile/ at the repo root (the repo root is a Python project), and its mobile/.replit-artifact/artifact.toml only has kind = "mobile" and a title. Run listArtifacts() and presentArtifact({ artifactId: "mobile" }) and tell me whether the platform actually recognizes mobile/ as a registered Expo artifact. In a past session presentArtifact({ artifactId: "mobile" }) returned "Artifact mobile not found," which suggests it was hand-registered and never fully set up. If it is not a properly registered Expo artifact, fix that using the correct Replit artifact/mobile flow (not by hand-writing artifact.toml) so App Store publish can find the Expo project at the right root — explain what you changed and why.
+Verify the publish inputs are complete and committed (the publish uploads the committed git archive, so uncommitted files are ignored):
+
+mobile/package.json, mobile/app.json, and mobile/package-lock.json exist and are committed.
+There is noapp.config.js / app.config.ts (if there is, move its settings into static app.json and delete the dynamic config).
+The lockfile has nopackage-firewall.replit.local package URLs (if it does, reinstall so it uses the public npm registry).
+Summarize what the failure actually was (from step 1), what you changed (steps 2–3), and confirm the mobile artifact is now registered — then tell me to retry the publish from the Publish pane. Do not change draft/publish state yourself and do not run EAS CLI.
+ 

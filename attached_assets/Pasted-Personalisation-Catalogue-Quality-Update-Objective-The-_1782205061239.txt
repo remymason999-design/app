@@ -1,0 +1,371 @@
+Personalisation & Catalogue Quality Update
+
+Objective
+
+The current recommendation system does not consistently feel personalised, especially after onboarding and for heavy users. Users can receive recommendations that feel generic, repetitive, or low quality despite providing onboarding preferences and extensive swipe history.
+
+The goal of this update is to:
+
+1. Significantly improve catalogue quality.
+2. Increase the number of high-quality eligible recommendations.
+3. Make recommendations feel personally relevant after onboarding.
+4. Improve the experience for heavy users who have swiped hundreds of titles.
+5. Reduce repetition and recommendation fatigue.
+
+⸻
+
+Part 1: Catalogue Quality Layer
+
+Current Problem
+
+The system currently focuses on finding titles that match filters, but not all eligible titles are recommendation-worthy.
+
+This creates situations where:
+
+* Weak movies enter the feed.
+* Low-quality titles dilute recommendations.
+* Heavy users exhaust the strongest recommendations too quickly.
+* The system falls back to weaker content.
+
+New Catalogue Structure
+
+Create a dedicated eligibility and quality layer.
+
+Each title should contain:
+
+{
+  "is_eligible": true,
+  "quality_score": 0,
+  "release_year": 2020,
+  "language": "en",
+  "providers": [],
+  "genres": [],
+  "vote_average": 0,
+  "vote_count": 0,
+  "popularity": 0,
+  "poster_exists": true,
+  "overview_exists": true,
+  "last_synced_at": ""
+}
+
+Quality Score
+
+Every movie should receive a quality score before entering recommendation generation.
+
+Signals should include:
+
+* TMDB rating
+* TMDB vote count
+* Popularity score
+* Poster availability
+* Overview availability
+* Streaming availability
+* English language preference
+* Metadata completeness
+* Release recency
+* Genre confidence
+
+Example:
+
+TMDB Rating         +25
+Vote Count          +20
+Popularity          +20
+Poster              +10
+Overview            +10
+Streaming Provider  +10
+Metadata Quality    +5
+
+Final score:
+
+0-100
+
+Quality Tiers
+
+Create tiers:
+
+Tier A
+
+Strong recommendation candidates.
+
+Quality Score 80+
+
+Tier B
+
+Good recommendation candidates.
+
+Quality Score 65-79
+
+Tier C
+
+Only used if necessary.
+
+Quality Score 50-64
+
+Tier D
+
+Never recommended.
+
+Below 50
+
+The recommendation engine should primarily operate from Tier A and Tier B.
+
+⸻
+
+Part 2: Personalisation Rebuild
+
+Current Problem
+
+The system understands what users swipe on.
+
+However, users do not feel like recommendations are being selected specifically for them.
+
+The feed should feel:
+
+Relevant
+Intentional
+Personal
+Predictive
+
+rather than:
+
+Generic
+Popular
+Random
+
+⸻
+
+User Taste Profile
+
+Create a persistent user taste profile.
+
+Store preferences such as:
+
+Top Genres
+Disliked Genres
+Preferred Release Years
+Preferred Decades
+Preferred Runtime
+Favourite Actors
+Favourite Directors
+Preferred Providers
+Preferred Popularity Level
+Preferred Quality Level
+
+The profile should continuously update after every swipe.
+
+⸻
+
+Onboarding Weighting
+
+The onboarding swipes should have significant influence.
+
+Current onboarding data should remain highly weighted.
+
+Example:
+
+Onboarding Likes = Very High Weight
+Watchlist Adds = High Weight
+Saves = High Weight
+Right Swipes = Medium Weight
+Left Swipes = Negative Weight
+
+The system should not forget onboarding preferences after a few sessions.
+
+⸻
+
+Recommendation Scoring
+
+Recommendations should combine:
+
+Catalogue Quality
++
+Genre Match
++
+Actor Match
++
+Director Match
++
+Release Era Match
++
+Provider Availability
++
+User Taste Profile
++
+Diversity Controls
+
+Example:
+
+Final Score =
+Quality Score
++
+Personal Relevance Score
++
+Freshness Score
++
+Discovery Score
+
+The highest scoring titles should enter the feed.
+
+⸻
+
+Part 3: Diversity Controls
+
+Problem
+
+Even accurate recommendations become repetitive.
+
+Users can feel trapped inside one genre.
+
+Solution
+
+Introduce diversity balancing.
+
+Rules:
+
+Maximum 2 titles from same genre cluster in a row.
+Maximum 2 titles from same franchise in a row.
+Mix safe recommendations with discovery recommendations.
+
+Feed composition:
+
+70% Safe Matches
+20% Adjacent Interests
+10% Discovery Titles
+
+This keeps recommendations fresh while remaining relevant.
+
+⸻
+
+Part 4: Heavy User Mode
+
+Problem
+
+Power users can swipe hundreds of movies.
+
+Eventually:
+
+Fresh titles shrink.
+Repetition increases.
+Quality decreases.
+
+Detection
+
+Activate Heavy User Mode when:
+
+500+ swipes
+or
+Fresh eligible titles < 100
+
+Behaviour
+
+Instead of recycling rejected titles immediately:
+
+Stage 1
+
+Expand adjacent genres.
+
+Example:
+
+Crime -> Thriller
+Thriller -> Mystery
+Sci-Fi -> Adventure
+
+Stage 2
+
+Expand release windows.
+
+Example:
+
+2015+
+becomes
+2005+
+
+Stage 3
+
+Introduce highly rated hidden gems.
+
+Stage 4
+
+Introduce community favourites and friend recommendations.
+
+Stage 5
+
+Carefully reintroduce old soft-skipped titles.
+
+Only as a final fallback.
+
+⸻
+
+Part 5: Skip Intelligence
+
+Not all skips are equal.
+
+Create:
+
+Soft Skip
+
+User was not interested at that moment.
+
+Can reappear later.
+
+Hard Skip
+
+User strongly rejected.
+
+Should not return.
+
+Seen
+
+Never show again.
+
+This prevents recommendation frustration.
+
+⸻
+
+Part 6: Recommendation Explanations
+
+To improve perceived personalisation, provide recommendation reasons.
+
+Examples:
+
+Because you often like psychological thrillers.
+Popular among users with similar tastes.
+Matches your favourite genres.
+Highly rated hidden gem on your services.
+Similar to movies you previously liked.
+
+These explanations should be generated automatically from recommendation signals.
+
+⸻
+
+Part 7: Analytics Dashboard
+
+Add internal diagnostics.
+
+Track:
+
+Total Catalogue Size
+Eligible Catalogue Size
+Tier A Count
+Tier B Count
+Fresh Eligible Count
+Heavy User Count
+Recommendation Diversity Score
+Repeat Recommendation Rate
+
+This will make it easier to understand why recommendations are being generated.
+
+⸻
+
+Success Criteria
+
+After this update:
+
+* Recommendations should feel noticeably more personal.
+* Onboarding preferences should remain visible in recommendations.
+* Heavy users should receive fewer repeats.
+* Feed quality should improve significantly.
+* Users should feel the app understands their tastes.
+* The recommendation engine should prioritise quality before quantity.
+* Repetition should decrease.
+* Discovery should increase without feeling random.

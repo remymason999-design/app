@@ -1,0 +1,26 @@
+Good question — let me investigate how the onboarding cards are generated and whether they feed the recommendation system, before answering.
+The explorer described the design — let me verify it empirically with a live test rather than just trusting the code, and read the key logic to confirm.
+My test used the wrong field name (action instead of rating, which the endpoint requires), so those rate calls were rejected and weights stayed None. The personalisation parts are clearly working though. Let me re-run with the correct payload to verify the learning step.
+Learning works correctly now. One thing worth a quick check: my first test failed because the endpoint expects a rating field — I should confirm the frontend sends the correct field name, otherwise real onboarding swipes would silently fail to teach the system.
+Verified everything end-to-end. The frontend correctly sends { movie_id, rating }, matching the backend — so real onboarding swipes do teach the system. (My very first test failed only because I sent the wrong field name; the app itself is correct.)
+
+Here's the answer to your question:
+
+Yes — onboarding cards are personalised, and the system learns from them correctly
+1. The cards are personalised ✅
+When I onboarded a test user picking Horror + Sci-Fi (Netflix + Prime), the 18 taste-check cards came back 78% matching their chosen genres, with ~22% deliberate variety from outside their picks (to avoid pigeonholing). The deck is built from the user's selected genres and their service/content-type filters — not a fixed generic list. Cards already seen/rated are excluded so they never repeat.
+
+2. The recommendation system learns from each swipe ✅
+After rating those cards, the user's learned profile updated immediately and sensibly:
+
+Genres: Sci-Fi +6.3, Action +3.8, Adventure +1.3 (liked) vs Comedy −1.0 (disliked) — liked genres go strongly positive, disliked go negative.
+Tone: dark +1.5, light −0.45 — it's learning how you want to feel, not just genre.
+Type: movies vs TV both tracked.
+Plus a gentle cold-start seed (+1.0) on any picked genre you didn't happen to swipe on, so the first feed is personalised even before swiping.
+3. The first Discover feed reflects it ✅
+The opening feed came back relevant — Sci-Fi well represented, with the variety band intact.
+
+One thing worth flagging (not a bug — supply)
+Horror is thin for the Netflix/Prime combo — only ~1 Horror title surfaced in the onboarding deck and ~4 in the first feed. That's a catalogue depth characteristic for that genre/provider mix, not a learning fault. If Horror is a genre you expect users to lean on heavily at launch, deepening Horror import coverage would help; otherwise the engine is doing the right thing with the titles available.
+
+Net: personalisation and learning are both working correctly. No code changes were needed here — this was a verification pass.

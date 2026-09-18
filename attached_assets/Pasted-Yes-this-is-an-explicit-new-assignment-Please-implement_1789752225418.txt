@@ -1,0 +1,62 @@
+Yes, this is an explicit new assignment. Please implement the Library redesign brief I attached.
+
+First compare the brief against the already-merged work from Tasks #61–#63.
+
+Do not rebuild or duplicate functionality that already works. Reuse the existing Library, TV-progress, metadata, reactions and backend systems.
+
+I want you to identify the gaps between the current implementation and the attached redesign, then implement those missing pieces.
+
+The intended end result is:
+
+* Library visually matches the new cleaner layout
+* clear Watchlist / Watched separation
+* Watched page shows total titles watched, total watch time and episodes watched
+* TV programmes that are partially watched appear under Continue Watching
+* clear progress bars such as S1 E6 of 20
+* replace the confusing permanent − S1 E1 + controls with a clear Update progress button/flow
+* completed titles appear separately under Completed
+* reactions such as Loved/Liked/Okay/Didn’t like are visibly attached to watched titles
+* Watchlist TV programmes use Start tracking
+* existing watched/reaction functionality on native must also work on web
+* web and native should have feature parity where practical
+* the first-time WatchSmart tutorial/onboarding must gain a poster/card explaining:
+
+Track every episode 📺
+
+Keep up with your TV shows, log the season and episode you're on, and WatchSmart will track your progress and total watch time.
+
+The tutorial artwork/card should visually demonstrate:
+
+* TV poster
+* S1 E6
+* progress bar
+* Update progress
+* example watch-time statistic
+
+Do not add a separate Library popup tutorial. Put this into the existing first-time tutorial flow.
+
+Also fix:
+
+* bottom navigation covering Library content
+* low-contrast secondary text
+* inconsistent poster/card spacing
+* duplicate titles appearing unnecessarily in multiple Library sections
+
+Important: preserve all existing user Library, watched, saved, reaction and progress data.
+
+Before coding, briefly list:
+
+1. Which requirements are already satisfied by Tasks #61–#63
+2. Which requirements are still missing
+
+Then implement the missing requirements immediately. Do not stop after the audit and do not wait for another confirmation.
+
+When finished, test the complete flow on mobile web and native, and tell me:
+
+* what was already present
+* what you changed
+* files changed
+* any backend/database changes
+* whether existing data remains compatible
+* tests performed
+* whether anything requires a new TestFlight build or whether it can be delivered through web deployment/EAS Update

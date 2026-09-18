@@ -1,0 +1,132 @@
+Add launch-ready authentication/profile features and fix subscription provider branding + filtering.
+
+====================================================================
+1. AUTHENTICATION OPTIONS
+====================================================================
+
+Add:
+- Sign in with Apple
+- Sign in with Google
+- Email/password login
+
+Requirements:
+- Keep black/gold cinematic UI style.
+- Apple sign-in must work correctly for iOS/App Store requirements.
+- Email/password must support:
+  - signup
+  - login
+  - forgot password
+  - password reset email
+- Google login should create/link accounts correctly.
+- Preserve onboarding/preferences between sessions.
+
+====================================================================
+2. USER PROFILE FIELDS
+====================================================================
+
+Add during signup/onboarding:
+- DOB or age range
+- Optional gender
+  - Male
+  - Female
+  - Non-binary
+  - Prefer not to say
+
+Requirements:
+- Save to user account/profile.
+- DOB/age should help age-appropriate recommendations/filtering.
+- Gender must remain optional.
+- Keep onboarding smooth and minimal.
+
+====================================================================
+3. PROVIDER LOGOS — USE REAL OFFICIAL LOGOS
+====================================================================
+
+Problem:
+Subscription service cards are still using fake generated initials instead of real streaming logos.
+
+Requirements:
+- Use actual provider logos.
+- Use TMDB provider logo_path assets where possible.
+- Build logos using:
+  https://image.tmdb.org/t/p/w92/{logo_path}
+- Do NOT use generated letters like:
+  N, D, M, P, A
+- Replace all placeholder avatars with real provider branding.
+
+Apply to:
+- onboarding subscription selection
+- landing page provider section
+- Discover provider icons
+- MovieDetail provider cards
+
+Fallback:
+- Only use text if logo_path genuinely does not exist.
+
+Test:
+- Netflix
+- Disney+
+- Max
+- Prime Video
+- Apple TV+
+- Hulu
+- Paramount+
+- Peacock
+- YouTube
+- Amazon Video
+
+Goal:
+The app should feel like real streaming-platform integration, not placeholders.
+
+====================================================================
+4. STRICT SUBSCRIPTION FILTERING
+====================================================================
+
+Problem:
+Discover is still showing content from services users did not select.
+
+Requirements:
+- User-selected subscriptions must act as a HARD FILTER.
+- Discover should only show titles available on selected subscription services.
+- Taste-check must also respect selected subscriptions.
+- Daily refresh pools must respect selected subscriptions.
+- Search can show all titles, but clearly label:
+  - Included with your subscriptions
+  - Available elsewhere
+  - Rent or buy
+
+MovieDetail:
+- still allowed to show:
+  - Also available on
+  - Rent or buy
+
+But Discover recommendations must prioritize and restrict to chosen services.
+
+Add optional future toggle:
+- “Include rent/buy recommendations”
+(default OFF)
+
+====================================================================
+5. TESTING
+====================================================================
+
+Before marking complete:
+- test Apple sign-in
+- test Google sign-in
+- test email signup/login
+- test forgot password flow
+- test DOB/gender saving
+- test provider logos everywhere
+- test Netflix-only account
+- test Disney-only account
+- test Netflix + Prime account
+- confirm Discover only shows selected services
+- confirm MovieDetail still shows alternate providers correctly
+
+Report:
+1. what files changed
+2. what authentication systems were added
+3. what provider logo system is used
+4. what filtering logic changed
+5. all tests performed
+6. any remaining edge cases

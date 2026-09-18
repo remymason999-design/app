@@ -1,0 +1,409 @@
+I want to improve WatchSmart's onboarding personalisation and the way learned taste is displayed on Profile.
+
+IMPORTANT:
+Do not redesign the overall onboarding flow.
+Do not replace onboarding with a search/favourite-title system.
+Keep the existing:
+1. Streaming service selection
+2. Genre selection
+3. Taste/onboarding cards
+4. Finish onboarding → Discover
+
+The changes should focus specifically on making the existing taste cards smarter, giving their interactions stronger initial influence, and improving how the learned profile is shown to users.
+
+Do not modify authentication, Sign in with Apple, push notifications, navigation, subscription functionality or unrelated features.
+
+--------------------------------------------------
+1. MAKE ONBOARDING CARDS USE SELECTED GENRES
+--------------------------------------------------
+
+The current taste cards can feel random and sometimes show titles that do not make sense for the genres the user has just selected.
+
+Fix this.
+
+The genres selected immediately before the taste-card stage must materially influence which onboarding titles are shown.
+
+For example:
+
+If a user chooses:
+Crime
+Thriller
+Mystery
+
+their onboarding cards should primarily contain recognisable, good-quality titles relevant to Crime / Thriller / Mystery.
+
+They should NOT receive a generic set of onboarding titles that every user receives.
+
+Do not simply require an exact genre match on every card.
+
+Use approximately this principle:
+
+~80% = strongly relevant to one or more selected genres
+~20% = controlled adjacent/discovery titles
+
+The purpose of the 20% is to learn whether the user has related interests that they did not explicitly select.
+
+Do not make this a hard-coded percentage if the current architecture has a cleaner way to achieve the same behaviour.
+
+--------------------------------------------------
+2. QUALITY OF ONBOARDING TITLES
+--------------------------------------------------
+
+Onboarding is the user's first experience of WatchSmart.
+
+Prioritise titles that are:
+
+- recognisable
+- reasonably popular
+- good quality
+- representative of the genres selected
+- diverse within those genres
+- appropriate for WatchSmart's existing catalogue rules
+
+Avoid obscure/niche titles unless they are genuinely useful for determining taste.
+
+Avoid filling onboarding with several extremely similar titles.
+
+Example:
+
+Crime + Thriller + Mystery should not simply produce 10 generic crime films.
+
+Try to expose different areas such as:
+
+- psychological thriller
+- detective/investigation
+- mystery
+- dark crime
+- action thriller
+- character-driven crime
+- suspense
+
+This gives WatchSmart better information about what specifically the user likes.
+
+--------------------------------------------------
+3. REDUCE NUMBER OF TASTE CARDS
+--------------------------------------------------
+
+Reduce the taste-card onboarding stage.
+
+Target:
+
+Maximum: 10 cards.
+
+After the user has interacted with 5 cards, allow them to finish the taste stage early if they want.
+
+The experience should therefore be:
+
+5 interactions minimum
+→ user can continue/finish early
+
+OR
+
+continue up to a maximum of 10 cards for stronger personalisation.
+
+Make the early-finish option clear but not intrusive.
+
+Do not force users through a long sequence.
+
+--------------------------------------------------
+4. STRONG ONBOARDING WEIGHT
+--------------------------------------------------
+
+This is extremely important.
+
+Interactions during taste onboarding should have STRONG initial influence on the user's recommendation profile.
+
+These are explicit taste-training interactions.
+
+They should not have the same weight as:
+
+- an impression
+- simply seeing a card
+- weak passive behaviour
+
+A card merely being displayed must have ZERO taste influence.
+
+Only deliberate user interactions should train the profile.
+
+Inspect the existing onboarding interaction options and recommendation architecture before changing weighting.
+
+Positive onboarding responses should create strong positive affinities.
+
+Negative onboarding responses should create meaningful negative affinities.
+
+If different levels such as Loved / Liked / Okay / Didn't Like are available during this process, preserve the difference in strength between them.
+
+Do NOT allow one individual movie/show to completely dominate the profile.
+
+Combine evidence across all onboarding interactions.
+
+--------------------------------------------------
+5. LEARN MORE THAN GENRE
+--------------------------------------------------
+
+Do not reduce onboarding learning to:
+
+"User liked Thriller → Thriller +1"
+
+Use the existing metadata and recommendation architecture to learn as much reliable information as WatchSmart already supports.
+
+Where available, onboarding interactions should influence:
+
+- genres
+- subgenres
+- themes
+- tone/mood
+- cast
+- director
+- writer/creator
+- keywords
+- language
+- release era
+- similar-title relationships
+
+Do not invent metadata that WatchSmart does not actually have.
+
+Use the existing affinity/scoring system wherever possible rather than building a second recommendation engine.
+
+--------------------------------------------------
+6. STRONG AT FIRST, THEN DECAY
+--------------------------------------------------
+
+Onboarding should be especially influential for a brand-new user because WatchSmart has little other evidence.
+
+However, onboarding should NOT permanently control recommendations.
+
+Use a gradual weighting/decay approach.
+
+Conceptually:
+
+0–20 genuine post-onboarding interactions:
+Onboarding is one of the strongest personalisation signals.
+
+20–50:
+Onboarding and real behaviour both matter significantly.
+
+50–100:
+Actual behaviour should increasingly dominate.
+
+100+:
+Onboarding remains historical preference evidence, but current behaviour should be substantially more important.
+
+Do not blindly hard-code these exact ranges if the current recommendation architecture supports a better confidence/decay model.
+
+The objective is:
+
+Strong initial personalisation
+→ increasingly behaviour-driven personalisation.
+
+Explain exactly how you implement this.
+
+--------------------------------------------------
+7. VERIFY THE RESULT IN DISCOVER
+--------------------------------------------------
+
+Do not consider this complete simply because affinity values are being stored.
+
+We have previously had situations where stored taste data looked correct but the recommendations shown to the user did not feel personal.
+
+Test the actual recommendation output.
+
+Create/test representative profiles.
+
+Example profile A:
+
+Genres:
+Crime
+Thriller
+Mystery
+
+Taste-card responses:
+Strong positive responses to psychological/investigative/dark thrillers.
+
+The first Discover recommendations should clearly reflect this.
+
+It should NOT immediately fill the feed with unrelated broad Drama, medical shows, family titles or generic popular content.
+
+Then create a materially different profile B and confirm its recommendations are materially different.
+
+Report examples from the first 20 recommendations for both profiles.
+
+--------------------------------------------------
+8. PROFILE — FIX RAW AFFINITY NUMBERS
+--------------------------------------------------
+
+The Profile page currently has:
+
+"What we've learned about you"
+
+and:
+
+"GENRES YOU ACTUALLY ENGAGE WITH"
+
+The concept is good, but the UI is exposing raw internal floating-point affinity values such as:
+
+11.667000000000002
+5.0001999999999995
+4.6667000000000005
+
+This must be fixed.
+
+NEVER expose raw recommendation-engine floating-point scores to users.
+
+Keep the real underlying values internally.
+
+Use those values to calculate the bars/ranking, but present the information in a human-friendly way.
+
+--------------------------------------------------
+9. CHANGE PROFILE WORDING
+--------------------------------------------------
+
+Keep:
+
+"What we've learned about you"
+
+Change:
+
+"GENRES YOU ACTUALLY ENGAGE WITH"
+
+to:
+
+"YOUR TASTE SO FAR"
+
+This is more accurate because a brand-new user may have learned preferences from onboarding even if they have:
+
+0 Saved
+0 Watched
+
+The section needs to make sense both immediately after onboarding and after months of use.
+
+--------------------------------------------------
+10. HUMAN-FRIENDLY STRENGTH DISPLAY
+--------------------------------------------------
+
+Instead of showing raw numeric scores beside each genre, display a simple human-readable strength.
+
+For example:
+
+Drama        Strong match
+Crime        Strong match
+Comedy       Moderate match
+Sci-Fi       Moderate match
+Mystery      Moderate match
+
+Use sensible categories based on RELATIVE affinity rather than arbitrary raw-score thresholds where possible.
+
+Possible labels:
+
+Strong match
+Good match
+Moderate match
+Exploring
+
+Do not show misleading precision.
+
+The visual progress bars should remain.
+
+Normalize the bar lengths appropriately against the user's own affinity profile so the highest affinity is visually strongest.
+
+Do not let a single extreme raw score make every other bar appear almost empty.
+
+--------------------------------------------------
+11. IMPORTANT — ONBOARDING COUNTS AS LEARNING
+--------------------------------------------------
+
+A user can legitimately have:
+
+0 Saved
+0 Watched
+
+while WatchSmart already knows something about their taste from:
+
+- selected genres
+- onboarding taste-card interactions
+
+That is expected.
+
+Do NOT hide the learned-taste section just because Saved or Watched is zero.
+
+However, make sure the data shown genuinely comes from deliberate onboarding/user interactions.
+
+Simply being shown a movie must never create an affinity.
+
+--------------------------------------------------
+12. DO NOT BREAK EXISTING USERS
+--------------------------------------------------
+
+Existing users must retain their existing learned profiles.
+
+Do not reset affinities.
+
+Do not wipe interaction history.
+
+Do not force existing users through onboarding again.
+
+Do not rebuild everybody's taste profile unless there is a specific data-integrity reason and you explain it first.
+
+--------------------------------------------------
+13. TESTING
+--------------------------------------------------
+
+Test:
+
+1. Selected genres materially affect onboarding cards.
+2. Different genre selections produce different card pools.
+3. Cards are recognisable/high-quality rather than random obscure titles.
+4. Controlled discovery still exists.
+5. User can finish after 5 interactions.
+6. User can continue to 10.
+7. Onboarding interactions strongly affect the initial taste profile.
+8. Merely displaying a card has zero taste effect.
+9. Positive and negative interactions have different effects.
+10. First Discover recommendations reflect onboarding.
+11. Two different onboarding profiles produce materially different recommendations.
+12. Onboarding influence gradually reduces as real behaviour grows.
+13. Existing users retain their existing data.
+14. Profile no longer exposes floating-point values.
+15. "Your taste so far" displays correctly.
+16. Bars accurately represent relative affinity.
+17. New user with 0 Saved / 0 Watched can still see legitimate onboarding-derived taste.
+18. No regression to streaming-service selection.
+19. No regression to authentication.
+20. No regression to Sign in with Apple or push-notification work.
+
+Run:
+
+- Mobile TypeScript checks
+- Expo Doctor
+- relevant backend tests
+- recommendation/personalisation tests
+
+--------------------------------------------------
+14. BEFORE FINISHING
+--------------------------------------------------
+
+Give me a detailed report containing:
+
+- what was wrong with the existing onboarding card selection
+- how cards are now selected
+- how selected genres influence the card pool
+- how the 80/20 relevance/discovery principle is implemented
+- exact onboarding interaction weights before and after the change
+- how onboarding weighting decays
+- which affinity dimensions onboarding trains
+- how the first Discover feed uses those affinities
+- example recommendations from two materially different test profiles
+- how the Profile bars are normalized
+- how Strong/Good/Moderate/Exploring labels are calculated
+- files changed
+- tests passed
+- any issues found
+
+IMPORTANT:
+
+Do NOT publish.
+Do NOT create an EAS build.
+Do NOT submit anything to TestFlight.
+Do NOT change the app version/build number.
+
+I want to review this implementation before the next native build.

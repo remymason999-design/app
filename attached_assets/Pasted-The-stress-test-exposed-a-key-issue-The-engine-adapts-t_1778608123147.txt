@@ -1,0 +1,89 @@
+The stress test exposed a key issue:
+
+The engine adapts too slowly.
+
+Requirements:
+- noticeable adaptation after 20–30 swipes
+- strong adaptation after 50 swipes
+- highly personalised after 100 swipes
+
+Current problem:
+Disliked themes/tones/regions persist too long before suppression.
+
+Make the learning system more reactive.
+
+Changes required:
+
+1. Stronger negative weighting
+Repeated skips should compound faster than they do now.
+
+Examples:
+- skipping Japanese horror repeatedly should rapidly suppress Japanese horror
+- skipping old movies repeatedly should rapidly suppress old movies
+- skipping political documentaries repeatedly should rapidly suppress that subtype
+
+2. Recency weighting
+Recent actions matter more than old onboarding choices.
+Last 25 actions should have strongest influence.
+
+3. Fast suppression thresholds
+After:
+- 5 repeated skips → reduce heavily
+- 10 repeated skips → near suppression
+- 20 repeated skips → almost never show unless wildcard
+
+4. Exploration safety rails
+Adjacent/wildcard must obey learned dislikes.
+
+Examples:
+- Horror user rejecting light/holiday content should NEVER receive Christmas documentaries through adjacent logic.
+- International rejection should apply to wildcard too unless exploration_weight is very high.
+
+5. Dynamic confidence system
+Increase personalization confidence as actions increase.
+
+Example:
+0–20 swipes:
+- exploratory
+
+20–50:
+- semi-confident
+
+50–100:
+- confident
+
+100+:
+- strongly personalised
+
+As confidence rises:
+- reduce random exploration
+- reduce onboarding influence
+- increase behavioural weighting
+
+6. Hard negative profile
+Build explicit learned dislikes:
+- languages
+- decades
+- tones
+- documentary subtypes
+- pacing
+- runtime
+- regions/countries
+
+Use these as blockers in ranking.
+
+7. Add suppression debug
+For every hidden/suppressed category:
+- reason
+- suppression score
+- last trigger
+- confidence
+
+8. Add live adaptation tests
+Run:
+- 25-swipe test
+- 50-swipe test
+- 100-swipe test
+
+Goal:
+The engine should feel adaptive EARLY, not eventually.

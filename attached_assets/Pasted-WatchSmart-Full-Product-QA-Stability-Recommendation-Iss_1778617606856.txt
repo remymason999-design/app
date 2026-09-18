@@ -1,0 +1,352 @@
+WatchSmart — Full Product QA / Stability / Recommendation Issue List
+
+Do NOT redesign the app yet.
+Do NOT aggressively add new features yet.
+Focus on identifying, organizing, testing, stabilizing, and improving the existing systems.
+
+==================================================
+CORE PRODUCT GOAL
+==================================================
+
+WatchSmart should:
+- help users discover films/shows
+- primarily from streaming services they already pay for
+- through a fast, personalized swipe-based experience
+- with recommendations improving over time
+
+The app must feel:
+- trustworthy
+- fast
+- personalized
+- stable
+- intentional
+- premium
+
+==================================================
+CURRENT KNOWN ISSUES / CONCERNS
+==================================================
+
+==================================================
+1. SEARCH SYSTEM
+==================================================
+
+Problems:
+- Search does not search the full catalogue.
+- Search only returns partial/incomplete results.
+- Search should support:
+  - title
+  - actor/cast
+  - genre
+  - director
+  - provider
+  - year
+  - themes/keywords
+- Search should include all titles, even outside subscriptions.
+- Search results should label:
+  - Included with your subscriptions
+  - Available elsewhere
+  - Rent/buy
+  - Unavailable
+
+Need:
+- full catalogue search
+- pagination/infinite scroll
+- faster indexing
+- proper ranking
+
+==================================================
+2. FEED SPEED / SWIPE PERFORMANCE
+==================================================
+
+Problems:
+- Swiping sometimes feels slow.
+- Next movie is not always loaded/preloaded.
+- Feed refill can lag.
+- App sometimes waits on backend before showing next card.
+
+Need:
+- preload cards
+- silent background refill
+- caching
+- faster queue serving
+- smoother swipe transitions
+
+Goal:
+Feed should feel instant like Tinder/TikTok.
+
+==================================================
+3. PERSONALIZATION / LEARNING
+==================================================
+
+Problems:
+- After 100+ swipes, recommendations can still feel random.
+- System may not strongly learn:
+  - disliked languages
+  - disliked decades
+  - disliked documentary subtypes
+  - disliked tones
+- Japanese/international films still appear despite repeated skips.
+- Very old films continue appearing despite rejection.
+- Adjacent/wildcard logic sometimes ignores learned dislikes.
+
+Need:
+- stronger negative learning
+- faster adaptation
+- stronger recent-action weighting
+- explicit learned dislikes
+- tone-aware adjacent logic
+- better queue rebuilding after learning
+
+Goal:
+The feed should clearly evolve after 20–50 swipes.
+
+==================================================
+4. ACCOUNT / DATA PERSISTENCE
+==================================================
+
+Problems:
+- Concern user data may not persist correctly.
+- Recommendation learning persistence unproven.
+- Long sessions log users out.
+- Raw auth/API errors appeared earlier.
+- No full account persistence validation yet.
+
+Need:
+- persistent accounts
+- stable sessions
+- user-linked learning
+- stored:
+  - watchlist
+  - watched
+  - skipped
+  - shown history
+  - onboarding
+  - filters
+  - subscriptions
+  - recommendation weights
+- graceful auth recovery
+- no raw errors
+
+Goal:
+Users should reopen the app and everything remains.
+
+==================================================
+5. DISCOVER STATE / CARD STATE
+==================================================
+
+Problems:
+- Cards disappear after opening MovieDetail.
+- Feed can reset after returning.
+- Include rent/buy toggle disappeared after navigation.
+- Refill can trigger incorrectly after returning.
+
+Need:
+- preserve Discover state
+- preserve queue
+- preserve toggles
+- preserve card position
+- preserve empty-state state
+- only consume cards after actual swipe/action
+
+==================================================
+6. SUBSCRIPTION FILTERING
+==================================================
+
+Problems:
+- Titles outside subscriptions appeared earlier.
+- Strict filtering needs more testing.
+- Provider fallback logic previously injected wrong titles.
+- Some genres become too thin under strict filtering.
+
+Need:
+- strict mode by default
+- explicit opt-in:
+  - Include other services
+  - Include rent & buy
+  - Show everything
+- no silent provider bypass
+- better thin-pool handling
+
+Goal:
+Users trust that Discover means:
+“What can I watch right now?”
+
+==================================================
+7. PROVIDER / STREAMING DATA
+==================================================
+
+Problems:
+- Some streaming titles show as unavailable.
+- Regional provider handling unreliable.
+- HBO Max/Max pool looks too small.
+- Provider enrichment incomplete/stale.
+- Provider aliases may be inconsistent.
+- Some titles missing provider logos/info.
+
+Need:
+- region-aware provider storage
+- provider refresh system
+- alias normalization
+- provider health analytics
+- stronger provider validation
+
+Goal:
+Streaming availability must be highly trustworthy.
+
+==================================================
+8. CATALOG QUALITY
+==================================================
+
+Problems:
+- API imports low-quality/obscure films.
+- Extremely old titles surface too often.
+- Weak metadata titles enter Discover.
+- Poor-quality recommendations reduce trust.
+
+Need:
+- catalog quality gate
+- quality scoring
+- optional classics toggle
+- metadata completeness checks
+- stronger recommendation eligibility filtering
+
+Goal:
+Discover should feel curated, not raw TMDB.
+
+==================================================
+9. GENRE / MOOD LOGIC
+==================================================
+
+Problems:
+- Adjacent genres can feel emotionally wrong.
+- Horror previously showed Christmas documentary content.
+- Wildcards sometimes feel random.
+- Thin genres struggle.
+
+Need:
+- tone compatibility checks
+- stronger emotional continuity
+- smarter fallback ladder:
+  1. exact niche
+  2. same tone
+  3. same themes
+  4. same pacing
+  5. adjacent genre
+  6. broader exploration
+
+Goal:
+Exploration should feel intentional, not random.
+
+==================================================
+10. FEED DEPTH / REFILL
+==================================================
+
+Problems:
+- “You’re all caught up” appeared too early.
+- Some genres exhausted quickly.
+- Repetition still possible in long sessions.
+- Refill/state logic still needs proving.
+
+Need:
+- deeper queues
+- adaptive cooldowns
+- refill before exhaustion
+- better repeat prevention
+- queue persistence
+
+==================================================
+11. ONBOARDING / FILTERS
+==================================================
+
+Problems:
+- Need to prove onboarding strongly affects Discover.
+- Need to prove onboarding persists.
+- Need to prove filters persist.
+- Need:
+  - Anime OFF
+  - Family OFF
+  - Bollywood OFF
+  to fully work.
+
+Need:
+- onboarding validation
+- stronger onboarding influence early
+- proper persistence
+
+==================================================
+12. UI / UX / STABILITY
+==================================================
+
+Problems:
+- Runtime errors previously visible.
+- Navigation state inconsistent.
+- Need mobile testing.
+- Need multiple device testing.
+- Need better empty states/messages.
+
+Need:
+- production-safe error handling
+- React error boundaries
+- loading optimization
+- mobile-safe testing
+
+==================================================
+13. ADMIN / ANALYTICS
+==================================================
+
+Need:
+- admin dashboard
+- user count
+- provider health
+- catalog health
+- recommendation debug
+- crash logging
+- analytics
+
+==================================================
+14. EMAIL / SUPPORT
+==================================================
+
+Need:
+- support email
+- contact form
+- signup email
+- forgot password email
+- terms/privacy pages
+- account deletion
+
+==================================================
+15. FUTURE
+==================================================
+
+Future goals:
+- Apple sign-in
+- Google sign-in
+- app wrapping
+- native app release
+- live catalogue refreshes
+- collaborative filtering
+- creator/actor affinity
+- subgenre intelligence
+- smarter mood understanding
+
+==================================================
+IMPORTANT
+==================================================
+
+Do NOT claim launch-ready unless:
+- accounts are stable
+- subscriptions are trustworthy
+- provider data is accurate
+- personalization clearly works
+- feed state is stable
+- no critical crashes/errors remain
+
+Current stage:
+- stabilization
+- QA
+- personalization tuning
+- trust-building
+- architecture hardening
+
+Not final polish yet.

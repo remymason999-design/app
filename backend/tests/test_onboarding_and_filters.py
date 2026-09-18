@@ -1,7 +1,7 @@
 """Iteration 8 tests: Onboarding flow + strict filter enforcement.
 
 Covers:
-- GET /api/onboarding/titles returns 18 diverse titles with mix of types & genres
+- GET /api/onboarding/titles returns a maximum-ten-card diverse training deck
 - POST /api/onboarding/rate (like/dislike/skip) updates weights correctly
 - Rated titles never reappear in /discover
 - POST /api/onboarding/complete sets onboarding_completed=true
@@ -19,7 +19,7 @@ import time
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://watchsmart-3.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8000").rstrip("/")
 API = f"{BASE_URL}/api"
 
 
@@ -40,7 +40,9 @@ def _register(email_prefix="onb"):
 @pytest.fixture
 def fresh_user():
     s, email = _register("onb")
-    return s, email
+    yield s, email
+    response = s.delete(f"{API}/auth/account")
+    assert response.status_code == 200, "Disposable test account cleanup failed"
 
 
 @pytest.fixture
@@ -58,14 +60,13 @@ def admin_client():
 
 # --- Onboarding titles -----------------------------------------------------
 class TestOnboardingTitles:
-    def test_titles_18_diverse(self, fresh_user):
+    def test_titles_are_short_and_diverse(self, fresh_user):
         s, _ = fresh_user
         r = s.get(f"{API}/onboarding/titles?limit=18")
         assert r.status_code == 200
         data = r.json()
         assert isinstance(data, list)
-        assert len(data) >= 15, f"expected >=15 titles got {len(data)}"
-        assert len(data) <= 18
+        assert 1 <= len(data) <= 10, f"expected 1–10 titles got {len(data)}"
         # poster_url mandatory
         assert all(t.get("poster_url") for t in data)
         # mix of types
@@ -76,7 +77,7 @@ class TestOnboardingTitles:
         for t in data:
             for g in t.get("genres") or []:
                 genres.add(g)
-        assert len(genres) >= 8, f"expected >=8 distinct genres got {len(genres)}: {genres}"
+        assert len(genres) >= 4, f"expected varied genres in short deck, got {genres}"
 
     def test_titles_excludes_onboarding_rated(self, fresh_user):
         s, _ = fresh_user
@@ -91,7 +92,7 @@ class TestOnboardingTitles:
 
 # --- Rating --------------------------------------------------------------
 class TestOnboardingRate:
-    def test_like_increments_weights_by_3(self, fresh_user):
+    def test_like_increments_source_separated_weights(self, fresh_user):
         s, _ = fresh_user
         titles = s.get(f"{API}/onboarding/titles?limit=5").json()
         t = titles[0]
@@ -100,22 +101,22 @@ class TestOnboardingRate:
         data = r.json()
         assert data.get("ok") is True
         user = data.get("user") or {}
-        gw = user.get("genre_weights") or {}
+        gw = user.get("onboarding_genre_weights") or {}
         for g in t["genres"]:
-            assert gw.get(g, 0) >= 3, f"expected +3 for {g}, got {gw.get(g)}"
-        tw = user.get("type_weights") or {}
-        assert tw.get(t["type"], 0) >= 3
+            assert gw.get(g, 0) > 0, f"expected positive training affinity for {g}, got {gw.get(g)}"
+        tw = user.get("onboarding_type_weights") or {}
+        assert tw.get(t["type"], 0) == pytest.approx(4 * 0.6)
 
-    def test_dislike_decrements_weights_by_2(self, fresh_user):
+    def test_dislike_decrements_source_separated_weights(self, fresh_user):
         s, _ = fresh_user
         titles = s.get(f"{API}/onboarding/titles?limit=5").json()
         t = titles[0]
         r = s.post(f"{API}/onboarding/rate", json={"movie_id": t["id"], "rating": "dislike"})
         assert r.status_code == 200
         user = r.json().get("user") or {}
-        gw = user.get("genre_weights") or {}
+        gw = user.get("onboarding_genre_weights") or {}
         for g in t["genres"]:
-            assert gw.get(g, 0) <= -2, f"expected -2 for {g}, got {gw.get(g)}"
+            assert gw.get(g, 0) < 0, f"expected negative training affinity for {g}, got {gw.get(g)}"
 
     def test_skip_does_not_change_weights(self, fresh_user):
         s, _ = fresh_user
@@ -149,6 +150,13 @@ class TestOnboardingRate:
 class TestOnboardingComplete:
     def test_complete_sets_flag(self, fresh_user):
         s, _ = fresh_user
+        titles = s.get(f"{API}/onboarding/titles?limit=10").json()
+        for title in titles[:5]:
+            rated = s.post(
+                f"{API}/onboarding/rate",
+                json={"movie_id": title["id"], "rating": "skip"},
+            )
+            assert rated.status_code == 200
         r = s.post(f"{API}/onboarding/complete")
         assert r.status_code == 200
         assert r.json().get("onboarding_completed") is True
@@ -164,7 +172,6 @@ class TestPreferencesNewFields:
             "moods": ["funny", "mindblowing"],
             "excluded_genres": ["Horror", "War"],
             "content_type": "movie",
-            "onboarding_completed": True,
         }
         r = s.put(f"{API}/user/preferences", json=payload)
         assert r.status_code == 200
@@ -172,7 +179,6 @@ class TestPreferencesNewFields:
         assert u.get("moods") == ["funny", "mindblowing"]
         assert set(u.get("excluded_genres") or []) == {"Horror", "War"}
         assert u.get("content_type") == "movie"
-        assert u.get("onboarding_completed") is True
 
 
 # --- Strict filter enforcement --------------------------------------------

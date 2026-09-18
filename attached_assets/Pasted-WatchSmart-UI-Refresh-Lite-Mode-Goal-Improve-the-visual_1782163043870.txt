@@ -1,0 +1,200 @@
+WatchSmart UI Refresh (Lite Mode)
+
+Goal
+
+Improve the visual quality and usability of the Discover screen without changing recommendation logic or backend systems.
+
+⸻
+
+1. Remove Recommendation Banner
+
+Remove the floating recommendation banner from the top of movie cards.
+
+Remove examples like:
+
+* “Dark Thriller — similar tone…”
+* “Matches your interest in epic fantasy stories”
+
+Reason:
+
+* Looks cluttered
+* Covers poster artwork
+* Feels disconnected from the card
+* Reduces premium feel
+
+⸻
+
+2. Add Information Button
+
+Move the information button to the top-right corner of the movie card.
+
+Requirements:
+
+* Circular icon
+* Subtle glass/blur style
+* Always visible
+* Opens movie details modal
+
+This replaces the recommendation banner.
+
+⸻
+
+3. Keep Tinder-Style Swiping
+
+Do NOT change the core interaction.
+
+Requirements:
+
+* Swipe left = Skip
+* Swipe right = Save
+* Cards remain swipeable
+* Maintain current card stack effect
+
+This is a core WatchSmart feature.
+
+⸻
+
+4. Add Back Navigation
+
+Add left and right navigation arrows beside the card.
+
+Requirements:
+
+* Left arrow = Previous card
+* Right arrow = Next card
+* Only visible when applicable
+
+Purpose:
+
+* Allows users to revisit a card they accidentally skipped.
+
+⸻
+
+5. Update Top Header
+
+Current header:
+
+WATCHSMART logo
+Search
+Notifications
+Profile
+
+Keep this structure.
+
+Improvements:
+
+* Refine logo spacing
+* Make logo feel more premium
+* Improve vertical alignment
+* Reduce visual clutter
+
+Do not redesign the whole header.
+
+⸻
+
+6. Improve Filter Tabs
+
+Current tabs:
+
+* For You
+* Trending
+* Upcoming
+* My List
+
+Keep them.
+
+Improvements:
+
+* Softer borders
+* Better spacing
+* More premium glow
+* Less heavy outlines
+
+Reference:
+Apple TV / Netflix style.
+
+⸻
+
+7. Bottom Navigation Changes
+
+New navigation:
+
+* Discover
+* Watchlist
+* Savings
+* Friends
+
+Remove:
+
+* Profile tab
+
+Friends becomes a main navigation item.
+
+Profile remains accessible from the avatar in the top-right.
+
+⸻
+
+8. Remove Friends Button
+
+Remove the floating:
+
+“Friends & Compare”
+
+button below the navigation bar.
+
+Reason:
+
+* Creates clutter
+* Duplicates functionality
+* Makes lower screen feel cramped
+
+Friends is now accessed from the bottom navigation.
+
+⸻
+
+9. Improve Bottom Navigation Bar
+
+Keep existing icons.
+
+Visual improvements:
+
+* More glassmorphism
+* Better blur
+* Softer edge fade
+* Better blending into background
+
+Goal:
+Feel integrated with the screen rather than a separate rectangle.
+
+⸻
+
+10. Preserve Existing Card Layout
+
+Keep:
+
+* Poster
+* Genres
+* Title
+* Rating
+* Runtime
+* Streaming provider badge
+
+No redesign needed.
+
+Focus on spacing and visual polish only.
+
+⸻
+
+Success Criteria
+
+The Discover screen should feel:
+
+* Cleaner
+* More premium
+* Less cluttered
+* More focused on the movie card
+
+No recommendation-engine changes.
+No database changes.
+No TMDB changes.
+UI only.

@@ -1,0 +1,133 @@
+Create a full personalization stress-test suite.
+
+Goal:
+Prove the recommendation engine adapts aggressively and correctly to user behaviour over long sessions.
+
+Build deterministic simulated users (personas), not random swipes.
+
+Each persona should:
+- start from onboarding preferences
+- perform 150–300 simulated swipe actions
+- have consistent behavioural patterns
+- generate before/after feed analysis
+- output failures clearly
+
+Create these personas:
+
+1. Modern Horror Fan
+Likes:
+- modern horror
+- thriller
+- dark tone
+- English language
+- recent releases (2015+)
+
+Dislikes:
+- Japanese/international films
+- old films
+- comedy
+- family/kids
+- light tone
+
+Expected result:
+- feed converges toward modern English horror/thrillers
+- foreign-language exposure drops heavily
+- old movies nearly disappear
+
+2. Documentary Binger
+Likes:
+- true crime
+- sport docs
+- biography
+- recent documentaries
+
+Dislikes:
+- political docs
+- music docs
+- old documentaries
+- reality/talk/news
+
+Expected:
+- doc feed narrows correctly into preferred subtypes
+- unwanted subtypes decay hard
+
+3. Casual Mainstream User
+Likes:
+- trending
+- Netflix/popular
+- modern action/comedy
+
+Dislikes:
+- niche cinema
+- arthouse
+- slow pacing
+- subtitles
+
+Expected:
+- recommendations become mainstream and highly accessible
+
+4. Classic Film Lover
+Likes:
+- 70s/80s/90s films
+- crime classics
+- westerns
+- war films
+
+Dislikes:
+- modern teen content
+- reality
+- animation
+
+Expected:
+- older decade exposure rises naturally
+
+5. Variety Explorer
+Likes:
+- saves adjacent/wildcard content
+- accepts international films
+- accepts older films
+
+Expected:
+- exploration weight rises safely
+- adjacent/wildcard mix expands without breaking relevance
+
+Metrics to measure every 25 swipes:
+- genre alignment %
+- disliked-pattern exposure %
+- language alignment
+- decade alignment
+- subtype alignment
+- save-rate improvement
+- repeat-title prevention
+- provider correctness
+- exploration stability
+- recommendation entropy/diversity
+- personalization confidence
+
+Add hard failure detection:
+FAIL if:
+- disliked pattern still >20% after 100 swipes
+- skipped language keeps appearing heavily
+- rejected decades remain dominant
+- user repeatedly sees rejected subtypes
+- feed collapses into repetition
+- personalization drifts backwards
+- adjacent/wildcard overwhelms core taste
+- subscription filtering breaks
+
+Need visual output:
+For each persona output:
+- first 20 recommendations
+- final 20 recommendations
+- top learned preferences
+- top learned dislikes
+- exploration weight evolution
+- feed composition evolution
+- failure summary
+- recommendations for tuning
+
+Then:
+Run ALL personas automatically and produce a final engine score out of 100.
+
+Goal:
+The system should clearly feel personalized after long usage and should aggressively stop showing repeatedly rejected patterns.

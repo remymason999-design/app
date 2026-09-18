@@ -1,0 +1,64 @@
+The Apple iOS build has now started successfully, but Expo Launch fails during:
+
+npx expo prebuild --no-install --platform ios
+
+with:
+
+ConfigError: Cannot determine the project's Expo SDK version because the module `expo` is not installed.
+
+IMPORTANT: Do not blindly run `npm install expo` at the repository root.
+
+The native Expo project was intentionally created inside /mobile, alongside the existing /frontend and /backend.
+
+Diagnose the actual cause first.
+
+Please check:
+
+1. Confirm exactly which directory Expo Launch/EAS is using as the project root during the iOS build.
+
+2. Inspect:
+   - /mobile/package.json
+   - root /package.json
+   - eas.json
+   - app.json/app.config.ts
+   - Expo/Replit Launch project configuration
+
+3. Confirm `expo` is declared in /mobile/package.json at the correct SDK version.
+
+4. Confirm the build is installing dependencies from /mobile/package.json rather than the repository root.
+
+5. Confirm the Expo project linked to Launch corresponds to /mobile.
+
+6. Check whether this monorepo-style structure requires an EAS/Replit configuration change so /mobile is treated as the Expo app root.
+
+7. Do NOT move or restructure /frontend or /backend just to make the build work.
+
+8. Do NOT install a second unrelated Expo SDK at repository root unless that is genuinely required by the supported Replit/Expo Launch configuration.
+
+9. Once corrected, run from the actual mobile project:
+   - npm install
+   - npx expo-doctor
+   - npx expo config
+   - npx expo prebuild --no-install --platform ios
+
+10. Confirm all four complete successfully.
+
+11. Verify the production configuration remains:
+   - App: WatchSmart
+   - version: 1.0.0
+   - build: 1
+   - production API: https://watchsmart.uk
+   - correct final bundle identifier selected during Apple setup
+
+12. Retry the iOS build only after the local prebuild succeeds.
+
+Report:
+- The exact root cause
+- Which directory Expo Launch had been building
+- Which package.json it had been reading
+- What you changed
+- Whether Expo Doctor passes
+- Whether Expo prebuild passes
+- Whether the new iOS build succeeds
+
+Do not make unrelated changes to WatchSmart.

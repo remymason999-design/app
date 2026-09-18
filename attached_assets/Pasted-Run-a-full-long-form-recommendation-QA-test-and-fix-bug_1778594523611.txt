@@ -1,0 +1,101 @@
+Run a full long-form recommendation QA test and fix bugs found.
+
+Goal:
+Stress-test the recommendation system across all genres, filters, onboarding choices, subscriptions, learning signals, feed queues, and edge cases.
+
+Test areas:
+
+1. All genres
+- Test every genre individually.
+- Test common combinations:
+  - Documentary + Crime
+  - Documentary + History
+  - Action + Thriller
+  - Comedy + Romance
+  - Horror + Mystery
+  - Sci-Fi + Adventure
+- Confirm selected genres dominate correctly.
+
+2. Feed depth
+- Swipe through at least 100 cards per genre.
+- Confirm no same-title loops.
+- Confirm refills happen smoothly.
+- Confirm queue size remains healthy.
+
+3. Personalisation learning
+Test:
+- liking similar titles
+- skipping one genre repeatedly
+- opening trailers
+- opening detail pages
+- saving titles
+- marking watched
+- refreshing/reopening app
+
+Confirm:
+- feed changes gradually
+- no genre overreaction
+- learning persists
+- recommendations become more personal
+
+4. Filters
+Test:
+- Show Anime ON/OFF
+- Show Family & Kids ON/OFF
+- Show Bollywood ON/OFF
+- Movies only
+- TV only
+- Mixed
+- subscription-only filtering
+
+5. Subscriptions
+Test accounts with:
+- Netflix only
+- Disney+ only
+- Prime only
+- Netflix + Prime
+- no subscriptions selected
+
+Confirm Discover respects selected subscriptions.
+
+6. MovieDetail
+Test:
+- streaming availability
+- rent/buy
+- runtime
+- trailers
+- provider logos
+- More Like This
+- returning to Discover without losing the card
+
+7. Onboarding
+Test brand-new accounts:
+- selected genres affect taste-check
+- taste-check swipes affect Discover
+- tutorial appears once
+- preferences persist
+
+8. Edge cases
+Test:
+- low pool genres
+- no provider titles
+- upcoming/unreleased titles
+- missing posters
+- duplicate titles
+- very long sessions
+- app refresh during session
+
+Required report:
+- total tests run
+- pass/fail per area
+- bugs found
+- bugs fixed
+- remaining issues
+- before/after examples
+- recommendations for next improvements
+
+Rules:
+- Fix bugs found during testing.
+- Do not redesign UI.
+- Do not change working filters unless a test proves they are broken.
+- Prioritize recommendation trust, freshness, and personalization.

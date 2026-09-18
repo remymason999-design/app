@@ -1,0 +1,235 @@
+Discover Experience Upgrade (High Priority)
+
+Goal
+
+Simplify the Discover experience, reduce UI clutter, improve recommendation quality, and prevent accidental user actions.
+
+The app should feel closer to a modern swipe-first experience.
+
+⸻
+
+1. Add Watched Button
+
+Problem
+
+Currently users can:
+
+* Save
+* Skip
+
+But they cannot indicate:
+
+“I’ve already watched this.”
+
+This causes two issues:
+
+1. Users skip titles they have already seen.
+2. The recommendation engine may incorrectly interpret this as dislike.
+
+Example:
+
+User sees:
+
+* Breaking Bad
+* The Sopranos
+* The Dark Knight
+
+The user has already watched them and may even love them.
+
+Today the only action is effectively Skip.
+
+That is a weak signal.
+
+⸻
+
+Solution
+
+Add a dedicated:
+
+✓ Watched
+
+action.
+
+⸻
+
+Behaviour
+
+When a user marks a title as Watched:
+
+* Add title to watched history.
+* Remove title from future recommendation pool.
+* Increase confidence in matching genres.
+* Increase confidence in matching themes.
+* Increase confidence in matching actors.
+* Increase confidence in matching directors.
+* Log watched event in analytics.
+
+This should be treated as a strong positive preference signal.
+
+⸻
+
+Future Use
+
+Watched titles should become the foundation for:
+
+* Taste profile generation.
+* Recommendation confidence.
+* Similar-title matching.
+* Actor/director affinity.
+* User statistics.
+
+⸻
+
+2. Add Undo Button
+
+Problem
+
+Users occasionally:
+
+* Swipe accidentally.
+* Save accidentally.
+* Skip accidentally.
+* Tap the wrong action.
+
+Currently there is no recovery mechanism.
+
+This creates frustration and bad recommendation signals.
+
+⸻
+
+Solution
+
+Add:
+
+↶ Undo
+
+⸻
+
+Behaviour
+
+Undo should:
+
+* Reverse the most recent action.
+* Restore the previous card.
+* Reverse recommendation signals.
+* Reverse analytics event.
+* Restore card position.
+
+Supported actions:
+
+* Skip
+* Save
+* Watched
+
+⸻
+
+Scope
+
+Version 1:
+
+* One-step undo only.
+
+No multi-level history required.
+
+⸻
+
+3. Remove Left and Right Arrow Buttons
+
+Problem
+
+Current arrows duplicate swipe behaviour.
+
+Users already understand:
+
+* Swipe left = Skip
+* Swipe right = Save
+
+The arrows add visual clutter without adding functionality.
+
+⸻
+
+Solution
+
+Remove:
+
+* Left Arrow
+* Right Arrow
+
+Swiping remains the primary interaction.
+
+⸻
+
+Benefits
+
+* Cleaner UI
+* More space around cards
+* More premium feel
+* Less visual noise
+* Stronger Tinder-style interaction model
+
+⸻
+
+4. New Bottom Action Layout
+
+Recommended layout:
+
+[ Undo ]   [ Watched ]   [ Save ]
+
+Actions should be clear and large enough for thumb use.
+
+Swipe interactions remain unchanged:
+
+* Swipe left = Skip
+* Swipe right = Save
+
+Buttons are secondary actions.
+
+⸻
+
+5. Recommendation Impact
+
+Watched should become one of the strongest recommendation signals.
+
+Signal strength order:
+
+1. Watched
+2. Saved
+3. Skip
+
+Reason:
+
+Watched indicates actual consumption.
+
+A watched title provides significantly more information than a save.
+
+⸻
+
+6. Analytics
+
+Track:
+
+* watched_count
+* undo_count
+* watched_by_genre
+* watched_by_actor
+* watched_by_director
+* watched_to_save ratio
+
+Add diagnostics showing:
+
+* Most watched genres
+* Most watched actors
+* Most watched directors
+* Recommendation accuracy improvements after watched signals
+
+⸻
+
+Priority
+
+This should be completed before major recommendation-engine changes.
+
+Reason:
+
+The recommendation engine can only be as good as the signals it receives.
+
+Adding Watched and Undo improves signal quality immediately while also improving user experience.

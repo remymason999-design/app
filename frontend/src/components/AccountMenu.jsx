@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     DropdownMenu,
@@ -7,13 +8,14 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, User as UserIcon, PiggyBank, Heart, Shield, Users } from "lucide-react";
+import { LogOut, User as UserIcon, PiggyBank, Heart, Shield, Users, Eye } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 export default function AccountMenu() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [imgError, setImgError] = useState(false);
 
     if (!user) return null;
 
@@ -31,9 +33,20 @@ export default function AccountMenu() {
                 <button
                     data-testid="account-menu-trigger"
                     aria-label="Account menu"
-                    className="h-11 w-11 rounded-full bg-amber flex items-center justify-center text-obsidian font-display text-lg hover:scale-105 active:scale-95 transition-transform amber-glow"
+                    className="h-10 w-10 rounded-full bg-amber flex items-center justify-center text-[#060608] font-display text-sm hover:scale-105 active:scale-95 transition-transform amber-glow overflow-hidden"
                 >
-                    {initial}
+                    {user.picture && !imgError ? (
+                        <img
+                            src={user.picture}
+                            alt={user.name || "Account"}
+                            className="h-full w-full rounded-full object-cover"
+                            referrerPolicy="no-referrer"
+                            draggable={false}
+                            onError={() => setImgError(true)}
+                        />
+                    ) : (
+                        initial
+                    )}
                 </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -60,6 +73,13 @@ export default function AccountMenu() {
                     className="gap-2 cursor-pointer focus:bg-white/5"
                 >
                     <Heart className="w-4 h-4" /> Watchlist
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                    data-testid="menu-watched"
+                    onClick={() => navigate("/watched")}
+                    className="gap-2 cursor-pointer focus:bg-white/5"
+                >
+                    <Eye className="w-4 h-4" /> Watched
                 </DropdownMenuItem>
                 <DropdownMenuItem
                     data-testid="menu-savings"

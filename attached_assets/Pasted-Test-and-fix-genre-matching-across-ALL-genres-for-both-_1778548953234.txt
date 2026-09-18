@@ -1,0 +1,118 @@
+Test and fix genre matching across ALL genres for both Discover and onboarding taste-check.
+
+PROBLEM
+Genre selection is unreliable.
+Example:
+- selecting Horror returns Documentaries
+- taste-check cards are still generic instead of reflecting selected genres
+
+====================================================================
+1. DISCOVER GENRE MATCHING
+====================================================================
+
+Requirements:
+- Test every available genre individually.
+- For each genre, generate Discover/feed results.
+- At least 70–80% of returned titles should match the selected genre when enough catalog exists.
+
+Apply hard filters first:
+- subscriptions
+- Show Anime
+- Show Family & Kids
+- Show Bollywood
+- watched/saved/skipped/recently shown
+
+Then strongly apply selected genre matching.
+
+Prevent unrelated genres like:
+- Documentary in Horror
+- Family in Action
+- Animation in Thriller
+unless explicitly enabled.
+
+Add debug report for each genre:
+- selected genre
+- total catalog size
+- pool after hard filters
+- matching genre pool size
+- final returned titles
+- final returned genres
+- pass/fail
+
+====================================================================
+2. TASTE-CHECK GENRE MATCHING
+====================================================================
+
+Requirements:
+- Taste-check must use selected onboarding genres.
+- Do NOT use a generic hardcoded 18-card set.
+- Generate taste-check cards dynamically from the filtered catalog.
+
+For each selected genre:
+- at least 70–80% of the 18 cards should match the selected genre when enough catalog exists.
+
+Apply hard filters first:
+- subscriptions
+- Show Anime
+- Show Family & Kids
+- Show Bollywood
+- watched/saved/skipped/recently shown
+
+Then strongly apply selected genre matching.
+
+Add debug report for each onboarding genre:
+- selected onboarding genre
+- pool after hard filters
+- matching genre pool size
+- final 18 taste-check cards
+- genres on each card
+- pass/fail
+
+====================================================================
+3. TEST ALL GENRES
+====================================================================
+
+Test and fix at minimum:
+- Action
+- Adventure
+- Animation
+- Comedy
+- Crime
+- Documentary
+- Drama
+- Family
+- Fantasy
+- History
+- Horror
+- Music
+- Mystery
+- Romance
+- Sci-Fi
+- Thriller
+- War
+- Western
+
+Fix any genre where:
+- Discover results are generic
+- taste-check cards are generic
+- wrong genres dominate
+- hard filters are bypassed
+
+====================================================================
+FINAL REQUIREMENT
+====================================================================
+
+Before marking complete:
+- test every genre individually
+- test with brand new accounts
+- test onboarding taste-check
+- test Discover after onboarding
+
+Report:
+1. what genres passed
+2. what genres failed
+3. what was fixed
+4. screenshots/examples if useful
+5. any remaining edge cases
+
+Keep UI unchanged.

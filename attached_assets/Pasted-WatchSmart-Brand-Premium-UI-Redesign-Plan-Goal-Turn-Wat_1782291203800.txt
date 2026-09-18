@@ -1,0 +1,533 @@
+WatchSmart Brand & Premium UI Redesign Plan
+
+Goal
+
+Turn WatchSmart from an MVP-looking app into a polished, recognisable streaming discovery product.
+
+This task covers:
+
+* Brand identity
+* Logo direction
+* App icon direction
+* Colour scheme
+* Typography
+* Button styles
+* Navigation
+* Discover card design
+* Watchlist design
+* Friends screen
+* Savings screen
+* Profile placement
+* Rewind / swipe actions
+* Overall premium dark-mode UI
+
+The app must keep all current features.
+
+⸻
+
+1. Brand Positioning
+
+WatchSmart should feel like:
+
+Less browsing. More watching.
+
+The product is not just another movie database.
+
+It is a fast decision app for people who already have Netflix, Prime, Disney+, Apple TV, etc., but still do not know what to watch.
+
+The design should communicate:
+
+* fast
+* smart
+* premium
+* cinematic
+* personalised
+* simple
+* swipe-first
+
+⸻
+
+2. Logo Direction
+
+Create a clean WatchSmart logo system.
+
+Full logo
+
+Use:
+
+WATCHSMART
+
+Suggested style:
+
+* “WATCH” in white
+* “SMART” in orange
+* bold modern typography
+* slightly cinematic / tech feel
+* simple enough to work on app store, website and splash screen
+
+Logo mark
+
+Create a standalone mark that can work without text.
+
+Preferred direction:
+
+* stylised “W”
+* subtle film-strip shape
+* orange gradient
+* sharp but premium
+* recognisable at small size
+
+The logo should not look childish or overly complicated.
+
+It should feel like a streaming/productivity hybrid.
+
+⸻
+
+3. App Icon
+
+Create a small app icon using the logo mark.
+
+Requirements
+
+* dark background
+* orange WatchSmart mark
+* strong contrast
+* readable at small sizes
+* App Store ready
+* no tiny text inside the icon
+
+Possible icon direction:
+
+* black/navy square with rounded corners
+* orange stylised “W”
+* subtle film-strip cutout
+* slight glow or gradient
+
+⸻
+
+4. Colour Scheme
+
+Use a consistent dark premium palette.
+
+Primary palette
+
+Background:
+
+#05070A
+
+Deep navy surface:
+
+#0B111A
+
+Card surface:
+
+#111827
+
+Primary orange:
+
+#FF7A18
+
+Deep orange:
+
+#FF4D00
+
+Text primary:
+
+#FFFFFF
+
+Text secondary:
+
+#9CA3AF
+
+Muted border:
+
+#243041
+
+Success / match green:
+
+#22C55E
+
+Warning / saving highlight:
+
+#F59E0B
+
+Usage
+
+Orange should be used for:
+
+* active nav item
+* primary buttons
+* selected provider border
+* key highlights
+* logo
+* watchlist badge
+* match emphasis where needed
+
+Green should be reserved for:
+
+* match score
+* watched confirmation
+* successful action feedback
+
+Avoid using too much blue.
+
+The app should feel dark/orange, not blue/generic.
+
+⸻
+
+5. Typography
+
+Use a clean modern sans-serif.
+
+Preferred:
+
+* Inter
+* SF Pro style if available
+* system font fallback is fine
+
+Text hierarchy
+
+Screen title:
+
+* large
+* bold
+* white
+
+Section title:
+
+* medium bold
+* white
+
+Metadata:
+
+* small
+* muted grey
+
+Buttons:
+
+* bold
+* clear
+
+Avoid tiny cramped text.
+
+⸻
+
+6. Navigation Structure
+
+Bottom navigation should be:
+
+1. Discover
+2. Watchlist
+3. Friends
+4. Savings
+
+Profile should move to the top-right avatar.
+
+Do not keep Profile as a bottom nav item.
+
+Bottom nav style
+
+* dark floating bar
+* orange active state
+* grey inactive icons
+* soft top border or shadow
+* compact but premium
+
+⸻
+
+7. Discover Screen
+
+This is the most important screen.
+
+It should feel cinematic.
+
+Layout
+
+Top:
+
+* Discover title
+* filter/settings icon
+* profile avatar top-right
+
+Tabs:
+
+* For You
+* Movies
+* TV Shows
+* New
+
+Main card:
+
+* large poster/backdrop
+* match score
+* save/bookmark icon
+* title
+* year
+* runtime
+* age rating
+* genres
+* provider badges
+
+Gestures
+
+Keep:
+
+* swipe left = skip
+* swipe right = save
+* swipe up = watched
+
+Bottom action row
+
+Use clean circular buttons:
+
+* Rewind
+* Skip
+* Undo
+* Save
+
+If Watched needs visible access, use:
+
+* Rewind
+* Skip
+* Watched
+* Save
+
+But avoid clutter.
+
+Swipe up should remain the main watched action.
+
+⸻
+
+8. Rewind / Undo
+
+The user wants a Rewind button.
+
+Behaviour
+
+Rewind should:
+
+* bring back the previous card
+* reverse the previous action if needed
+* work for skip/save/watched
+* be one-step only at first
+* be disabled if there is no previous action
+
+If Undo already exists technically, use the same backend logic but label it as Rewind in the UI if that feels clearer.
+
+Do not create duplicate records.
+
+⸻
+
+9. Provider Selection Screen
+
+Redesign provider selection to match the mockups.
+
+Style
+
+* dark background
+* large heading: “Where do you watch?”
+* subtitle: “Choose the services you have”
+* provider tiles in a 2-column grid
+* orange border/checkmark when selected
+* large orange CTA button
+
+Keep all existing GB/provider logic.
+
+⸻
+
+10. Watchlist Screen
+
+Watchlist should feel like a personal movie shelf.
+
+Layout
+
+* title: Watchlist
+* count badge
+* search icon
+* filter/menu icon
+* tabs: All / Movies / TV Shows
+* poster grid
+
+Each poster card should show:
+
+* poster
+* title
+* year
+* runtime
+* provider badge
+* match score if available
+* overflow menu
+
+Avoid plain list styling.
+
+⸻
+
+11. Friends Screen
+
+Bottom nav should include Friends.
+
+If Friends is not fully ready, create a polished placeholder.
+
+Placeholder
+
+Title:
+
+Friends
+
+Subtitle:
+
+Find what to watch together.
+
+Content cards:
+
+* Compare watchlists
+* Find shared matches
+* See what friends are watching
+* Coming soon
+
+The screen should feel intentional, not empty.
+
+⸻
+
+12. Savings Screen
+
+Savings stays in bottom nav.
+
+Goal
+
+Make it feel useful and branded.
+
+Possible copy:
+
+* Streaming savings
+* See what you already have access to
+* Avoid renting what is already included
+
+Use premium dark cards and orange highlights.
+
+⸻
+
+13. Profile
+
+Profile moves to top-right.
+
+Requirements
+
+* profile/avatar icon visible on main screens
+* tapping opens existing profile/settings
+* keep all account functionality
+* keep settings accessible
+
+⸻
+
+14. Detail Page
+
+Movie/show detail page should feel premium.
+
+Show:
+
+* large hero image
+* back button
+* bookmark icon
+* title
+* year
+* runtime
+* rating
+* genres
+* match score
+* overview
+* provider badges
+* Watch Now button
+* Add to Watchlist button
+
+Primary CTA should be orange.
+
+⸻
+
+15. Components To Create / Standardise
+
+Create reusable UI components:
+
+* AppHeader
+* ProfileAvatarButton
+* BottomNav
+* MovieCard
+* ProviderTile
+* PrimaryButton
+* SecondaryButton
+* PosterGridCard
+* MatchBadge
+* ProviderBadge
+* FloatingActionButton
+* EmptyStateCard
+
+This avoids inconsistent styling across screens.
+
+⸻
+
+16. Motion / Polish
+
+Add subtle motion:
+
+* swipe animations
+* card stack depth
+* button press feedback
+* provider selection feedback
+* active nav animation
+* smooth page transitions
+
+Do not overdo animation.
+
+The app should feel premium, not gimmicky.
+
+⸻
+
+17. Existing Features Must Stay
+
+Do not remove:
+
+* Discover recommendations
+* provider filtering
+* watchlist
+* savings
+* friends route
+* profile/settings
+* skip/save/watched
+* rewind/undo
+* analytics
+* admin diagnostics
+* GB region behaviour
+* upcoming/trending/popular fixes
+* watchlist badge logic
+
+⸻
+
+18. Design Acceptance Criteria
+
+Complete when:
+
+1. WatchSmart has a consistent logo direction.
+2. App icon direction exists.
+3. Colour palette is applied globally.
+4. Bottom nav is Discover / Watchlist / Friends / Savings.
+5. Profile is top-right.
+6. Discover card looks cinematic and premium.
+7. Rewind is visible and works.
+8. Swipe left/right/up still works.
+9. Provider selection looks polished.
+10. Watchlist uses a premium poster grid.
+11. Friends screen is present.
+12. Savings screen matches brand styling.
+13. Detail page matches premium dark/orange style.
+14. App feels significantly more App Store-ready.
+15. No existing functionality is broken.
+
+⸻
+
+Important
+
+This is a brand and UI redesign.
+
+Do not rewrite the recommendation engine.
+
+Only touch backend where required for Rewind/Undo or existing data display.

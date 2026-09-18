@@ -1,0 +1,877 @@
+{
+  "A_crime_thriller_mystery": {
+    "deck": [
+      {
+        "title": "Silo",
+        "genres": [
+          "Sci-Fi",
+          "Drama"
+        ],
+        "response": "skip"
+      },
+      {
+        "title": "Lioness",
+        "genres": [
+          "Drama",
+          "War"
+        ],
+        "response": "skip"
+      },
+      {
+        "title": "The Mentalist",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "response": "like"
+      },
+      {
+        "title": "The Runner",
+        "genres": [
+          "Thriller",
+          "Action"
+        ],
+        "response": "like"
+      },
+      {
+        "title": "Obsession",
+        "genres": [
+          "Horror",
+          "Thriller"
+        ],
+        "response": "like"
+      },
+      {
+        "title": "Law & Order: Special Victims Unit",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "response": "like"
+      },
+      {
+        "title": "Reacher",
+        "genres": [
+          "Action",
+          "Crime"
+        ],
+        "response": "skip"
+      },
+      {
+        "title": "Supernatural",
+        "genres": [
+          "Drama",
+          "Mystery",
+          "Sci-Fi"
+        ],
+        "response": "skip"
+      },
+      {
+        "title": "Breaking Bad",
+        "genres": [
+          "Drama",
+          "Crime"
+        ],
+        "response": "like"
+      },
+      {
+        "title": "The Loud House",
+        "genres": [
+          "Animation",
+          "Comedy",
+          "Family",
+          "Kids",
+          "Mystery"
+        ],
+        "response": "skip"
+      }
+    ],
+    "first_20": [
+      {
+        "title": "Get Out",
+        "genres": [
+          "Mystery",
+          "Thriller",
+          "Horror"
+        ],
+        "reason": "Dark Mystery \u2014 matches your preference",
+        "score": 32.058
+      },
+      {
+        "title": "Old",
+        "genres": [
+          "Thriller",
+          "Mystery",
+          "Horror"
+        ],
+        "reason": "Dark Mystery \u2014 matches your preference",
+        "score": 32.032
+      },
+      {
+        "title": "Dexter",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 33.766
+      },
+      {
+        "title": "Damages",
+        "genres": [
+          "Mystery",
+          "Drama",
+          "Crime"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 32.054
+      },
+      {
+        "title": "Good Boy",
+        "genres": [
+          "Thriller",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Mystery \u2014 matches your preference",
+        "score": 31.439
+      },
+      {
+        "title": "Criminal Minds",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 33.432
+      },
+      {
+        "title": "Hallow Road",
+        "genres": [
+          "Mystery",
+          "Thriller",
+          "Horror"
+        ],
+        "reason": "Dark Mystery \u2014 matches your preference",
+        "score": 31.958
+      },
+      {
+        "title": "Mystic River",
+        "genres": [
+          "Thriller",
+          "Drama",
+          "Mystery",
+          "Crime"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 30.659
+      },
+      {
+        "title": "Dexter: Resurrection",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 32.774
+      },
+      {
+        "title": "The X-Files",
+        "genres": [
+          "Mystery",
+          "Sci-Fi",
+          "Crime"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 31.935
+      },
+      {
+        "title": "Disturbia",
+        "genres": [
+          "Thriller",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Mystery \u2014 matches your preference",
+        "score": 30.486
+      },
+      {
+        "title": "Longlegs",
+        "genres": [
+          "Crime",
+          "Horror",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 32.544
+      },
+      {
+        "title": "Mulholland Drive",
+        "genres": [
+          "Thriller",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Mystery \u2014 matches your preference",
+        "score": 30.386
+      },
+      {
+        "title": "Cross",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 32.384
+      },
+      {
+        "title": "You",
+        "genres": [
+          "Mystery",
+          "Crime",
+          "Drama"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 31.707
+      },
+      {
+        "title": "The Girl Next Door",
+        "genres": [
+          "Thriller",
+          "Crime",
+          "Drama",
+          "Horror"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 30.321
+      },
+      {
+        "title": "My Life with the Walter Boys",
+        "genres": [
+          "Drama"
+        ],
+        "reason": "Worth a look tonight",
+        "score": 15.698
+      },
+      {
+        "title": "Marco Polo",
+        "genres": [
+          "Action",
+          "Drama"
+        ],
+        "reason": "Worth a look tonight",
+        "score": 12.629
+      },
+      {
+        "title": "CSI: Crime Scene Investigation",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 32.376
+      },
+      {
+        "title": "The Diplomat",
+        "genres": [
+          "Drama",
+          "War"
+        ],
+        "reason": "Worth a look tonight",
+        "score": 14.799
+      }
+    ]
+  },
+  "B_comedy_romance_family": {
+    "deck": [
+      {
+        "title": "The Tudors",
+        "genres": [
+          "Drama",
+          "Romance"
+        ],
+        "response": "skip"
+      },
+      {
+        "title": "Clash of the Thundermans",
+        "genres": [
+          "Drama",
+          "Family",
+          "Sci-Fi",
+          "Action",
+          "Comedy"
+        ],
+        "response": "like"
+      },
+      {
+        "title": "Teen Titans Go!",
+        "genres": [
+          "Animation",
+          "Action",
+          "Comedy",
+          "Family",
+          "Sci-Fi"
+        ],
+        "response": "skip"
+      },
+      {
+        "title": "The Mentalist",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "response": "skip"
+      },
+      {
+        "title": "Ted Lasso",
+        "genres": [
+          "Drama",
+          "Comedy"
+        ],
+        "response": "like"
+      },
+      {
+        "title": "The Simpsons",
+        "genres": [
+          "Animation",
+          "Comedy"
+        ],
+        "response": "like"
+      },
+      {
+        "title": "Frasier",
+        "genres": [
+          "Comedy",
+          "Family"
+        ],
+        "response": "skip"
+      },
+      {
+        "title": "The Rookie",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Comedy"
+        ],
+        "response": "skip"
+      },
+      {
+        "title": "Lioness",
+        "genres": [
+          "Drama",
+          "War"
+        ],
+        "response": "skip"
+      },
+      {
+        "title": "Titanic",
+        "genres": [
+          "Drama",
+          "Romance"
+        ],
+        "response": "like"
+      }
+    ],
+    "first_20": [
+      {
+        "title": "The Drama",
+        "genres": [
+          "Romance",
+          "Comedy",
+          "Drama"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 29.575
+      },
+      {
+        "title": "The Super Mario Galaxy Movie",
+        "genres": [
+          "Family",
+          "Comedy",
+          "Adventure",
+          "Fantasy",
+          "Animation"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 30.848
+      },
+      {
+        "title": "Voicemails for Isabelle",
+        "genres": [
+          "Romance",
+          "Comedy",
+          "Drama"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 29.275
+      },
+      {
+        "title": "Toy Story",
+        "genres": [
+          "Family",
+          "Comedy",
+          "Animation",
+          "Adventure"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 29.377
+      },
+      {
+        "title": "Kissing Is the Easy Part",
+        "genres": [
+          "Romance",
+          "Comedy"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 28.595
+      },
+      {
+        "title": "The Gentlemen",
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Crime"
+        ],
+        "reason": "Dark Comedy \u2014 matches your preference",
+        "score": 30.441
+      },
+      {
+        "title": "The Super Mario Bros. Movie",
+        "genres": [
+          "Family",
+          "Comedy",
+          "Adventure",
+          "Fantasy",
+          "Animation"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 29.293
+      },
+      {
+        "title": "XO, Kitty",
+        "genres": [
+          "Comedy",
+          "Drama"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 29.86
+      },
+      {
+        "title": "Heartstopper Forever",
+        "genres": [
+          "Romance",
+          "Drama"
+        ],
+        "reason": "Chosen for your Romance interest",
+        "score": 28.569
+      },
+      {
+        "title": "The Wild Robot",
+        "genres": [
+          "Family",
+          "Animation",
+          "Sci-Fi",
+          "Adventure"
+        ],
+        "reason": "Chosen for your Family interest",
+        "score": 29.239
+      },
+      {
+        "title": "Regretting You",
+        "genres": [
+          "Romance",
+          "Drama"
+        ],
+        "reason": "Chosen for your Romance interest",
+        "score": 28.551
+      },
+      {
+        "title": "Guardians of the Galaxy Vol. 3",
+        "genres": [
+          "Sci-Fi",
+          "Adventure",
+          "Action"
+        ],
+        "reason": "Worth a look tonight",
+        "score": 12.942
+      },
+      {
+        "title": "Dog Man",
+        "genres": [
+          "Family",
+          "Comedy",
+          "Adventure",
+          "Animation",
+          "Action"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 29.136
+      },
+      {
+        "title": "The White Lotus",
+        "genres": [
+          "Comedy",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 29.516
+      },
+      {
+        "title": "Eternity",
+        "genres": [
+          "Romance",
+          "Comedy",
+          "Drama"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 28.524
+      },
+      {
+        "title": "This Is Us",
+        "genres": [
+          "Drama"
+        ],
+        "reason": "Worth a look tonight",
+        "score": 12.798
+      },
+      {
+        "title": "Elle",
+        "genres": [
+          "Comedy",
+          "Drama"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 29.357
+      },
+      {
+        "title": "Supergirl",
+        "genres": [
+          "Drama",
+          "Sci-Fi",
+          "Action"
+        ],
+        "reason": "Worth a look tonight",
+        "score": 12.259
+      },
+      {
+        "title": "Pacific Rim: Uprising",
+        "genres": [
+          "Action",
+          "Fantasy",
+          "Sci-Fi",
+          "Adventure"
+        ],
+        "reason": "Worth a look tonight",
+        "score": 10.765
+      },
+      {
+        "title": "Bridget Jones: Mad About the Boy",
+        "genres": [
+          "Romance",
+          "Comedy",
+          "Drama"
+        ],
+        "reason": "Chosen for your Comedy interest",
+        "score": 28.341
+      }
+    ]
+  },
+  "A_selected_genres_only_control": {
+    "deck": [],
+    "first_20": [
+      {
+        "title": "FROM",
+        "genres": [
+          "Mystery",
+          "Drama",
+          "Sci-Fi"
+        ],
+        "reason": "Chosen for your Mystery interest",
+        "score": 26.63
+      },
+      {
+        "title": "Good Boy",
+        "genres": [
+          "Thriller",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Mystery \u2014 matches your preference",
+        "score": 25.04
+      },
+      {
+        "title": "The Mentalist",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 27.776
+      },
+      {
+        "title": "The X-Files",
+        "genres": [
+          "Mystery",
+          "Sci-Fi",
+          "Crime"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 26.292
+      },
+      {
+        "title": "The Runner",
+        "genres": [
+          "Thriller",
+          "Action"
+        ],
+        "reason": "Dark Thriller \u2014 matches your preference",
+        "score": 25.036
+      },
+      {
+        "title": "The Housemaid",
+        "genres": [
+          "Mystery",
+          "Thriller"
+        ],
+        "reason": "Dark Mystery \u2014 matches your preference",
+        "score": 25.835
+      },
+      {
+        "title": "Wake Up Dead Man: A Knives Out Mystery",
+        "genres": [
+          "Thriller",
+          "Mystery",
+          "Comedy"
+        ],
+        "reason": "Dark Mystery \u2014 matches your preference",
+        "score": 24.942
+      },
+      {
+        "title": "Lost",
+        "genres": [
+          "Mystery",
+          "Action",
+          "Drama"
+        ],
+        "reason": "Chosen for your Mystery interest",
+        "score": 25.661
+      },
+      {
+        "title": "Criminal Minds",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 26.969
+      },
+      {
+        "title": "Source Code",
+        "genres": [
+          "Thriller",
+          "Sci-Fi",
+          "Mystery"
+        ],
+        "reason": "Dark Mystery \u2014 matches your preference",
+        "score": 24.665
+      },
+      {
+        "title": "Dexter",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 26.714
+      },
+      {
+        "title": "You",
+        "genres": [
+          "Mystery",
+          "Crime",
+          "Drama"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 25.615
+      },
+      {
+        "title": "The Girl with the Dragon Tattoo",
+        "genres": [
+          "Thriller",
+          "Crime",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 24.209
+      },
+      {
+        "title": "Riverdale",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 26.231
+      },
+      {
+        "title": "Bosch",
+        "genres": [
+          "Mystery",
+          "Drama",
+          "Crime"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 25.472
+      },
+      {
+        "title": "Evil Dead",
+        "genres": [
+          "Horror"
+        ],
+        "reason": "Worth a look tonight",
+        "score": 6.647
+      },
+      {
+        "title": "Mystic River",
+        "genres": [
+          "Thriller",
+          "Drama",
+          "Mystery",
+          "Crime"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 24.208
+      },
+      {
+        "title": "Gladiator",
+        "genres": [
+          "Action",
+          "Drama",
+          "Adventure"
+        ],
+        "reason": "Worth a look tonight",
+        "score": 7.355
+      },
+      {
+        "title": "Slow Horses",
+        "genres": [
+          "Crime",
+          "Drama",
+          "Mystery"
+        ],
+        "reason": "Dark Crime \u2014 matches your preference",
+        "score": 25.983
+      },
+      {
+        "title": "Stargate Atlantis",
+        "genres": [
+          "Sci-Fi",
+          "Action",
+          "Drama"
+        ],
+        "reason": "Worth a look tonight",
+        "score": 7.738
+      }
+    ]
+  },
+  "counterfactual_score_comparison": [
+    {
+      "title": "Get Out",
+      "score_as_A": 32.558,
+      "score_as_B": 11.959
+    },
+    {
+      "title": "Old",
+      "score_as_A": 32.532,
+      "score_as_B": 12.199
+    },
+    {
+      "title": "Dexter",
+      "score_as_A": 34.266,
+      "score_as_B": 14.845
+    },
+    {
+      "title": "Damages",
+      "score_as_A": 32.554,
+      "score_as_B": 13.236
+    },
+    {
+      "title": "Good Boy",
+      "score_as_A": 31.939,
+      "score_as_B": 14.174
+    },
+    {
+      "title": "The Drama",
+      "score_as_A": 13.974,
+      "score_as_B": 30.075
+    },
+    {
+      "title": "The Super Mario Galaxy Movie",
+      "score_as_A": 13.523,
+      "score_as_B": 31.348
+    },
+    {
+      "title": "Voicemails for Isabelle",
+      "score_as_A": 13.408,
+      "score_as_B": 29.775
+    },
+    {
+      "title": "Toy Story",
+      "score_as_A": 11.846,
+      "score_as_B": 29.877
+    },
+    {
+      "title": "Kissing Is the Easy Part",
+      "score_as_A": 11.974,
+      "score_as_B": 29.095
+    }
+  ],
+  "same_genre_control_comparison": {
+    "trained_only": [
+      "Get Out",
+      "Old",
+      "Damages",
+      "Hallow Road",
+      "Dexter: Resurrection",
+      "Disturbia",
+      "Longlegs",
+      "Mulholland Drive",
+      "Cross",
+      "The Girl Next Door",
+      "My Life with the Walter Boys",
+      "Marco Polo",
+      "CSI: Crime Scene Investigation",
+      "The Diplomat"
+    ],
+    "control_only": [
+      "FROM",
+      "The Mentalist",
+      "The Runner",
+      "The Housemaid",
+      "Wake Up Dead Man: A Knives Out Mystery",
+      "Lost",
+      "Source Code",
+      "The Girl with the Dragon Tattoo",
+      "Riverdale",
+      "Bosch",
+      "Evil Dead",
+      "Gladiator",
+      "Slow Horses",
+      "Stargate Atlantis"
+    ],
+    "shared_count": 6
+  }
+}

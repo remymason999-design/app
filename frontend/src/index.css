@@ -1,43 +1,52 @@
-/* WatchSmart — dark cinematic theme */
+/* WatchSmart — premium dark/orange theme */
 
-@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500,400&f[]=satoshi@900,700,500,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-    --background: 240 10% 4%;
-    --foreground: 0 0% 97%;
-    --card: 240 8% 6%;
-    --card-foreground: 0 0% 97%;
-    --popover: 240 8% 6%;
-    --popover-foreground: 0 0% 97%;
-    --primary: 38 96% 50%;
-    --primary-foreground: 240 10% 4%;
-    --secondary: 240 6% 11%;
-    --secondary-foreground: 0 0% 97%;
-    --muted: 240 6% 11%;
-    --muted-foreground: 240 5% 64%;
-    --accent: 38 96% 50%;
-    --accent-foreground: 240 10% 4%;
+    /* #05070A */
+    --background: 216 33% 3%;
+    --foreground: 0 0% 100%;
+    /* #111827 */
+    --card: 222 41% 11%;
+    --card-foreground: 0 0% 100%;
+    --popover: 222 41% 11%;
+    --popover-foreground: 0 0% 100%;
+    /* #FF7A18 */
+    --primary: 25 100% 55%;
+    --primary-foreground: 216 33% 3%;
+    /* #0B111A */
+    --secondary: 216 40% 7%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 216 40% 7%;
+    /* #9CA3AF */
+    --muted-foreground: 218 11% 65%;
+    --accent: 25 100% 55%;
+    --accent-foreground: 216 33% 3%;
     --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 97%;
-    --border: 240 6% 13%;
-    --input: 240 6% 13%;
-    --ring: 38 96% 50%;
+    --destructive-foreground: 0 0% 100%;
+    /* #243041 */
+    --border: 215 29% 20%;
+    --input: 215 29% 20%;
+    --ring: 25 100% 55%;
     --radius: 1rem;
 }
 
 html,
 body {
-    background: #060608;
-    color: #f8f8f8;
-    font-family: 'Satoshi', 'Helvetica Neue', sans-serif;
+    background: #05070A;
+    color: #ffffff;
+    font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
     overscroll-behavior-y: none;
+    /* Smooth momentum scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
 }
 
 * {
@@ -51,14 +60,14 @@ body {
 }
 
 .font-heading {
-    font-family: 'Cabinet Grotesk', 'Satoshi', sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-weight: 800;
     letter-spacing: -0.02em;
 }
 
 .font-display {
-    font-family: 'Cabinet Grotesk', sans-serif;
-    font-weight: 800;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 900;
     letter-spacing: -0.035em;
 }
 
@@ -69,20 +78,20 @@ body {
     inset: 0;
     pointer-events: none;
     z-index: 1;
-    opacity: 0.06;
+    opacity: 0.05;
     mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
 }
 
 .glass {
-    background: rgba(12, 12, 16, 0.65);
+    background: rgba(11, 17, 26, 0.65);
     backdrop-filter: blur(24px) saturate(140%);
     -webkit-backdrop-filter: blur(24px) saturate(140%);
     border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .glass-strong {
-    background: rgba(6, 6, 8, 0.78);
+    background: rgba(5, 7, 10, 0.8);
     backdrop-filter: blur(28px) saturate(160%);
     -webkit-backdrop-filter: blur(28px) saturate(160%);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -90,8 +99,8 @@ body {
 
 .amber-glow {
     box-shadow:
-        0 0 0 1px rgba(245, 158, 11, 0.2),
-        0 8px 24px -4px rgba(245, 158, 11, 0.4);
+        0 0 0 1px rgba(255, 122, 24, 0.25),
+        0 8px 24px -4px rgba(255, 122, 24, 0.45);
 }
 
 /* Hide scrollbars on chip rails */
@@ -105,11 +114,11 @@ body {
 /* Card stack helpers */
 .card-shadow {
     box-shadow:
-        0 30px 60px -15px rgba(0, 0, 0, 0.7),
+        0 30px 60px -15px rgba(0, 0, 0, 0.75),
         0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 ::selection {
-    background: rgba(245, 158, 11, 0.35);
+    background: rgba(255, 122, 24, 0.35);
     color: #fff;
 }

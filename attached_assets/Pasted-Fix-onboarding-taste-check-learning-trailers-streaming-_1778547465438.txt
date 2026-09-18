@@ -1,0 +1,144 @@
+Fix onboarding taste-check learning, trailers, streaming availability, runtime display, and movie pills without redesigning the UI.
+
+====================================================================
+1. ONBOARDING FLOW
+====================================================================
+
+Correct onboarding order:
+1. Create account
+2. Pick streaming services
+3. Pick favourite genres
+4. Content preferences:
+   - Show Anime
+   - Show Family & Kids
+   - Show Bollywood
+5. Taste-check swipes
+6. Short tutorial
+7. Enter Discover
+
+Default:
+- Show Anime = OFF
+- Show Family & Kids = OFF
+- Show Bollywood = OFF
+
+====================================================================
+2. TASTE-CHECK PERSONALIZATION
+====================================================================
+
+Current problem:
+Taste-check cards are generic and not learning from user choices.
+
+Requirements:
+- Taste-check must use:
+  - selected streaming services
+  - selected genres
+  - content preferences
+  - movie vs TV preference if available
+- Do not use static hardcoded onboarding cards.
+- Generate taste-check cards dynamically from the filtered catalog.
+
+Family/Kids filtering:
+- If Show Family & Kids is OFF:
+  - exclude Family genre
+  - exclude Kids audience
+  - exclude children’s animation/family signals
+- Apply the same for Anime and Bollywood.
+
+====================================================================
+3. TASTE-CHECK LEARNING
+====================================================================
+
+Every onboarding action must train the recommendation engine immediately.
+
+Signals:
+- Save/like = strong positive signal
+- Skip/dislike = strong negative signal
+- Watched/seen = moderate positive signal
+- Detail open = interest signal
+- Trailer open = interest signal
+
+Update:
+- genre weights
+- tone preferences
+- runtime preferences
+- audience preferences
+- movie vs TV preferences
+- popularity/niche preferences
+
+After taste-check:
+- generate the first Discover feed using onboarding behaviour
+- do not show a generic feed
+
+Goal:
+The first Discover feed should clearly reflect what the user picked and how they interacted during taste-check.
+
+====================================================================
+4. TRAILERS
+====================================================================
+
+Requirements:
+- Add a visible play button in the top-right of MovieDetail hero/poster areas.
+- Use trailer_key or trailer_url if available.
+- If missing, fetch trailers from TMDB videos endpoint.
+- Prefer official YouTube trailers.
+- Hide play button if no trailer exists.
+- Track trailer_open as a learning signal.
+
+====================================================================
+5. STREAMING AVAILABILITY
+====================================================================
+
+Requirements:
+Clearly separate:
+- Included with your subscriptions
+- Rent or buy
+- Not available
+
+- Prioritize user subscriptions first.
+- Use provider logos/cards where possible.
+- Avoid confusing provider chip clutter.
+- Clearly label if a title is not included with user subscriptions.
+
+====================================================================
+6. RUNTIME / DETAILS
+====================================================================
+
+Requirements:
+- Always show runtime clearly for movies.
+- Show seasons/episodes for TV.
+- Keep runtime visible on:
+  - Discover
+  - MovieDetail
+  - Search results
+  - More like this if possible
+
+====================================================================
+7. MOVIE PILLS / BADGES
+====================================================================
+
+Requirements:
+- Keep pills visually premium and consistent.
+- Show useful pills only:
+  - Dark / Light
+  - Adult
+  - Action / Thriller / Comedy
+  - Included / Rent / Buy
+  - Runtime/type pills if relevant
+- Maximum 3–5 pills visible.
+- Do not show Family/Kids pill if disabled.
+- Pills must match actual metadata.
+
+====================================================================
+FINAL REQUIREMENT
+====================================================================
+
+Test with a brand new account and confirm:
+- onboarding order is correct
+- taste-check reflects onboarding choices
+- onboarding swipes affect Discover recommendations
+- Family/Kids/Anime/Bollywood filtering works during onboarding
+- trailers work
+- streaming availability is correct
+- runtime displays correctly
+- pills display correctly
+- first Discover feed feels personalized

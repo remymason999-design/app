@@ -1,14 +1,20 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Heart, Eye, Star, Sparkles, Play, ExternalLink, X, Tv2, Clock, Users } from "lucide-react";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { ProviderLogo, RentBuyLogo } from "@/components/ProviderLogo";
+import WatchedFeedbackDialog from "@/components/WatchedFeedbackDialog";
+import { formatRuntime, calcTvTotalMinutes } from "@/lib/format";
+import { capture, EVENTS } from "@/lib/analytics";
 export default function MovieDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { state } = useLocation();
     const { user, refresh } = useAuth();
+    const impressionId = state?.impression_id || null;
     const [movie, setMovie] = useState(null);
     const [services, setServices] = useState([]);
     const [explanation, setExplanation] = useState("");
@@ -17,34 +23,74 @@ export default function MovieDetail() {
     const [reviews, setReviews] = useState({ summary: {}, user: [], tmdb: [] });
     const [similar, setSimilar] = useState([]);
     const [progressOpen, setProgressOpen] = useState(false);
+    const [loadError, setLoadError] = useState(null);
+    const [actionBusy, setActionBusy] = useState(false);
+    const [feedbackOpen, setFeedbackOpen] = useState(false);
+    const [reportOpen, setReportOpen] = useState(false);
+    const [reportReason, setReportReason] = useState("wrong_provider");
+    const [reportDetail, setReportDetail] = useState("");
+    const [reportHp, setReportHp] = useState(""); // honeypot — must stay empty
+    const [reportBusy, setReportBusy] = useState(false);
+    const [refreshBusy, setRefreshBusy] = useState(false);
 
-    useEffect(() => {
-        let cancelled = false;
+    const loadAll = (signal) => {
+        setLoadError(null);
         (async () => {
             try {
-                const m = await apiGet(`/movies/${id}`);
-                if (!cancelled) setMovie(m);
-            } catch {
-                navigate("/discover");
+                const m = await apiGet(`/movies/${id}`, { signal });
+                if (signal?.aborted) return;
+                setMovie(m);
+                capture(EVENTS.TITLE_DETAILS_VIEWED, {
+                    content_id: id,
+                    media_type: m.type || "movie",
+                    impression_id: impressionId || undefined,
+                }, { user, dedupeKey: `detail:${id}:${impressionId || ""}` });
+                apiPost("/user/engage", { movie_id: id, action: "detail_view", impression_id: impressionId }).catch(() => {});
+            } catch (err) {
+                if (signal?.aborted) return;
+                setLoadError(err?.response?.status === 404 ? "We couldn't find that title." : "Couldn't load this title. Check your connection.");
             }
         })();
-        apiGet("/services").then(setServices);
-        apiGet(`/movies/${id}/reviews`).then(setReviews).catch(() => {});
-        apiGet(`/movies/${id}/similar`).then(setSimilar).catch(() => {});
-        return () => { cancelled = true; };
-    }, [id, navigate]);
+        apiGet("/services", { signal }).then((s) => { if (!signal?.aborted) setServices(s); }).catch(() => {});
+        apiGet(`/movies/${id}/reviews`, { signal }).then((r) => { if (!signal?.aborted) setReviews(r); }).catch(() => {});
+        apiGet(`/movies/${id}/similar`, { signal }).then((s) => { if (!signal?.aborted) setSimilar(s); }).catch(() => {});
+    };
+
+    useEffect(() => {
+        // Reset state + scroll to top when navigating between titles
+        setMovie(null);
+        setExplanation("");
+        setReviews({ summary: {}, user: [], tmdb: [] });
+        setSimilar([]);
+        window.scrollTo(0, 0);
+
+        const ctrl = new AbortController();
+        loadAll(ctrl.signal);
+        return () => ctrl.abort();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     const isSaved = user?.saved?.includes(id);
     const isWatched = user?.watched?.includes(id);
     const isTv = movie?.type === "tv";
     const progress = movie?.progress;
 
-    const act = async (action) => {
+    const act = async (action, watchedMeta = null) => {
+        if (actionBusy) return;
+        setActionBusy(true);
         try {
-            await apiPost("/user/action", { movie_id: id, action });
+            await apiPost("/user/action", { movie_id: id, action, impression_id: impressionId, ...(watchedMeta || {}) });
+            if (action === "save" || action === "unsave") {
+                capture(action === "save" ? EVENTS.WATCHLIST_ITEM_ADDED : EVENTS.WATCHLIST_ITEM_REMOVED, {
+                    content_id: id,
+                    media_type: movie?.type || "movie",
+                    source: "detail",
+                }, { user, dedupeKey: `detail-action:${id}:${action}` });
+            }
             await refresh();
-            toast.success(action === "save" ? "Saved" : action === "watched" ? "Marked watched" : "Removed");
+            toast.success(action === "save" ? "Saved" : action === "watched" ? (watchedMeta?.completed === false ? "Saved as not finished" : "Reaction saved") : "Removed");
         } catch { toast.error("Couldn't update"); }
+        finally { setActionBusy(false); }
     };
 
     const explain = async () => {
@@ -56,18 +102,106 @@ export default function MovieDetail() {
         finally { setExplainLoading(false); }
     };
 
+    const submitReport = async () => {
+        if (reportBusy) return;
+        setReportBusy(true);
+        try {
+            await apiPost(`/movies/${id}/report`, {
+                reason: reportReason,
+                detail: reportDetail.trim() || null,
+                website: reportHp || undefined,
+            });
+            toast.success("Thanks — we'll review this");
+            setReportOpen(false);
+            setReportDetail("");
+            setReportHp("");
+            setReportReason("wrong_provider");
+        } catch { toast.error("Couldn't send report"); }
+        finally { setReportBusy(false); }
+    };
+
+    const refreshAvailability = async () => {
+        if (refreshBusy) return;
+        setRefreshBusy(true);
+        try {
+            const r = await apiPost(`/movies/${id}/refresh-providers`, {});
+            setMovie((prev) => prev ? {
+                ...prev,
+                available_on: r.available_on,
+                rent_on: r.rent_on,
+                buy_on: r.buy_on,
+                provider_region: r.provider_region,
+                provider_confidence: r.provider_confidence,
+                availability_region_matched: r.availability_region_matched,
+            } : prev);
+            toast.success("Availability refreshed");
+        } catch { toast.error("Couldn't refresh"); }
+        finally { setRefreshBusy(false); }
+    };
+
+    if (loadError) {
+        return (
+            <div className="min-h-screen bg-obsidian flex flex-col items-center justify-center px-6 text-center" data-testid="movie-detail-error">
+                <h1 className="font-display text-3xl mb-3">Couldn't load</h1>
+                <p className="text-sm text-zinc-400 mb-8 max-w-xs">{loadError}</p>
+                <div className="flex gap-3">
+                    <button onClick={() => { const c = new AbortController(); loadAll(c.signal); }}
+                        className="px-5 py-3 rounded-xl bg-amber text-obsidian font-heading"
+                        data-testid="movie-retry">
+                        Try again
+                    </button>
+                    <button onClick={() => navigate(-1)}
+                        className="px-5 py-3 rounded-xl glass-strong font-heading"
+                        data-testid="movie-back">
+                        Go back
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     if (!movie) {
-        return <div className="min-h-screen grid place-items-center"><div className="h-10 w-10 rounded-full border-2 border-amber border-t-transparent animate-spin" /></div>;
+        return (
+            <div className="min-h-screen bg-obsidian animate-pulse" data-testid="movie-detail-skeleton">
+                <div className="h-[55vh] bg-gradient-to-t from-obsidian via-velvet/40 to-velvet/20" />
+                <div className="px-5 pt-8 max-w-md mx-auto space-y-4">
+                    <div className="flex gap-2 mb-2">
+                        <div className="h-5 w-16 bg-white/8 rounded-full" />
+                        <div className="h-5 w-12 bg-white/8 rounded-full" />
+                    </div>
+                    <div className="h-10 w-3/4 bg-white/10 rounded-xl" />
+                    <div className="h-4 w-full bg-white/6 rounded-xl" />
+                    <div className="h-4 w-5/6 bg-white/6 rounded-xl" />
+                    <div className="h-4 w-4/5 bg-white/6 rounded-xl" />
+                    <div className="flex gap-3 mt-6">
+                        <div className="flex-1 h-12 bg-amber/20 rounded-2xl" />
+                        <div className="flex-1 h-12 bg-white/8 rounded-2xl" />
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     const servicesById = Object.fromEntries(services.map((s) => [s.id, s]));
-    const totalHours = movie.total_runtime ? Math.round(movie.total_runtime / 60) : null;
+    const tvTotalMinutes = isTv ? calcTvTotalMinutes(movie) : null;
+    const myProviders = (movie.available_on || []).filter((sid) => (user?.subscriptions || []).includes(sid));
+    const otherProviders = (movie.available_on || []).filter((sid) => !(user?.subscriptions || []).includes(sid));
 
     return (
         <div className="min-h-screen pb-28 bg-obsidian" data-testid="movie-detail-page">
             {/* Full-screen immersive banner */}
             <div className="relative h-screen max-h-[100svh] -mt-1">
-                <img loading="lazy" src={movie.backdrop_url || movie.poster_url} alt={movie.title} className="absolute inset-0 w-full h-full object-cover" />
+                {(movie.backdrop_url || movie.poster_url) ? (
+                    <img
+                        loading="lazy"
+                        src={movie.backdrop_url || movie.poster_url}
+                        alt={movie.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => { e.target.style.display = "none"; }}
+                    />
+                ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-velvet to-obsidian" />
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-obsidian/30" />
                 <div className="absolute inset-0 bg-gradient-to-r from-obsidian/40 to-transparent" />
 
@@ -77,7 +211,15 @@ export default function MovieDetail() {
                         <ArrowLeft className="h-5 w-5" />
                     </button>
                     {movie.trailer_youtube_id && (
-                        <button onClick={() => setTrailerOpen(true)} data-testid="play-trailer-btn" className="h-11 px-4 flex items-center gap-2 rounded-full glass-strong text-amber font-heading hover:scale-105 transition-transform">
+                        <button onClick={() => {
+                            setTrailerOpen(true);
+                            capture(EVENTS.TITLE_TRAILER_OPENED, {
+                                content_id: id,
+                                media_type: movie.type || "movie",
+                                impression_id: impressionId || undefined,
+                            }, { user, dedupeKey: `trailer:${id}:${impressionId || ""}` });
+                            apiPost("/user/engage", { movie_id: id, action: "trailer_open", impression_id: impressionId }).catch(() => {});
+                        }} data-testid="play-trailer-btn" className="h-11 px-4 flex items-center gap-2 rounded-full glass-strong text-amber font-heading hover:scale-105 transition-transform">
                             <Play className="h-4 w-4 fill-amber" /> Trailer
                         </button>
                     )}
@@ -88,28 +230,37 @@ export default function MovieDetail() {
                     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
                         <DetailSignals card={movie.card} />
                         <div className="flex flex-wrap gap-1.5 mb-3">
-                            {movie.genres.slice(0, 4).map((g) => (
+                            {(movie.genres || []).slice(0, 4).map((g) => (
                                 <span key={g} className="text-[10px] uppercase tracking-wider bg-white/12 backdrop-blur px-2.5 py-1 rounded-full">{g}</span>
                             ))}
                         </div>
-                        <h1 className="font-display text-5xl leading-[0.95] mb-3">{movie.title}</h1>
+                        <h1 className="font-display text-5xl leading-[0.95] mb-3">{movie.title || "Untitled"}</h1>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-300 mb-4">
-                            <span className="flex items-center gap-1"><Star className="w-4 h-4 fill-amber text-amber" />{movie.rating?.toFixed(1)}</span>
-                            <Bullet />
-                            <span>{movie.year}</span>
-                            <Bullet />
-                            {isTv ? (
-                                <span className="flex items-center gap-1"><Tv2 className="w-3.5 h-3.5" /> {movie.seasons?.length || 1} seasons</span>
-                            ) : (
-                                <span>{movie.runtime} min</span>
+                            {movie.rating > 0 && (
+                                <><span className="flex items-center gap-1"><Star className="w-4 h-4 fill-amber text-amber" />{movie.rating.toFixed(1)}</span><Bullet /></>
                             )}
-                            {totalHours && isTv && (<><Bullet /><span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> ~{totalHours}h total</span></>)}
+                            {movie.year && <><span>{movie.year}</span><Bullet /></>}
+                            {isTv ? (
+                                <span className="flex items-center gap-1">
+                                    <Tv2 className="w-3.5 h-3.5" />
+                                    {movie.seasons?.length || 1} season{(movie.seasons?.length || 1) !== 1 ? "s" : ""}
+                                    {(() => { const total = (movie.seasons || []).reduce((s, se) => s + (se.episode_count || 0), 0); return total > 0 ? ` · ${total} ep` : ""; })()}
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {formatRuntime(movie.runtime) || "—"}
+                                </span>
+                            )}
+                            {isTv && movie.runtime > 0 && (<><Bullet /><span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{formatRuntime(movie.runtime)}/ep</span></>)}
+                            {isTv && tvTotalMinutes > 0 && (<><Bullet /><span>~{formatRuntime(tvTotalMinutes)} binge</span></>)}
                         </div>
                         <div className="flex gap-3">
                             <button
                                 onClick={() => act(isSaved ? "unsave" : "save")}
+                                disabled={actionBusy}
                                 data-testid="detail-save-btn"
-                                className={`flex-1 py-3.5 rounded-2xl font-heading flex items-center justify-center gap-2 ${
+                                className={`flex-1 py-3.5 rounded-2xl font-heading flex items-center justify-center gap-2 disabled:opacity-60 ${
                                     isSaved ? "bg-amber text-obsidian amber-glow" : "glass-strong text-white"
                                 }`}
                             >
@@ -117,9 +268,10 @@ export default function MovieDetail() {
                                 {isSaved ? "Saved" : "Save"}
                             </button>
                             <button
-                                onClick={() => act("watched")}
+                                onClick={() => setFeedbackOpen(true)}
+                                disabled={actionBusy}
                                 data-testid="detail-watched-btn"
-                                className={`flex-1 py-3.5 rounded-2xl font-heading flex items-center justify-center gap-2 ${
+                                className={`flex-1 py-3.5 rounded-2xl font-heading flex items-center justify-center gap-2 disabled:opacity-60 ${
                                     isWatched ? "bg-white/12 border border-white/20" : "glass-strong"
                                 }`}
                             >
@@ -132,7 +284,7 @@ export default function MovieDetail() {
 
             {/* Content */}
             <div className="px-5 max-w-md mx-auto pt-8">
-                <p className="text-base text-zinc-300 leading-relaxed">{movie.overview}</p>
+                <p className="text-base text-zinc-300 leading-relaxed">{movie.overview || "No description available."}</p>
 
                 {/* AI explanation */}
                 <button onClick={explain} disabled={explainLoading || !!explanation} data-testid="explain-btn"
@@ -175,52 +327,114 @@ export default function MovieDetail() {
 
                 {/* Where to watch */}
                 <h3 className="font-heading text-base mt-8 mb-3">Stream</h3>
-                {(movie.available_on || []).length === 0 ? (
-                    <p className="text-sm text-zinc-500">Not currently streaming in your region.</p>
-                ) : (
-                    <div className="space-y-2">
-                        {movie.available_on.map((sid) => {
-                            const s = servicesById[sid];
-                            if (!s) return null;
-                            return (
-                                <button key={sid}
-                                    onClick={async () => {
-                                        try {
-                                            const { url } = await apiPost("/affiliate/click", { movie_id: id, service_id: sid });
-                                            window.open(url, "_blank", "noopener,noreferrer");
-                                        } catch {
-                                            window.open(s.affiliate_url, "_blank", "noopener,noreferrer");
-                                        }
-                                    }}
-                                    data-testid={`watch-on-${sid}`}
-                                    className="w-full flex items-center justify-between glass rounded-xl px-4 py-3 hover:bg-white/[0.06] text-left">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-9 h-9 rounded-lg" style={{ backgroundColor: s.logo_color }} />
-                                        <div>
-                                            <div className="font-heading text-sm">{s.name}</div>
-                                            <div className="text-[10px] text-zinc-500">${s.price_monthly}/mo</div>
+                {(() => {
+                    const hasFlatrate = (movie.available_on || []).length > 0;
+                    const hasRentBuy  = (movie.rent_on || []).length > 0 || (movie.buy_on || []).length > 0;
+
+                    if (!hasFlatrate && !hasRentBuy) {
+                        return (
+                            <div data-testid="no-providers-msg">
+                                <p className="text-sm text-zinc-500">
+                                    {movie.availability_region_matched === false
+                                        ? "We don't have confirmed availability for your region yet."
+                                        : "Not currently streaming in your region."}
+                                </p>
+                                <button
+                                    onClick={refreshAvailability}
+                                    disabled={refreshBusy}
+                                    className="mt-2 text-xs text-amber underline disabled:opacity-50"
+                                    data-testid="refresh-availability"
+                                >
+                                    {refreshBusy ? "Checking…" : "Check availability now"}
+                                </button>
+                            </div>
+                        );
+                    }
+
+                    if (!hasFlatrate) {
+                        return (
+                            <p className="text-sm text-zinc-500 italic" data-testid="rent-only-msg">
+                                Not included in any subscription — available to rent or buy below.
+                            </p>
+                        );
+                    }
+
+                    return (
+                        <div className="space-y-4" data-testid="streaming-sections">
+                            {myProviders.length > 0 && (
+                                <div>
+                                    <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-400 mb-2">Included with your plan</p>
+                                    <div className="space-y-2">
+                                        {myProviders.map((sid) => (
+                                            <ProviderRow key={sid} sid={sid} s={servicesById[sid]} id={id} included />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {otherProviders.length > 0 && (
+                                <div>
+                                    {myProviders.length > 0 && (
+                                        <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 mb-2">Also available on</p>
+                                    )}
+                                    <div className="space-y-2">
+                                        {otherProviders.map((sid) => (
+                                            <ProviderRow key={sid} sid={sid} s={servicesById[sid]} id={id} />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
+
+                {((movie.rent_on || []).length + (movie.buy_on || []).length) > 0 && (() => {
+                    const groups = {};
+                    (movie.rent_on || []).forEach((p) => { groups[p] = { ...(groups[p] || {}), rent: true }; });
+                    (movie.buy_on  || []).forEach((p) => { groups[p] = { ...(groups[p] || {}), buy:  true }; });
+                    return (
+                        <>
+                            <h3 className="font-heading text-base mt-6 mb-3">Rent or buy</h3>
+                            <div className="space-y-2">
+                                {Object.entries(groups).map(([provider, { rent, buy }]) => (
+                                    <div
+                                        key={provider}
+                                        className="flex items-center justify-between glass rounded-xl px-4 py-3"
+                                        data-testid={`rentbuy-${provider.replace(/\s+/g, "-").toLowerCase()}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <RentBuyLogo name={provider} size={40} shape="rounded-xl" />
+                                            <span className="font-heading text-sm">{provider}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            {rent && (
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber/15 text-amber border border-amber/25"
+                                                    data-testid={`rent-${provider}`}>Rent</span>
+                                            )}
+                                            {buy && (
+                                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-zinc-300 border border-white/15"
+                                                    data-testid={`buy-${provider}`}>Buy</span>
+                                            )}
                                         </div>
                                     </div>
-                                    <ExternalLink className="h-4 w-4 text-zinc-400" />
-                                </button>
-                            );
-                        })}
-                    </div>
-                )}
+                                ))}
+                            </div>
+                        </>
+                    );
+                })()}
 
-                {((movie.rent_on || []).length + (movie.buy_on || []).length) > 0 && (
-                    <>
-                        <h3 className="font-heading text-base mt-6 mb-3">Rent or buy</h3>
-                        <div className="flex flex-wrap gap-2">
-                            {(movie.rent_on || []).map((p) => (
-                                <span key={`r-${p}`} className="text-xs px-3 py-1.5 rounded-full glass" data-testid={`rent-${p}`}>Rent · {p}</span>
-                            ))}
-                            {(movie.buy_on || []).map((p) => (
-                                <span key={`b-${p}`} className="text-xs px-3 py-1.5 rounded-full glass" data-testid={`buy-${p}`}>Buy · {p}</span>
-                            ))}
-                        </div>
-                    </>
-                )}
+                {/* Availability trust actions */}
+                <div className="mt-4 flex items-center gap-4 text-xs text-zinc-500">
+                    {movie.provider_region && (
+                        <span data-testid="provider-region">Region: {movie.provider_region}</span>
+                    )}
+                    <button
+                        onClick={() => setReportOpen(true)}
+                        className="underline hover:text-zinc-300"
+                        data-testid="report-issue-btn"
+                    >
+                        Report an issue
+                    </button>
+                </div>
 
                 {/* Reviews */}
                 <ReviewsBlock movieId={id} reviews={reviews} onPosted={(r) => setReviews(r)} />
@@ -231,8 +445,11 @@ export default function MovieDetail() {
                         <h3 className="font-heading text-base mb-3">More like this</h3>
                         <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-1 px-1">
                             {similar.map((m) => (
-                                <button key={m.id} onClick={() => navigate(`/movie/${m.id}`)}
-                                    className="shrink-0 w-32 text-left">
+                                <button key={m.id} onClick={() => {
+                                    capture(EVENTS.SIMILAR_TITLE_SELECTED, { content_id: m.id, media_type: m.type || "movie", source: "similar" }, { user, dedupeKey: `similar:${id}:${m.id}` });
+                                    navigate(`/movie/${m.id}`);
+                                }}
+                                     className="shrink-0 w-32 text-left">
                                     <div className="aspect-[2/3] rounded-xl overflow-hidden bg-velvet mb-2">
                                         {m.poster_url && <img loading="lazy" src={m.poster_url} alt={m.title} className="w-full h-full object-cover" />}
                                     </div>
@@ -268,6 +485,61 @@ export default function MovieDetail() {
                 )}
             </AnimatePresence>
 
+            {/* Report-issue modal */}
+            <AnimatePresence>
+                {reportOpen && (
+                    <motion.div
+                        className="fixed inset-0 z-[60] bg-obsidian/85 backdrop-blur-sm grid place-items-center px-5"
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        onClick={() => setReportOpen(false)} data-testid="report-modal"
+                    >
+                        <motion.div initial={{ y: 30 }} animate={{ y: 0 }} onClick={(e) => e.stopPropagation()}
+                            className="w-full max-w-sm glass-strong rounded-3xl p-6">
+                            <h3 className="font-display text-2xl mb-1">Report an issue</h3>
+                            <p className="text-xs text-zinc-500 mb-4">Help us keep availability accurate.</p>
+                            <label className="block mb-4">
+                                <span className="text-[10px] uppercase tracking-wider text-zinc-500">What's wrong?</span>
+                                <select value={reportReason} onChange={(e) => setReportReason(e.target.value)}
+                                    data-testid="report-reason"
+                                    className="w-full mt-1 bg-velvet border border-white/10 rounded-xl p-3 text-sm text-foreground">
+                                    <option value="wrong_provider" className="bg-velvet">Wrong streaming service listed</option>
+                                    <option value="not_available" className="bg-velvet">Says available but it isn't</option>
+                                    <option value="missing_title" className="bg-velvet">Title or info is missing</option>
+                                    <option value="bad_metadata" className="bg-velvet">Wrong details (year, poster, etc.)</option>
+                                    <option value="duplicate" className="bg-velvet">Duplicate entry</option>
+                                    <option value="other" className="bg-velvet">Something else</option>
+                                </select>
+                            </label>
+                            <label className="block mb-6">
+                                <span className="text-[10px] uppercase tracking-wider text-zinc-500">Details (optional)</span>
+                                <textarea value={reportDetail} onChange={(e) => setReportDetail(e.target.value.slice(0, 1000))}
+                                    rows={3} data-testid="report-detail"
+                                    className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl p-3 text-sm resize-none"
+                                    placeholder="Tell us more…" />
+                            </label>
+                            {/* Honeypot — hidden from humans; bots that fill it are dropped server-side. */}
+                            <input
+                                type="text"
+                                name="website"
+                                value={reportHp}
+                                onChange={(e) => setReportHp(e.target.value)}
+                                tabIndex={-1}
+                                autoComplete="off"
+                                aria-hidden="true"
+                                style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
+                            />
+                            <div className="flex gap-3">
+                                <button onClick={() => setReportOpen(false)} className="flex-1 py-3 rounded-2xl border border-white/10">Cancel</button>
+                                <button onClick={submitReport} disabled={reportBusy} data-testid="report-submit"
+                                    className="flex-1 py-3 bg-amber text-obsidian rounded-2xl font-heading disabled:opacity-50">
+                                    {reportBusy ? "Sending…" : "Send report"}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Progress modal */}
             <ProgressModal
                 open={progressOpen}
@@ -280,7 +552,49 @@ export default function MovieDetail() {
                     setMovie(m);
                 }}
             />
+            <WatchedFeedbackDialog
+                open={feedbackOpen}
+                title={movie?.title}
+                busy={actionBusy}
+                onCancel={() => setFeedbackOpen(false)}
+                onSelect={async (meta) => {
+                    setFeedbackOpen(false);
+                    await act("watched", meta);
+                }}
+            />
         </div>
+    );
+}
+
+function ProviderRow({ sid, s, id, included = false }) {
+    const { user } = useAuth();
+    if (!s) return null;
+    return (
+        <button
+            onClick={async () => {
+                try {
+                    const { url } = await apiPost("/affiliate/click", { movie_id: id, service_id: sid });
+                    capture(EVENTS.PROVIDER_SELECTED, { provider: sid, content_id: id, media_type: "movie", source: "title_details" }, { user, dedupeKey: `provider-selected:${id}:${sid}` });
+                    window.open(url, "_blank", "noopener,noreferrer");
+                } catch {
+                    capture(EVENTS.PROVIDER_SELECTED, { provider: sid, content_id: id, media_type: "movie", source: "title_details" }, { user, dedupeKey: `provider-selected:${id}:${sid}` });
+                    window.open(s.affiliate_url, "_blank", "noopener,noreferrer");
+                }
+            }}
+            data-testid={`watch-on-${sid}`}
+            className="w-full flex items-center justify-between glass rounded-xl px-4 py-3 hover:bg-white/[0.06] active:scale-[0.98] transition-transform text-left"
+        >
+            <div className="flex items-center gap-3">
+                <ProviderLogo sid={sid} size={44} shape="rounded-xl" />
+                <div>
+                    <div className="font-heading text-sm">{s.name}</div>
+                    <div className="text-[10px] text-zinc-500">
+                        {included ? `Included · £${s.price_monthly}/mo` : `£${s.price_monthly}/mo`}
+                    </div>
+                </div>
+            </div>
+            <ExternalLink className="h-4 w-4 text-zinc-400 shrink-0" />
+        </button>
     );
 }
 

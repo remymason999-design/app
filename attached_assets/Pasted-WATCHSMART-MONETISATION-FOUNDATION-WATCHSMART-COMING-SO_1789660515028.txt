@@ -1,0 +1,517 @@
+WATCHSMART – MONETISATION FOUNDATION + WATCHSMART+ COMING SOON
+
+IMPORTANT:
+This update is NOT launching paid subscriptions yet.
+
+Do NOT:
+- Enable real payments
+- Add a working paywall
+- Require payment
+- Lock any existing WatchSmart functionality
+- Remove features from current users
+- Add intrusive adverts
+- Change the recommendation algorithm
+- Break existing TestFlight functionality
+
+The purpose of this update is to:
+
+1. Add WatchSmart+ as a visible "Coming Soon" product.
+2. Build the internal foundations for multiple future monetisation streams.
+3. Track user interest in premium features.
+4. Make future monetisation easier to activate without a major rebuild.
+
+
+==================================================
+1. WATCHSMART+ – PROFILE SECTION
+==================================================
+
+Add a new premium-looking section to Profile.
+
+Title:
+
+WatchSmart+
+
+Badge:
+
+COMING SOON
+
+Subtitle:
+
+"More ways to find what you love, watch together and get more from your streaming subscriptions."
+
+The card should fit the existing WatchSmart design system.
+
+Do not make it look like an advertisement.
+
+It should feel like a native part of WatchSmart.
+
+Use the existing orange/navy WatchSmart branding and existing spacing/radius conventions.
+
+Do not introduce an entirely different visual language.
+
+
+==================================================
+2. WATCHSMART+ PREVIEW SCREEN
+==================================================
+
+When the user taps WatchSmart+, open a dedicated screen.
+
+Header:
+
+WatchSmart+
+
+Status:
+
+Coming Soon
+
+Intro:
+
+"We're building even more ways to make streaming smarter."
+
+Show planned benefits such as:
+
+SMARTER DISCOVERY
+More control and insight into your personalised recommendations.
+
+SMART SAVINGS
+Deeper insights into which streaming subscriptions you're actually using and where you could save.
+
+WATCH TOGETHER
+Advanced matching for couples, friends and households.
+
+TASTE INSIGHTS
+Learn more about your favourite genres, actors, directors, themes and viewing habits.
+
+SMART ALERTS
+Get useful alerts when titles you'll probably like become available.
+
+AD-FREE
+Future WatchSmart+ users can receive an ad-free experience if advertising is introduced to the free tier.
+
+IMPORTANT:
+These are previews only.
+
+Do not lock existing features behind these cards.
+
+Where an existing feature overlaps with a future Plus feature, describe the Plus version as an enhanced version rather than removing the current free functionality.
+
+
+==================================================
+3. INTEREST BUTTON
+==================================================
+
+At the bottom include:
+
+"Interested in WatchSmart+?"
+
+Primary CTA:
+
+"Notify me when it launches"
+
+When tapped:
+
+- Do NOT request payment.
+- Do NOT open Stripe.
+- Do NOT open StoreKit.
+- Record the user's interest.
+- Change the button state so they know it was successful.
+
+Confirmation:
+
+"You're on the list. We'll let you know when WatchSmart+ is ready."
+
+Allow the user to reverse this selection if necessary.
+
+
+==================================================
+4. ANALYTICS
+==================================================
+
+Prepare analytics events for:
+
+plus_card_viewed
+plus_card_clicked
+plus_preview_viewed
+plus_interest_clicked
+plus_interest_removed
+
+Where appropriate record:
+
+user_id
+timestamp
+app_version
+platform
+source_screen
+
+Do not send unnecessary personal information.
+
+This needs to allow us to calculate:
+
+WatchSmart+ page view rate
+interest conversion rate
+which entry point generated interest
+interest by user cohort
+
+If PostHog is already implemented, use the existing analytics wrapper rather than creating a second analytics system.
+
+If PostHog is not active yet, implement these events through the existing analytics abstraction or prepare them cleanly for later integration.
+
+
+==================================================
+5. MONETISATION ARCHITECTURE
+==================================================
+
+Prepare the app for future account tiers.
+
+Do not activate paid tiers yet.
+
+Support conceptual tiers:
+
+free
+plus
+duo
+family
+
+Current users remain:
+
+free
+
+Create a clean entitlement/feature-access architecture rather than scattering checks throughout individual screens.
+
+Future examples could include:
+
+advanced_recommendations
+advanced_taste_insights
+advanced_savings
+advanced_friend_matching
+smart_alerts
+ad_free
+family_profiles
+
+These should NOT currently disable existing features.
+
+The architecture should make it possible to control future premium functionality centrally.
+
+
+==================================================
+6. SUBSCRIPTION STATUS
+==================================================
+
+Prepare the user/account model for future fields such as:
+
+subscription_tier
+subscription_status
+subscription_started_at
+subscription_expires_at
+subscription_platform
+subscription_product_id
+
+Possible statuses:
+
+none
+trial
+active
+expired
+cancelled
+
+Do not pretend these values represent a real subscription yet.
+
+Existing users should safely default to:
+
+subscription_tier = free
+subscription_status = none
+
+
+==================================================
+7. FUTURE REVENUE STREAM ARCHITECTURE
+==================================================
+
+WatchSmart should eventually support multiple monetisation methods rather than relying only on WatchSmart+.
+
+Prepare clean foundations/feature flags for:
+
+A. WATCHSMART+
+Monthly/yearly premium subscriptions.
+
+B. DUO
+Future two-person subscription/features.
+
+C. FAMILY
+Future household plan.
+
+D. ADVERTISING
+Free-tier advertising in appropriate areas.
+
+DO NOT display ads yet.
+
+E. AFFILIATE / REFERRAL LINKS
+Future ability to attribute outbound clicks to:
+
+streaming subscriptions
+movie rentals
+movie purchases
+other legitimate partners
+
+F. STREAMING SAVINGS REFERRALS
+Future ability to attribute when WatchSmart recommends a service that the user may want to join/rejoin.
+
+G. SPONSORED CONTENT
+Future ability to display clearly labelled sponsored titles or collections.
+
+Sponsored content MUST NEVER secretly modify the user's organic recommendation match score.
+
+H. PARTNERSHIPS
+Future campaigns/collections from studios or streaming providers.
+
+I. B2B / INSIGHTS
+No user-facing implementation required now.
+
+Simply ensure analytics/data architecture is not designed in a way that makes future privacy-compliant aggregate analysis unnecessarily difficult.
+
+J. FUTURE API / LICENSING
+No implementation required now.
+
+Do not build unnecessary infrastructure for this yet.
+
+
+==================================================
+8. AFFILIATE ATTRIBUTION FOUNDATION
+==================================================
+
+Create a reusable outbound-link handler.
+
+Rather than individual screens opening provider links in completely different ways, prepare one central system capable of recording:
+
+user_id
+title_id
+provider
+destination_type
+timestamp
+source_screen
+campaign_id (optional)
+partner_id (optional)
+
+Destination types could eventually include:
+
+stream
+rent
+buy
+subscription
+partner
+
+This should NOT interfere with existing provider links.
+
+No fake affiliate links should be created.
+
+Existing legitimate provider links should continue working normally.
+
+
+==================================================
+9. SPONSORED CONTENT RULE
+==================================================
+
+Prepare a future content flag such as:
+
+is_sponsored
+
+and optional fields:
+
+sponsor_name
+campaign_id
+sponsored_label
+
+However:
+
+DO NOT introduce sponsored content now.
+
+Most importantly:
+
+Sponsored status must never automatically increase:
+
+personalisation_score
+match_percentage
+taste_score
+organic recommendation rank
+
+If sponsored content is eventually introduced, it must be visibly labelled:
+
+Sponsored
+
+The user must be able to distinguish paid placement from WatchSmart's genuine recommendation.
+
+
+==================================================
+10. ADVERTISING FOUNDATION
+==================================================
+
+Do NOT install an ad SDK yet unless one already exists.
+
+Do NOT display placeholder banner ads throughout the app.
+
+Simply prepare a central feature flag such as:
+
+ads_enabled = false
+
+and entitlement:
+
+ad_free
+
+This gives us the ability to introduce advertising later without redesigning account tiers.
+
+
+==================================================
+11. REMOTE FEATURE FLAGS
+==================================================
+
+Where possible prepare central flags for:
+
+plus_visible
+plus_interest_enabled
+subscriptions_enabled
+ads_enabled
+affiliate_tracking_enabled
+sponsored_content_enabled
+
+Initial configuration:
+
+plus_visible = true
+plus_interest_enabled = true
+subscriptions_enabled = false
+ads_enabled = false
+affiliate_tracking_enabled = false
+sponsored_content_enabled = false
+
+The intention is that WatchSmart+ Coming Soon is visible now while all actual monetisation remains disabled.
+
+
+==================================================
+12. DO NOT BUILD PAYMENT PROCESSING YET
+==================================================
+
+This is important.
+
+Do NOT:
+
+- Add Stripe checkout
+- Add fake Apple subscriptions
+- Create dummy transactions
+- Request card details
+- Show prices as if final
+- Create fake subscription products
+- bypass Apple's purchase requirements
+
+Actual iOS subscription implementation will be completed separately once pricing and products have been finalised.
+
+
+==================================================
+13. DATABASE SAFETY
+==================================================
+
+Any database changes must be backwards compatible.
+
+Existing accounts must continue functioning.
+
+Existing:
+
+watchlists
+swipes
+watched history
+taste data
+friends
+recommendation profiles
+subscription/provider selections
+
+must not be lost or reset.
+
+Use safe defaults for new fields.
+
+
+==================================================
+14. UI REQUIREMENT
+==================================================
+
+Do not redesign WatchSmart.
+
+This is an addition to the existing design.
+
+WatchSmart+ should feel slightly more premium while still clearly belonging to WatchSmart.
+
+No giant paywall.
+
+No aggressive popups.
+
+No forced signup prompt.
+
+No blocking Discover.
+
+No countdown timers.
+
+No misleading scarcity.
+
+No dark patterns.
+
+
+==================================================
+15. FINAL TESTING
+==================================================
+
+Before marking complete verify:
+
+Existing users can log in.
+
+New users can onboard.
+
+Discover still works.
+
+Swiping still works.
+
+Recommendations still work.
+
+Search works.
+
+Watchlist works.
+
+Friends works.
+
+Savings works.
+
+Profile works.
+
+WatchSmart+ appears in Profile.
+
+WatchSmart+ preview opens correctly.
+
+Notify Me works.
+
+Interest is stored.
+
+Interest analytics event fires.
+
+Existing functionality remains free.
+
+No payment can accidentally occur.
+
+No adverts are displayed.
+
+No sponsored titles are displayed.
+
+No recommendation ranking has changed.
+
+
+==================================================
+16. REPORT BACK
+==================================================
+
+After implementation provide:
+
+1. Files changed
+2. Database changes
+3. New fields
+4. New feature flags
+5. New analytics events
+6. Screens/components created
+7. Exactly how WatchSmart+ interest is stored
+8. Confirmation existing features were not paywalled
+9. Confirmation recommendation logic was untouched
+10. Confirmation payments remain disabled
+11. Any parts that require an App Store/TestFlight rebuild rather than OTA

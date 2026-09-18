@@ -1,0 +1,680 @@
+TASK: Implement PostHog properly across the WatchSmart Expo React Native app
+
+IMPORTANT:
+WatchSmart is already a functioning application and is currently being tested through TestFlight.
+
+Do NOT redesign screens.
+Do NOT change recommendation behaviour.
+Do NOT change existing API behaviour.
+Do NOT change authentication behaviour.
+Do NOT upgrade Expo/React Native unless absolutely required.
+Do NOT add unnecessary native dependencies.
+Do NOT expose secrets in source control.
+Do NOT break the existing iOS/TestFlight build.
+
+Before changing anything, audit the current project and determine:
+
+1. Expo SDK/version
+2. React Native version
+3. Existing analytics packages
+4. Existing error/crash tracking
+5. Existing environment-variable/secrets system
+6. Authentication/user ID implementation
+7. Navigation implementation
+8. Existing recommendation/impression logging
+9. Existing swipe/save/skip/watched endpoints
+10. Existing onboarding tracking
+11. Whether PostHog or another analytics SDK is already partially installed
+12. Whether the current app uses Expo Go-compatible dependencies only or already has a development/native build
+13. Whether any proposed PostHog functionality requires a new native/TestFlight build
+
+Report this audit first.
+
+Then implement the following unless the audit reveals a conflict.
+
+
+==================================================
+1. POSTHOG CORE SETUP
+==================================================
+
+Install the current supported PostHog SDK appropriate for this Expo React Native project.
+
+Use the EU PostHog host because this project is using eu.posthog.com.
+
+Store configuration through the project's existing environment/secrets system.
+
+Expected variables should be similar to:
+
+EXPO_PUBLIC_POSTHOG_KEY
+EXPO_PUBLIC_POSTHOG_HOST
+
+Do NOT hardcode configuration throughout the application.
+
+The PostHog project token/public ingestion key may be used client-side where this is the normal supported PostHog implementation, but do not expose private/admin/personal API keys.
+
+Create ONE central analytics module/service.
+
+For example:
+
+src/services/analytics.ts
+
+or follow the project's existing architecture.
+
+Components/screens should call the analytics service rather than importing and configuring PostHog independently.
+
+
+==================================================
+2. USER IDENTIFICATION
+==================================================
+
+When a WatchSmart user successfully authenticates, identify them using WatchSmart's stable INTERNAL user ID.
+
+Do not use email address as the distinct ID.
+
+Only attach useful non-sensitive properties where appropriate, for example:
+
+account_created_at
+onboarding_complete
+country/region
+selected_provider_count
+selected_genre_count
+app_version
+platform
+
+Do NOT send:
+
+passwords
+access tokens
+refresh tokens
+authentication headers
+private messages
+search text containing personal information
+email addresses unless there is a genuine requirement
+precise location
+unnecessary personal information
+
+On logout, reset PostHog identity correctly so activity from another login cannot be associated with the previous user.
+
+
+==================================================
+3. STANDARD EVENT NAMING
+==================================================
+
+Use consistent snake_case event names.
+
+Do NOT create slightly different duplicate events.
+
+Create reusable event constants/types if appropriate.
+
+Core lifecycle events:
+
+app_opened
+onboarding_started
+onboarding_step_completed
+onboarding_completed
+
+Navigation:
+
+screen_viewed
+
+Properties:
+screen_name
+previous_screen
+source
+
+Do not manually fire screen_viewed excessively if navigation instrumentation already provides reliable screen tracking.
+
+
+==================================================
+4. RECOMMENDATION IMPRESSIONS
+==================================================
+
+This is one of the MOST IMPORTANT analytics areas in WatchSmart.
+
+Track:
+
+recommendation_impression
+
+ONLY fire an impression when the recommendation actually becomes the active/visible card.
+
+Do not fire impressions simply because cards were prefetched.
+
+Properties should use information already available to the app where possible:
+
+content_id
+tmdb_id
+media_type
+title
+release_year
+genres
+original_language
+provider
+feed_type
+recommendation_source
+rank
+position
+quality_tier
+quality_score
+recommendation_score
+personalisation_score
+confidence
+reason
+session_impression_number
+user_interaction_count
+
+IMPORTANT:
+Do not invent recommendation scores or properties that do not currently exist.
+
+If a property isn't available, omit it and report that it wasn't available.
+
+Do not modify the recommendation algorithm simply to generate analytics properties.
+
+
+==================================================
+5. DISCOVER / SWIPE EVENTS
+==================================================
+
+Track:
+
+recommendation_saved
+recommendation_skipped
+recommendation_watched
+recommendation_rewound
+
+Use common properties where available:
+
+content_id
+tmdb_id
+media_type
+genres
+provider
+rank
+recommendation_score
+recommendation_source
+feed_type
+time_visible_ms
+
+time_visible_ms should represent approximately how long the active card was visible before the action.
+
+Do not allow analytics failures to block the actual swipe/action.
+
+
+==================================================
+6. WATCHED FEEDBACK
+==================================================
+
+WatchSmart currently supports feedback such as:
+
+Loved
+Liked
+Okay
+Didn't like
+Haven't finished
+Cancel
+
+Track submitted feedback as:
+
+watched_feedback_submitted
+
+Properties:
+
+content_id
+tmdb_id
+media_type
+feedback
+genres
+recommendation_source
+
+Do NOT send an analytics event for Cancel unless the application needs:
+
+watched_feedback_cancelled
+
+Keep cancellation separate from submitted sentiment.
+
+
+==================================================
+7. TITLE DETAILS
+==================================================
+
+Track:
+
+title_details_viewed
+similar_title_selected
+provider_selected
+share_started
+
+Useful properties:
+
+content_id
+tmdb_id
+media_type
+source
+provider
+recommendation_source
+
+Do not capture sensitive data from native share sheets.
+
+
+==================================================
+8. SEARCH
+==================================================
+
+Track:
+
+search_performed
+search_result_selected
+search_no_results
+
+For privacy, avoid sending raw search strings by default.
+
+Prefer properties such as:
+
+result_count
+media_filter
+provider_filter
+genre_filter
+selected_content_id
+selected_position
+
+If there is a strong product reason to capture search terms, flag this for review rather than automatically enabling it.
+
+
+==================================================
+9. WATCHLIST
+==================================================
+
+Track:
+
+watchlist_viewed
+watchlist_item_added
+watchlist_item_removed
+watchlist_item_opened
+
+Properties where applicable:
+
+content_id
+tmdb_id
+media_type
+source
+watchlist_size
+
+
+==================================================
+10. FRIENDS / COMPARE
+==================================================
+
+Track:
+
+friends_screen_viewed
+friend_code_shared
+friend_request_sent
+friend_request_accepted
+friend_compare_opened
+friend_compare_tab_viewed
+friend_overlap_item_opened
+
+For compare functionality include properties such as:
+
+compare_mode
+overlap_count
+shared_watchlist_count
+recommended_for_both_count
+
+IMPORTANT:
+Never send the other person's name, email, private messages or unnecessary identifying information to PostHog.
+
+Use anonymous/internal IDs only if an ID is actually necessary.
+
+
+==================================================
+11. SAVINGS
+==================================================
+
+Track:
+
+savings_screen_viewed
+savings_recommendation_viewed
+savings_action_started
+
+Useful properties:
+
+estimated_monthly_saving
+selected_provider_count
+suggested_provider_count
+
+Do not change the savings calculations.
+
+
+==================================================
+12. PROVIDERS / SUBSCRIPTIONS
+==================================================
+
+Track:
+
+provider_preferences_viewed
+provider_added
+provider_removed
+
+Properties:
+
+provider
+provider_count
+source
+
+This should support WatchSmart providers including whichever providers are currently implemented in production.
+
+
+==================================================
+13. ONBOARDING
+==================================================
+
+Onboarding analytics are extremely important.
+
+Track:
+
+onboarding_started
+onboarding_step_completed
+onboarding_title_feedback
+onboarding_completed
+onboarding_abandoned where technically reliable
+
+For title feedback include:
+
+content_id
+tmdb_id
+media_type
+feedback
+genres
+position
+
+Also track aggregate onboarding completion properties where useful:
+
+providers_selected
+genres_selected
+titles_rated
+positive_title_signals
+negative_title_signals
+duration_ms
+
+Do NOT alter the weighting of onboarding preferences as part of this task.
+
+
+==================================================
+14. RECOMMENDATION QUALITY MEASUREMENT
+==================================================
+
+We need PostHog data capable of answering:
+
+Does WatchSmart actually get better as the user interacts with it?
+
+Ensure recommendation events allow analysis by interaction stage.
+
+Add a derived/event property such as:
+
+interaction_bucket
+
+Use:
+
+0-5
+6-10
+11-25
+26-50
+51-100
+101-200
+200+
+
+based on the user's existing interaction count.
+
+This should allow us to compare:
+
+save rate
+skip rate
+watched rate
+positive feedback rate
+
+as usage increases.
+
+Do not modify recommendation ranking based on these buckets.
+
+
+==================================================
+15. SESSION REPLAY
+==================================================
+
+Investigate current PostHog React Native/Expo Session Replay support for THIS project's installed versions.
+
+If supported without destabilising the existing build, configure it.
+
+Apply privacy protections.
+
+Mask sensitive text/input fields.
+
+Do not capture:
+
+passwords
+authentication tokens
+private messages
+sensitive account information
+
+If Session Replay requires native configuration or a new TestFlight build, STOP and report exactly what is required before making risky native changes.
+
+
+==================================================
+16. ERROR TRACKING
+==================================================
+
+Integrate PostHog error tracking where supported by the installed SDK/project.
+
+Capture useful context including:
+
+screen
+app_version
+platform
+operation
+
+Never capture secrets/tokens.
+
+Analytics/error tracking itself must never cause the application to crash.
+
+If another crash reporting system already exists, do NOT blindly duplicate it.
+
+Report the existing system and recommend whether PostHog should complement or replace it.
+
+
+==================================================
+17. FEATURE FLAGS
+==================================================
+
+Prepare the analytics service for PostHog feature flags.
+
+Do not migrate existing production behaviour into feature flags during this task.
+
+Create safe helpers where appropriate.
+
+Future WatchSmart flags may include things such as:
+
+new_onboarding
+recommendation_experiment
+friends_compare_v2
+watchsmart_plus
+new_discover_ui
+
+These are examples only.
+
+Do not activate unfinished features.
+
+
+==================================================
+18. EXPERIMENT READINESS
+==================================================
+
+Prepare event architecture so we can later run experiments on:
+
+onboarding
+recommendation presentation
+Discover UI
+WatchSmart Plus messaging
+monetisation prompts
+
+Do NOT start an experiment yet.
+
+
+==================================================
+19. MONETISATION READINESS
+==================================================
+
+Prepare event naming for future monetisation without implementing payments.
+
+Potential future events:
+
+paywall_viewed
+subscription_plan_viewed
+trial_started
+checkout_started
+subscription_started
+subscription_cancelled
+subscription_renewed
+
+Do NOT implement fake subscription functionality.
+
+Do NOT implement Stripe or Apple IAP as part of this analytics task.
+
+We only want the analytics architecture ready for those features later.
+
+
+==================================================
+20. PERFORMANCE / COST PROTECTION
+==================================================
+
+Do not create excessive event volume.
+
+In particular:
+
+- don't log every animation frame
+- don't log every touch
+- don't log prefetched cards as impressions
+- don't repeatedly log the same screen because of rerenders
+- don't duplicate automatic and manual events
+- don't send giant API responses as event properties
+
+Analytics should have negligible effect on application performance.
+
+PostHog failures must fail silently and never block core WatchSmart functionality.
+
+
+==================================================
+21. DEVELOPMENT / PRODUCTION
+==================================================
+
+Include useful context with events:
+
+app_version
+build_number
+platform
+environment
+
+Ensure development/testing data can be distinguished from production/TestFlight data.
+
+If appropriate, use:
+
+environment = development
+environment = preview
+environment = production
+
+Do not contaminate production analysis unnecessarily with local development events.
+
+
+==================================================
+22. VALIDATION
+==================================================
+
+After implementation:
+
+Run:
+
+TypeScript checks
+linting if configured
+expo-doctor
+existing tests
+production/export build checks currently used by this repository
+
+Confirm that existing app functionality has not been altered.
+
+Then verify PostHog receives test events.
+
+At minimum verify:
+
+app_opened
+screen_viewed
+recommendation_impression
+recommendation_saved OR recommendation_skipped
+
+Also verify authenticated user identification and logout reset.
+
+
+==================================================
+23. CREATE AN ANALYTICS DOCUMENT
+==================================================
+
+Create:
+
+docs/POSTHOG_ANALYTICS.md
+
+Document:
+
+- PostHog architecture
+- environment variables
+- event names
+- event properties
+- identity behaviour
+- privacy decisions
+- session replay configuration
+- feature flag usage
+- development vs production handling
+- where each event is triggered
+- which proposed properties were unavailable
+- how to add future events safely
+
+Include an event dictionary/table.
+
+
+==================================================
+24. FINAL REPORT
+==================================================
+
+When finished, give me:
+
+A. Files changed
+
+B. Packages installed
+
+C. Environment/secrets I need to add manually
+
+D. Events implemented
+
+E. Events NOT implemented and why
+
+F. Session Replay status
+
+G. Error Tracking status
+
+H. Feature Flag status
+
+I. Whether this change requires:
+- only an OTA update
+- a new Expo/EAS build
+- a new TestFlight build
+- App Store resubmission
+
+J. Any risks or issues discovered
+
+K. Confirmation that the recommendation algorithm itself was NOT changed
+
+L. Confirmation that authentication/API behaviour was NOT changed
+
+M. Exact steps for me to verify events inside PostHog
+
+IMPORTANT:
+Do not guess if you encounter uncertainty.
+
+Inspect the existing implementation and preserve existing behaviour.

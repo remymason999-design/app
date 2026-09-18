@@ -1,0 +1,492 @@
+Personalisation, Catalogue Quality & Recommendation Diagnostics Overhaul
+
+What & Why
+
+The goal of this update is to make recommendations feel genuinely personal, intentional, and high quality, especially immediately after onboarding and for heavy users who have swiped hundreds of titles.
+
+Today the recommendation engine already contains sophisticated logic including learned genre/theme/tone weights, exploration ratios, band sampling, interleaving, skip reintroduction, collaborative signals, and recommendation reasons. This project is not a rebuild of the recommendation engine. Instead, it enhances the existing system by improving catalogue quality, strengthening personalisation, improving heavy-user behaviour, adding smarter skip handling, improving recommendation explanations, and exposing internal diagnostics so recommendation health can be monitored.
+
+The biggest objective is that users should feel the app understands their taste. Recommendations should feel selected specifically for them rather than simply matching filters or popularity signals.
+
+A critical architectural constraint must be followed throughout this project:
+
+Every recommendation-quality improvement must be implemented as a soft signal, scoring adjustment, ranking influence, prioritisation rule, or metadata layer. Nothing in this project should reduce candidate-pool size through new hard filters. Existing candidate pools must remain intact. Quality tiers, skip classifications, heavy-user logic, and recommendation explanations should influence ranking rather than exclusion.
+
+The existing persona simulation harness must continue to pass with unchanged candidate-pool sizes.
+
+Unknown or missing metadata must always receive the benefit of the doubt. Missing fields should never cause a title to become ineligible or be heavily penalised. Previous issues caused missing runtime values to eliminate large portions of the catalogue, which must never happen again.
+
+⸻
+
+Success Criteria
+
+After completion:
+
+* Recommendations feel significantly more personal.
+* Onboarding preferences remain visible weeks later.
+* Users feel the feed understands their tastes.
+* Weak titles are consistently deprioritised.
+* Heavy users receive fewer repeats.
+* Discovery feels intentional rather than random.
+* Skip handling feels intelligent.
+* Every recommendation can explain why it appeared.
+* Candidate-pool sizes remain unchanged.
+* The persona simulation harness passes for all personas.
+* Admins can easily diagnose recommendation-health problems.
+
+⸻
+
+Part 1: Catalogue Quality Layer
+
+Objective
+
+Improve recommendation quality without shrinking recommendation depth.
+
+Every title should carry explicit quality metadata which influences ranking and recommendation selection priority.
+
+Add the following fields to catalogue entries:
+
+{
+  "is_eligible": true,
+  "quality_score": 0,
+  "quality_tier": "A",
+  "release_year": 2020,
+  "language": "en",
+  "providers": [],
+  "genres": [],
+  "vote_average": 0,
+  "vote_count": 0,
+  "popularity": 0,
+  "poster_exists": true,
+  "overview_exists": true,
+  "last_synced_at": ""
+}
+
+Quality Score
+
+Compute a quality score from soft recommendation signals.
+
+Potential inputs:
+
+* TMDB rating
+* Vote count
+* Popularity
+* Poster availability
+* Overview availability
+* Streaming availability
+* English-language preference
+* Metadata completeness
+* Release recency
+* Genre confidence
+
+Example weighting:
+
+TMDB Rating         +25
+Vote Count          +20
+Popularity          +20
+Poster              +10
+Overview            +10
+Streaming Provider  +10
+Metadata Quality    +5
+
+Final result:
+
+0-100 quality score
+
+Missing data should never heavily penalise a title.
+
+Quality Tiers
+
+Assign:
+
+Tier A = 80+
+Tier B = 65-79
+Tier C = 50-64
+Tier D = Below 50
+
+These tiers are recommendation priorities only.
+
+They must never remove titles from candidate pools.
+
+Tier D should be treated as a very low-priority fallback rather than a hard exclusion.
+
+⸻
+
+Part 2: Persistent User Taste Profile
+
+Objective
+
+Create a long-term understanding of user taste.
+
+Each user should maintain a continuously updated taste profile containing:
+
+* Favourite genres
+* Disliked genres
+* Preferred release eras
+* Preferred decades
+* Preferred runtime ranges
+* Preferred providers
+* Preferred popularity level
+* Preferred quality level
+* Favourite actors (where metadata exists)
+* Favourite directors (where metadata exists)
+
+This profile should update continuously from user behaviour.
+
+Relevant actions should carry different weights:
+
+Onboarding Likes      Very High Weight
+Watchlist Adds        High Weight
+Saves                 High Weight
+Right Swipes          Medium Weight
+Left Swipes           Negative Weight
+
+Onboarding Persistence
+
+Onboarding preferences should decay extremely slowly.
+
+A user who strongly liked Thriller, Crime, and Mystery during onboarding should continue seeing those preferences reflected weeks later unless future behaviour strongly contradicts them.
+
+Onboarding data should be treated as a long-term taste signal rather than a temporary session signal.
+
+Taste Confidence
+
+Not all preferences should carry equal confidence.
+
+Example:
+
+50 Thriller likes = High confidence
+10 Comedy likes = Medium confidence
+2 Western likes = Low confidence
+
+Confidence should influence recommendation weighting.
+
+This prevents the engine from overreacting to a small number of interactions.
+
+⸻
+
+Part 3: Unified Recommendation Scoring
+
+Objective
+
+Blend quality and relevance into the existing recommendation system.
+
+Recommendation ranking should consider:
+
+Catalogue Quality
+Personal Relevance
+Genre Match
+Actor Match
+Director Match
+Release Era Match
+Provider Match
+Taste Profile Match
+Freshness
+Discovery Value
+
+Conceptually:
+
+Final Score =
+Quality Score
++
+Personal Relevance
++
+Freshness
++
+Discovery
+
+This is a ranking enhancement, not a new recommendation pipeline.
+
+The highest-scoring existing candidates should surface first.
+
+⸻
+
+Part 4: Diversity Controls
+
+Objective
+
+Prevent recommendation fatigue.
+
+Users should not feel trapped inside one genre, franchise, or recommendation pattern.
+
+Improve existing diversity controls so:
+
+Maximum 2 titles from same genre cluster consecutively
+Maximum 2 titles from same franchise consecutively
+
+Target composition:
+
+70% Safe Matches
+20% Adjacent Interests
+10% Discovery
+
+The goal is variety without losing relevance.
+
+⸻
+
+Part 5: Heavy User Mode
+
+Objective
+
+Improve recommendations for users approaching catalogue exhaustion.
+
+Activate Heavy User Mode when:
+
+500+ total swipes
+or
+Fresh eligible titles < 100
+
+When active, expand recommendations in stages.
+
+Stage 1
+
+Expand into adjacent genres.
+
+Examples:
+
+Crime -> Thriller
+Thriller -> Mystery
+Sci-Fi -> Adventure
+
+Stage 2
+
+Expand release windows.
+
+Example:
+
+2015+
+becomes
+2005+
+
+Stage 3
+
+Introduce highly-rated hidden gems.
+
+Stage 4
+
+Introduce collaborative-filtering favourites and community favourites.
+
+No new social graph should be introduced.
+
+Use existing neighbour and similarity systems where available.
+
+Stage 5
+
+Reintroduce soft-skipped content as the final fallback.
+
+Freshness Protection
+
+When Heavy User Mode activates:
+
+Fresh unseen titles should receive priority over repeated titles.
+
+Users generally tolerate a slightly less-perfect recommendation more than repeated recommendations.
+
+Freshness should receive a temporary ranking boost before old recommendations are recycled.
+
+⸻
+
+Part 6: Skip Intelligence
+
+Objective
+
+Treat different forms of rejection differently.
+
+Create three interaction types:
+
+Soft Skip
+
+User was not interested at that moment.
+
+Can reappear later after a significant cooldown.
+
+Hard Skip
+
+Strong rejection.
+
+Should be aggressively deprioritised and effectively never surface under normal circumstances.
+
+Must still remain technically available as a last-resort candidate to avoid shrinking candidate pools.
+
+Seen
+
+User has already watched or consumed the title.
+
+Should never reappear in recommendations.
+
+Store these distinctions when actions are recorded and honour them during ranking.
+
+⸻
+
+Part 7: Recommendation Explanations
+
+Objective
+
+Make recommendations feel intentional and understandable.
+
+Every recommendation should be able to explain why it ranked highly.
+
+Store the dominant recommendation reason.
+
+Examples:
+
+Because you often like psychological thrillers
+Matches your favourite genres
+Similar to movies you previously liked
+Highly rated hidden gem on your services
+Popular among users with similar tastes
+Recommended from onboarding preferences
+Fresh discovery from adjacent interests
+
+The explanation layer should be generated from actual recommendation signals rather than generic text.
+
+If a recommendation cannot explain why it appeared, it is likely not sufficiently personalised.
+
+⸻
+
+Part 8: Recommendation Diagnostics Dashboard
+
+Objective
+
+Provide visibility into catalogue and recommendation health.
+
+This task must not modify recommendation behaviour.
+
+It is purely an observability and diagnostics layer.
+
+Implement an admin-only diagnostics section within the existing admin interface.
+
+Relevant files:
+
+backend/routers/admin.py
+backend/routers/insights.py
+backend/core.py
+frontend/src/pages/Admin.jsx
+
+Admin Endpoint
+
+Create an admin-protected endpoint:
+
+GET /admin/diagnostics/recommendations
+
+Aggregate data using simple queries and Python aggregation.
+
+Avoid complex database aggregation pipelines.
+
+Catalogue Metrics
+
+Return:
+
+* Total catalogue size
+* Eligible catalogue size
+* Tier A count
+* Tier B count
+* Tier C count
+* Tier D count
+
+Freshness Metrics
+
+Return:
+
+* Fresh eligible count
+* Repeat recommendation rate
+
+Repeat rate can use:
+
+Last 7 days
+or
+Last 500 recommendation events
+
+Whichever best matches existing data structures.
+
+Heavy User Metrics
+
+Return:
+
+* Heavy-user count
+
+Use the same Heavy User Mode definition as above.
+
+Diversity Metrics
+
+Return:
+
+* Recommendation diversity score (0–100)
+
+Suggested inputs:
+
+* Genre spread
+* Repeated genre runs
+* Franchise repetition
+* Recommendation variety
+
+The metric does not need to be mathematically perfect. It simply needs to provide a useful directional signal.
+
+Admin Dashboard UI
+
+Add a section called:
+
+Recommendation Diagnostics
+
+Display:
+
+Catalogue
+
+* Total Catalogue
+* Eligible Catalogue
+* Tier A
+* Tier B
+* Tier C
+* Tier D
+
+Freshness
+
+* Fresh Eligible
+* Repeat Rate
+
+Users
+
+* Heavy Users
+
+Recommendation Health
+
+* Diversity Score
+
+Add status indicators.
+
+Suggested thresholds:
+
+Eligible Catalogue < 300 = Warning
+Eligible Catalogue < 150 = Critical
+Tier A + Tier B < 200 = Warning
+Tier A + Tier B < 100 = Critical
+Repeat Rate > 15% = Warning
+Repeat Rate > 30% = Critical
+Diversity Score < 60 = Warning
+Diversity Score < 40 = Critical
+
+If a metric cannot be computed:
+
+* Return null from the API.
+* Display “Not enough data” in the UI.
+
+The dashboard must never crash because of missing data.
+
+⸻
+
+Validation Requirements
+
+After implementation:
+
+* Run the persona simulation harness.
+* Confirm all personas still pass.
+* Confirm candidate-pool sizes remain unchanged.
+* Confirm recommendation behaviour remains functional.
+* Confirm onboarding preferences remain influential.
+* Confirm heavy-user recommendations improve.
+* Confirm repeat rates do not increase.
+* Confirm diagnostics load correctly.
+* Confirm admin protection works.
+* Bump card schema version if additional card fields are added so catalogue rebuilds correctly.
+
+The overall objective is to improve recommendation quality, relevance, personalisation, diversity, and observability while preserving catalogue depth and avoiding any reduction in candidate-pool size.

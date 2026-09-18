@@ -1,0 +1,238 @@
+WatchSmart App Opening Animation
+
+Goal
+
+Create a premium app opening animation for WatchSmart.
+
+The animation should feel like the brand is built from the core product interaction:
+
+swipe cards → match/decision → WatchSmart logo appears
+
+This should be used as an in-app splash/loading animation for now.
+
+Later it can be reused for the native app launch animation.
+
+⸻
+
+Animation Concept
+
+Two dark movie cards enter the screen from opposite sides.
+
+They represent the swipe experience.
+
+The backs of the cards move toward each other and meet in the centre.
+
+When the cards meet, they snap/lock together.
+
+The orange WatchSmart “W” logo appears on top.
+
+Then the WATCHSMART wordmark fades in underneath.
+
+Finally the tagline appears:
+
+Less browsing. More watching.
+
+Then the app transitions into Onboarding or Discover.
+
+⸻
+
+Animation Sequence
+
+Duration
+
+Total animation should be short:
+
+1.5 to 2 seconds max.
+
+Do not make users wait too long.
+
+⸻
+
+Step 1 — Dark background
+
+Start with:
+
+* full-screen dark/navy background
+* subtle orange glow in centre
+* no UI visible
+
+⸻
+
+Step 2 — Two card backs enter
+
+Two card backs slide in:
+
+* left card enters from left
+* right card enters from right
+
+Cards should look like premium movie cards:
+
+* rounded corners
+* dark navy/black
+* subtle border
+* slight poster texture or gradient
+* soft shadow
+
+They should not show real movie posters.
+
+Use abstract card backs.
+
+⸻
+
+Step 3 — Cards meet
+
+The two card backs move toward centre.
+
+They slightly rotate into alignment.
+
+When they meet:
+
+* small scale bump
+* subtle glow pulse
+* tiny haptic-style visual snap
+
+This should feel like the app has made a decision or match.
+
+⸻
+
+Step 4 — W logo forms
+
+After the cards meet, the orange WatchSmart “W” mark appears on top.
+
+Possible effect:
+
+* W fades in
+* W scales from 0.85 to 1
+* orange glow briefly pulses
+* cards behind it fade into the background
+
+The W should be the hero.
+
+⸻
+
+Step 5 — Wordmark appears
+
+Under the W, fade in:
+
+WATCHSMART
+
+Style:
+
+* WATCH in white
+* SMART in orange
+
+Use official brand logo/wordmark if available.
+
+⸻
+
+Step 6 — Tagline appears
+
+Under the wordmark, fade in:
+
+Less browsing. More watching.
+
+Style:
+
+* “Less browsing.” in white/grey
+* “More watching.” in orange
+
+⸻
+
+Step 7 — Transition into app
+
+Fade the splash into:
+
+* Onboarding if user is not logged in
+* Discover if user is logged in
+
+Do not block app loading unnecessarily.
+
+If app data is ready before animation completes, still allow the animation to finish once.
+
+If app loading takes longer, keep a subtle loading state after the animation.
+
+⸻
+
+Visual Style
+
+Use:
+
+* dark background
+* orange glow
+* premium card shadows
+* smooth easing
+* no cheesy bounce
+* no childish animation
+* no loud effects
+
+The animation should feel cinematic, not cartoonish.
+
+⸻
+
+Technical Requirements
+
+Implement as a reusable React component.
+
+Suggested component name:
+
+LaunchAnimation
+
+Place in:
+
+frontend/src/components/LaunchAnimation.jsx
+
+or similar.
+
+Use CSS animations or Framer Motion if already installed.
+
+If Framer Motion is not installed, use CSS keyframes to avoid adding unnecessary dependencies.
+
+⸻
+
+Behaviour Rules
+
+Show animation:
+
+* on initial app load
+* before onboarding/discover appears
+
+Do not show animation:
+
+* every time user changes tab
+* every time user refreshes internal route
+* after every login action unless it feels natural
+
+Use session storage if needed so it appears once per session.
+
+Example:
+
+sessionStorage.setItem("watchsmart_launch_seen", "true")
+
+⸻
+
+Accessibility
+
+Respect reduced motion:
+
+If user has reduced motion enabled:
+
+* skip card movement
+* fade logo/wordmark in gently
+* then continue
+
+⸻
+
+Acceptance Criteria
+
+Animation is complete when:
+
+1. Dark background appears.
+2. Two card backs slide in from left and right.
+3. Cards meet in the centre.
+4. Orange W logo appears on top.
+5. WATCHSMART wordmark fades in underneath.
+6. Tagline appears underneath.
+7. Animation lasts no longer than 2 seconds.
+8. App transitions smoothly into Onboarding or Discover.
+9. Animation appears only once per session.
+10. Reduced-motion users get a simple fade version.

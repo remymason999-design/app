@@ -15,7 +15,7 @@ Note: we never expose a friend's email — only display name, picture, and count
 import os
 import secrets
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -23,6 +23,9 @@ from pydantic import BaseModel, Field
 from core import (
     db, require_user, get_catalog, movies_by_ids,
 )
+from sharing import _shared_recommendations
+from push_notifications import create_user_notification
+from progress import normalize_progress, progress_fingerprint
 
 router = APIRouter(prefix="/share", tags=["sharing"])
 
@@ -141,15 +144,15 @@ async def send_request(payload: CodeIn, user: dict = Depends(require_user)):
         "created_at": now,
     })
 
-    # In-app notification for the recipient
-    await db.notifications.insert_one({
-        "user_id": target["user_id"],
-        "title": "New watchlist request",
-        "body": f"{user.get('name') or 'Someone'} wants to compare watchlists with you.",
-        "kind": "share_request",
-        "read": False,
-        "created_at": now,
-    })
+    await create_user_notification(
+        target["user_id"],
+        title="New watchlist request",
+        body=f"{user.get('name') or 'Someone'} wants to compare watchlists with you.",
+        kind="share_request",
+        push_body="You have a new watchlist request.",
+        route="/(tabs)/friends",
+        dedupe_key=f"share_request:{req_id}",
+    )
 
     return {"ok": True, "status": "sent", "request_id": req_id}
 
@@ -158,7 +161,11 @@ async def send_request(payload: CodeIn, user: dict = Depends(require_user)):
 async def list_requests(user: dict = Depends(require_user)):
     incoming = []
     async for r in db.share_requests.find(
-        {"to_user_id": user["user_id"], "status": "pending"}, {"_id": 0}
+        {
+            "to_user_id": user["user_id"],
+            "status": {"$in": ["pending", "accepting"]},
+        },
+        {"_id": 0},
     ).sort("created_at", -1):
         sender = await db.users.find_one({"user_id": r["from_user_id"]}, {"_id": 0}) or {}
         incoming.append({
@@ -168,7 +175,11 @@ async def list_requests(user: dict = Depends(require_user)):
         })
     outgoing = []
     async for r in db.share_requests.find(
-        {"from_user_id": user["user_id"], "status": "pending"}, {"_id": 0}
+        {
+            "from_user_id": user["user_id"],
+            "status": {"$in": ["pending", "accepting"]},
+        },
+        {"_id": 0},
     ).sort("created_at", -1):
         target = await db.users.find_one({"user_id": r["to_user_id"]}, {"_id": 0}) or {}
         outgoing.append({
@@ -180,31 +191,45 @@ async def list_requests(user: dict = Depends(require_user)):
 
 
 async def _accept(req: dict, user: dict) -> dict:
-    """Mark request accepted and bond both users as friends."""
+    """Idempotently complete an accepted request and both friendship writes."""
     a, b = req["from_user_id"], req["to_user_id"]
     await db.share_requests.update_one(
-        {"request_id": req["request_id"]},
-        {"$set": {"status": "accepted", "responded_at": datetime.now(timezone.utc).isoformat()}},
+        {"request_id": req["request_id"], "status": "pending"},
+        {"$set": {"status": "accepting"}},
     )
+    current = await db.share_requests.find_one({"request_id": req["request_id"]})
+    if not current or current.get("status") == "rejected":
+        raise HTTPException(409, "This request was rejected")
+    if current.get("status") not in {"accepting", "accepted"}:
+        raise HTTPException(409, "This request cannot be accepted")
     await db.users.update_one({"user_id": a}, {"$addToSet": {"watchlist_friends": b}})
     await db.users.update_one({"user_id": b}, {"$addToSet": {"watchlist_friends": a}})
     other_id = a if a != user["user_id"] else b
     other = await db.users.find_one({"user_id": other_id}, {"_id": 0}) or {}
-    # Notify the original sender
-    await db.notifications.insert_one({
-        "user_id": a,
-        "title": "Watchlist friend accepted",
-        "body": f"{user.get('name') or 'Someone'} accepted — open Compare to see overlap.",
-        "kind": "share_accepted",
-        "read": False,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    })
+    await create_user_notification(
+        a,
+        title="Watchlist friend accepted",
+        body=f"{user.get('name') or 'Someone'} accepted — open Compare to see overlap.",
+        kind="share_accepted",
+        push_body="Your watchlist request was accepted.",
+        route="/(tabs)/friends",
+        dedupe_key=f"share_accepted:{req['request_id']}",
+    )
+    await db.share_requests.update_one(
+        {"request_id": req["request_id"], "status": "accepting"},
+        {
+            "$set": {
+                "status": "accepted",
+                "responded_at": datetime.now(timezone.utc).isoformat(),
+            }
+        },
+    )
     return {"ok": True, "status": "accepted", "friend": _public_user(other)}
 
 
 @router.post("/requests/{request_id}/accept")
 async def accept_request(request_id: str, user: dict = Depends(require_user)):
-    req = await db.share_requests.find_one({"request_id": request_id, "status": "pending"})
+    req = await db.share_requests.find_one({"request_id": request_id})
     if not req or req["to_user_id"] != user["user_id"]:
         raise HTTPException(404, "Request not found")
     return await _accept(req, user)
@@ -212,13 +237,20 @@ async def accept_request(request_id: str, user: dict = Depends(require_user)):
 
 @router.post("/requests/{request_id}/reject")
 async def reject_request(request_id: str, user: dict = Depends(require_user)):
-    req = await db.share_requests.find_one({"request_id": request_id, "status": "pending"})
+    req = await db.share_requests.find_one({"request_id": request_id})
     if not req or req["to_user_id"] != user["user_id"]:
         raise HTTPException(404, "Request not found")
-    await db.share_requests.update_one(
-        {"request_id": request_id},
+    if req.get("status") == "rejected":
+        return {"ok": True, "status": "already_rejected"}
+    result = await db.share_requests.update_one(
+        {"request_id": request_id, "status": "pending"},
         {"$set": {"status": "rejected", "responded_at": datetime.now(timezone.utc).isoformat()}},
     )
+    if result.modified_count != 1:
+        current = await db.share_requests.find_one({"request_id": request_id})
+        if current and current.get("status") == "rejected":
+            return {"ok": True, "status": "already_rejected"}
+        raise HTTPException(409, "This request is already being accepted")
     return {"ok": True, "status": "rejected"}
 
 
@@ -242,42 +274,6 @@ async def unfriend(friend_id: str, user: dict = Depends(require_user)):
 
 
 # --- Compare watchlists ---------------------------------------------------
-def _shared_recommendations(me: dict, them: dict, limit: int = 8) -> List[dict]:
-    """Pick titles neither user has interacted with that match both users' tastes."""
-    seen = set(
-        (me.get("saved") or []) + (me.get("watched") or []) + (me.get("skipped") or []) +
-        (them.get("saved") or []) + (them.get("watched") or []) + (them.get("skipped") or [])
-    )
-    my_w = me.get("genre_weights") or {}
-    their_w = them.get("genre_weights") or {}
-    my_prefs = set(me.get("genres") or [])
-    their_prefs = set(them.get("genres") or [])
-    shared_subs = set(me.get("subscriptions") or []) & set(them.get("subscriptions") or [])
-
-    def score(m: dict) -> float:
-        mg = set(m.get("genres", []))
-        if not mg:
-            return -1
-        learned = sum(my_w.get(g, 0) for g in mg) + sum(their_w.get(g, 0) for g in mg)
-        onboard = len(mg & my_prefs) + len(mg & their_prefs)
-        rating = float(m.get("rating") or 0) / 2.0
-        recency = 0.5 if (m.get("year") or 0) >= 2023 else 0
-        on_shared = 1.0 if shared_subs and (set(m.get("available_on") or []) & shared_subs) else 0
-        return rating + learned * 0.5 + onboard * 1.0 + recency + on_shared * 1.5
-
-    candidates = [m for m in get_catalog() if m["id"] not in seen]
-    candidates.sort(key=score, reverse=True)
-    return [
-        {
-            "id": m["id"], "title": m["title"], "type": m.get("type"),
-            "poster_url": m.get("poster_url"), "rating": m.get("rating"),
-            "genres": m.get("genres", [])[:3],
-            "available_on": m.get("available_on", []),
-        }
-        for m in candidates[:limit]
-    ]
-
-
 def _trim_movie(m: dict) -> dict:
     return {
         "id": m["id"], "title": m["title"], "type": m.get("type"),
@@ -287,8 +283,22 @@ def _trim_movie(m: dict) -> dict:
     }
 
 
+def _partition(ids: set, other: set, by_id: dict) -> list:
+    """Hydrated partition helper used by compare's additive response fields."""
+    rows = [_trim_movie(by_id[i]) for i in ids if i in by_id]
+    rows.sort(key=lambda m: (-(m.get("rating") or 0), (m.get("title") or "").lower(), m["id"]))
+    return rows
+
+
 @router.get("/compare/{friend_id}")
-async def compare(friend_id: str, user: dict = Depends(require_user)):
+async def compare(
+    friend_id: str,
+    view: Optional[Literal["watchlists", "watched", "recs"]] = None,
+    scope: Literal["overlap", "only_me", "only_them"] = "overlap",
+    page: int = 1,
+    page_size: int = 20,
+    user: dict = Depends(require_user),
+):
     if friend_id not in (user.get("watchlist_friends") or []):
         raise HTTPException(403, "You're not watchlist friends with that user")
     them = await db.users.find_one({"user_id": friend_id}, {"_id": 0})
@@ -302,14 +312,53 @@ async def compare(friend_id: str, user: dict = Depends(require_user)):
     only_me_ids = list(my_saved - their_saved)
     only_them_ids = list(their_saved - my_saved)
 
-    by_id = {m["id"]: m for m in get_catalog()}
-    overlap = [_trim_movie(by_id[i]) for i in overlap_ids if i in by_id]
-    only_me = [_trim_movie(by_id[i]) for i in only_me_ids if i in by_id]
-    only_them = [_trim_movie(by_id[i]) for i in only_them_ids if i in by_id]
+    # ── Watched + loved comparison ────────────────────────────────────────
+    # "Watched by both" uses the watched lists; "loved" comes from each user's
+    # watched_feedback sentiment map (loved/liked count as positive, but the
+    # dedicated loved sections use the strongest signal: "loved").
+    my_watched = set(user.get("watched") or []) | set((user.get("progress") or {}).keys())
+    their_watched = set(them.get("watched") or []) | set((them.get("progress") or {}).keys())
+    watched_both_ids = list(my_watched & their_watched)
 
-    overlap.sort(key=lambda m: m.get("rating") or 0, reverse=True)
-    only_me.sort(key=lambda m: m.get("rating") or 0, reverse=True)
-    only_them.sort(key=lambda m: m.get("rating") or 0, reverse=True)
+    def _loved_ids(u: dict) -> set:
+        fb = u.get("watched_feedback") or {}
+        out = set()
+        for mid, rec in fb.items():
+            if isinstance(rec, dict) and rec.get("sentiment") == "loved":
+                out.add(mid)
+        return out
+
+    my_loved = _loved_ids(user)
+    their_loved = _loved_ids(them)
+    both_loved_ids = list(my_loved & their_loved)
+    # "Loved by your friend" — things they loved that you haven't watched yet
+    # (that's the actionable part: great candidates for you to try).
+    loved_by_them_ids = list(their_loved - my_loved - my_watched)
+
+    by_id = {m["id"]: m for m in get_catalog()}
+
+    def _movies(ids: list) -> list:
+        out = [_trim_movie(by_id[i]) for i in ids if i in by_id]
+        out.sort(key=lambda m: (-(m.get("rating") or 0), (m.get("title") or "").lower(), m["id"]))
+        return out
+
+    overlap = _movies(overlap_ids)
+    only_me = _movies(only_me_ids)
+    only_them = _movies(only_them_ids)
+    watched_both = _movies(watched_both_ids)
+    both_loved = _movies(both_loved_ids)
+    loved_by_them = _movies(loved_by_them_ids)
+
+    # Full additive partitions: unlike the original watchlist-only fields these
+    # cover saved and watched sets independently and expose private sentiment /
+    # progress only for the two accepted friends.
+    def _sentiments(u: dict, ids: set) -> dict:
+        fb = u.get("watched_feedback") or {}
+        return {mid: (fb[mid].get("sentiment") if isinstance(fb.get(mid), dict) else None)
+                for mid in ids if mid in fb}
+    def _progress(u: dict, ids: set) -> dict:
+        return {mid: normalize_progress((u.get("progress") or {}).get(mid))
+                for mid in ids if mid in (u.get("progress") or {})}
 
     recs = _shared_recommendations(user, them)
 
@@ -319,14 +368,76 @@ async def compare(friend_id: str, user: dict = Depends(require_user)):
     elif recs:
         pick_tonight = recs[0]
 
-    return {
+    response = {
         "you": _public_user(user),
         "them": _public_user(them),
         "overlap_count": len(overlap),
         "overlap": overlap,
         "only_me": only_me,
         "only_them": only_them,
+        "watched_both": watched_both,
+        "both_loved": both_loved,
+        "loved_by_them": loved_by_them,
+        "saved": {
+            "both": overlap,
+            "you": _partition(my_saved, their_saved, by_id),
+            "friend": _partition(their_saved, my_saved, by_id),
+        },
+        "watched": {
+            "both": watched_both,
+            "you": _partition(my_watched, their_watched, by_id),
+            "friend": _partition(their_watched, my_watched, by_id),
+        },
+        "sentiment": {
+            "you": _sentiments(user, my_watched),
+            "friend": _sentiments(them, their_watched),
+        },
+        "progress": {
+            "you": _progress(user, my_watched),
+            "friend": _progress(them, their_watched),
+        },
         "recommendations": recs,
         "pick_tonight": pick_tonight,
         "synced_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if not view:
+        return response
+
+    section = (
+        recs if view == "recs"
+        else response["saved" if view == "watchlists" else "watched"][
+            "both" if scope == "overlap" else "you" if scope == "only_me" else "friend"
+        ]
+    )
+    section = list({item["id"]: item for item in section if item.get("id")}.values())
+    # Keep pagination bounded and deterministic. Older clients that omit
+    # `view` still receive the original full response.
+    page_size = max(1, min(int(page_size), 20))
+    total_items = len(section)
+    total_pages = max(1, (total_items + page_size - 1) // page_size)
+    page = max(1, min(int(page), total_pages))
+    start = (page - 1) * page_size
+    items = section[start:start + page_size]
+    item_ids = {item["id"] for item in items}
+    return {
+        "you": response["you"],
+        "them": response["them"],
+        "overlap_count": response["overlap_count"],
+        "pick_tonight": response["pick_tonight"],
+        "items": items,
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "total_items": total_items,
+            "total_pages": total_pages,
+        },
+        "sentiment": {
+            "you": {mid: value for mid, value in response["sentiment"]["you"].items() if mid in item_ids},
+            "friend": {mid: value for mid, value in response["sentiment"]["friend"].items() if mid in item_ids},
+        },
+        "progress": {
+            "you": {mid: value for mid, value in response["progress"]["you"].items() if mid in item_ids},
+            "friend": {mid: value for mid, value in response["progress"]["friend"].items() if mid in item_ids},
+        },
+        "synced_at": response["synced_at"],
     }

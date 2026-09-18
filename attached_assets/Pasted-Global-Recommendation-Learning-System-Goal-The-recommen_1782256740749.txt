@@ -1,0 +1,256 @@
+Global Recommendation Learning System
+
+Goal
+
+The recommendation system currently learns at the individual user level.
+
+A user’s feed improves as they swipe, save, skip and watch content.
+
+However, the system itself does not appear to be improving for future users.
+
+We need to begin learning from aggregate user behaviour so that:
+
+* New users receive better recommendations immediately.
+* Weak recommendations are automatically identified.
+* Strong recommendations are automatically reinforced.
+* Catalog quality improves over time.
+* Discovery quality improves over time.
+
+The objective is:
+
+“A user joining in six months should have a noticeably better Day 1 experience than a user joining today.”
+
+⸻
+
+Phase 1: Recommendation Outcome Tracking
+
+For every recommendation shown, track:
+
+* title_id
+* user_id
+* position
+* served_at
+* recommendation_reason
+* recommendation_source
+
+Then track outcomes:
+
+* saved
+* skipped
+* watched
+* ignored
+
+Create aggregate metrics per title.
+
+⸻
+
+Phase 2: Title Success Scores
+
+For every title calculate:
+
+Save Rate
+
+saves ÷ impressions
+
+Watch Rate
+
+watched ÷ impressions
+
+Skip Rate
+
+skips ÷ impressions
+
+Engagement Score
+
+weighted combination of:
+
+* saves
+* watched
+* completion signals
+* positive interactions
+
+Store:
+
+title_success_score
+
+⸻
+
+Phase 3: Discovery Quality Learning
+
+Track all discovery recommendations.
+
+For each discovery recommendation:
+
+* impressions
+* saves
+* watches
+* skips
+
+Calculate:
+
+discovery_success_score
+
+Example:
+
+If a title is repeatedly shown through discovery and constantly skipped:
+
+Reduce discovery weight.
+
+If repeatedly saved:
+
+Increase discovery confidence.
+
+⸻
+
+Phase 4: Community Quality Signals
+
+Create:
+
+community_quality_score
+
+This should NOT replace TMDB ratings.
+
+It should complement them.
+
+Example:
+
+TMDB says:
+
+8.0
+
+WatchSmart users say:
+
+* 30% save rate
+* high watch rate
+
+Community score increases.
+
+Conversely:
+
+TMDB says:
+
+7.8
+
+WatchSmart users always skip it.
+
+Community score decreases.
+
+⸻
+
+Phase 5: New User Boosting
+
+When a new user joins:
+
+Current system uses:
+
+* onboarding
+* genre preferences
+* providers
+
+Add:
+
+community success data
+
+Prioritise titles that:
+
+* perform well with similar preference groups
+* perform well among new users
+* have high save/watch rates
+
+This should improve Day 1 recommendations.
+
+⸻
+
+Phase 6: Similar User Clusters
+
+Create anonymous taste clusters.
+
+Examples:
+
+Cluster A:
+Crime / Thriller / Prestige TV
+
+Cluster B:
+Action / Adventure / Blockbusters
+
+Cluster C:
+Drama / Awards / Prestige
+
+Cluster D:
+Sci-Fi / Mystery
+
+Assign users probabilistically.
+
+Track:
+
+* top saved titles
+* top watched titles
+* top discovery wins
+
+Use this to improve recommendations for future users.
+
+⸻
+
+Phase 7: Catalog Self-Cleaning
+
+Create automatic quality feedback.
+
+If a title receives:
+
+* high impressions
+* very low saves
+* very low watches
+* high skips
+
+Flag it.
+
+Reduce eligibility score.
+
+Eventually remove it from recommendation pools.
+
+This allows the catalog to improve automatically.
+
+⸻
+
+Phase 8: Recommendation Health Dashboard
+
+Create system-wide metrics:
+
+Catalog Health Score
+
+Discovery Health Score
+
+New User Success Rate
+
+Average Save Rate
+
+Average Watch Rate
+
+Recommendation Accuracy
+
+Community Quality Score
+
+Top Performing Titles
+
+Worst Performing Titles
+
+Most Successful Discovery Recommendations
+
+Least Successful Discovery Recommendations
+
+⸻
+
+Success Criteria
+
+The system should demonstrate:
+
+1. New users receive better recommendations than historical users.
+2. Weak titles naturally disappear from recommendation pools.
+3. Strong titles naturally gain confidence.
+4. Discovery becomes more accurate over time.
+5. Catalog quality improves without manual intervention.
+6. Community behaviour contributes to recommendation quality.
+
+Most importantly:
+
+The recommendation engine should improve globally as the user base grows.

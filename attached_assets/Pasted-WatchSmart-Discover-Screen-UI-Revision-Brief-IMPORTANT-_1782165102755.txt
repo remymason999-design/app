@@ -1,0 +1,294 @@
+WatchSmart Discover Screen - UI Revision Brief
+
+IMPORTANT
+
+The previous update moved elements around but did not achieve the intended result.
+
+The goal is NOT to add more UI.
+
+The goal is to make the experience cleaner, more premium, and more focused on the movie/show being recommended.
+
+The movie card should always be the hero of the screen.
+
+Current implementation feels smaller, busier and more cramped than before.
+
+⸻
+
+1. Restore Large Card Focus
+
+Current Problem
+
+The active movie card has become too narrow.
+
+Large empty gutters now exist on both sides of the card.
+
+The movie poster, title, genres and description all feel compressed.
+
+The screen no longer feels like a swipe-first experience.
+
+Required Change
+
+Increase active card width significantly.
+
+Target:
+
+* Active card should occupy approximately 85-90% of available width.
+* Adjacent cards should only slightly peek into view.
+* The active card should dominate the screen.
+
+Reference:
+
+Think Tinder card stack.
+
+The active card should be the main focus.
+
+Not the arrows.
+
+Not the navigation.
+
+The movie card.
+
+⸻
+
+2. Keep Tinder-Style Swiping As Primary Interaction
+
+Swiping must remain the primary way of moving through recommendations.
+
+Requirements:
+
+* Swipe left = Skip
+* Swipe right = Save
+* Smooth card transitions
+* Card stack effect remains
+
+Do not turn the experience into a carousel.
+
+This is a swipe interface.
+
+⸻
+
+3. Navigation Arrows Need Redesign
+
+Current Problem
+
+The left and right arrows are too visually dominant.
+
+They compete with the movie card.
+
+They create visual clutter.
+
+Required Change
+
+If arrows remain:
+
+* Reduce size by 30-40%
+* Lower opacity
+* Move closer to screen edges
+* Make them secondary controls
+
+Alternative:
+
+Remove arrows entirely and rely on swipe.
+
+If kept, they should feel subtle and almost invisible.
+
+⸻
+
+4. Improve Screen Balance
+
+Current Problem
+
+The bottom section feels crowded.
+
+Current structure:
+
+Movie Card
+↓
+Skip / Save Buttons
+↓
+Bottom Navigation
+
+Everything feels compressed together.
+
+Required Change
+
+Increase vertical spacing.
+
+Movie card should breathe.
+
+Action buttons should sit comfortably below the card.
+
+Navigation should feel separate from interaction controls.
+
+Nothing should feel stacked tightly.
+
+⸻
+
+5. Bottom Navigation Improvements
+
+Current navigation:
+
+Discover
+Watchlist
+Savings
+Friends
+
+Keep this structure.
+
+Do NOT add additional navigation items.
+
+Styling Improvements
+
+Apply:
+
+* Stronger blur
+* Softer background
+* Better transparency
+* More premium glass effect
+
+The bottom navigation should blend into the screen.
+
+It should not feel like a solid rectangle placed on top.
+
+Reference:
+
+Apple TV
+Spotify
+iOS tab bars
+
+⸻
+
+6. Friends Navigation
+
+Keep Friends as the fourth navigation item.
+
+Remove all duplicate Friends actions.
+
+There should only be one Friends entry point.
+
+No separate Friends button.
+
+No floating Friends CTA.
+
+No duplicated compare buttons.
+
+One navigation destination only.
+
+⸻
+
+7. Header Improvements
+
+Current header contains:
+
+Logo
+Search
+Notifications
+Profile
+
+Keep this structure.
+
+Required Improvements
+
+Increase visual quality of the logo area.
+
+Improve spacing.
+
+Reduce visual competition between:
+
+* Search
+* Notifications
+* Avatar
+
+The page title should remain the most important text element.
+
+“For you tonight” should have room to breathe.
+
+⸻
+
+8. Filter Tabs
+
+Current tabs:
+
+For You
+Trending
+Upcoming
+My List
+
+Keep these.
+
+Styling Changes
+
+Reduce heavy borders.
+
+Reduce visual weight.
+
+Increase polish.
+
+Target:
+
+Premium streaming service feel.
+
+Not settings menu buttons.
+
+The selected tab should feel elegant, not oversized.
+
+⸻
+
+9. Information Button
+
+Keep the information button on the movie card.
+
+Location:
+
+Top-right corner of card.
+
+Requirements:
+
+* Small
+* Elegant
+* Semi-transparent
+* Glass style
+
+This replaces the old recommendation banner.
+
+Do not reintroduce recommendation banners.
+
+⸻
+
+10. Remove Recommendation Banner Permanently
+
+Do NOT bring back:
+
+“Matches your interest in…”
+“Dark Thriller…”
+“Because you watched…”
+
+These banners clutter the card.
+
+Recommendation explanations can be shown inside the detail modal instead.
+
+The poster artwork should remain visible.
+
+⸻
+
+11. Overall Design Goal
+
+The Discover screen should feel:
+
+* Premium
+* Minimal
+* Cinematic
+* Swipe-first
+* Focused on content
+
+Users should immediately notice:
+
+1. The movie/show artwork
+2. The title
+3. The save/skip action
+
+Everything else should support those actions, not compete with them.
+
+Current version feels more cluttered than before.
+
+The revised version should feel cleaner than the original design.

@@ -1,0 +1,197 @@
+Discover Final Polish Pass
+
+Goal
+
+The new Discover structure is close, but it still feels slightly too small, too spaced out, and too web-like.
+
+This task is a final polish pass to make Discover feel like a premium native swipe app.
+
+⸻
+
+1. Increase Recommendation Card Size
+
+The card is currently too small.
+
+Use the space saved from removing the old header to make the card bigger.
+
+Requirements
+
+* Increase card height by around 15–20%.
+* Card should occupy most of the visible screen.
+* Keep rounded corners.
+* Keep dark gradient overlay.
+* Title and poster should feel cinematic.
+* Do not let the card become scroll-dependent.
+
+The card is the product. It must be the hero.
+
+⸻
+
+2. Move Action Buttons Further Into Card
+
+Current buttons overlap slightly but still feel detached.
+
+Required layout
+
+The buttons should float over the bottom edge of the card.
+
+Overlap by roughly 40–50%.
+
+Buttons:
+
+* Rewind
+* Skip
+* Watched
+* Save
+
+They should feel physically connected to the card.
+
+Do not place them in a separate row far below the card.
+
+⸻
+
+3. Tighten Header Spacing
+
+The header is cleaner now, but still takes too much vertical space.
+
+Final header:
+
+Discover                                      Search   Filters
+
+Then immediately below:
+
+For You   Movies   TV Shows   New
+
+Then immediately below:
+
+Large card
+
+Remove excess vertical padding
+
+Reduce spacing between:
+
+* Discover title and tabs
+* tabs and card
+* header and top of screen
+
+The card should start higher.
+
+⸻
+
+4. Add Swipe Deck Depth
+
+The card currently feels like a single static panel.
+
+Add a subtle stacked-card effect behind the active card.
+
+Requirements
+
+Behind the main card, show:
+
+* 1 or 2 shadow cards
+* offset downward by 6–8px
+* slightly smaller width
+* low opacity
+* dark blurred shadow
+
+This should create the impression that more recommendations are waiting underneath.
+
+Do not make it distracting.
+
+⸻
+
+5. Upgrade Bottom Nav To Floating Glass Bar
+
+Bottom nav currently feels like a website footer.
+
+Make it feel like a premium mobile app nav.
+
+Requirements
+
+* fixed bottom
+* dark glass / blurred background
+* rounded top corners or fully rounded pill if feasible
+* subtle top border
+* soft shadow
+* active item orange
+* inactive items muted grey
+* safe-area padding
+* compact height
+
+Bottom nav items remain:
+
+* Discover
+* Watchlist
+* Friends
+* Savings
+* Profile
+
+⸻
+
+6. Increase Provider Badge Visibility
+
+Provider availability is one of WatchSmart’s biggest differentiators.
+
+Current provider badge is too small.
+
+Requirements
+
+* Increase provider badge size by around 15–20%.
+* Keep it inside the card.
+* Keep it bottom-left.
+* Show max 3 providers.
+* If more providers exist, show +2 style badge.
+
+Users should immediately see whether they can watch it on their services.
+
+⸻
+
+7. Keep Content Minimal
+
+Do not add more text.
+
+Do not add more badges.
+
+Do not bring back:
+
+* greeting
+* logo
+* notification icon
+* oversized avatar
+* Trending / Upcoming tabs
+* separate Undo button
+
+⸻
+
+8. Final Discover Layout
+
+Target structure:
+
+Discover                              Search   Filters
+
+For You   Movies   TV Shows   New
+
+[Large cinematic card]
+[Subtle stacked cards behind it]
+
+    Rewind   Skip   Watched   Save
+    overlapping bottom of card
+
+[Glass bottom nav]
+Discover   Watchlist   Friends   Savings   Profile
+
+⸻
+
+9. Acceptance Criteria
+
+This pass is complete when:
+
+1. Card is visibly larger.
+2. Buttons overlap the card more naturally.
+3. Header spacing is tighter.
+4. Tabs sit closer to the card.
+5. Card has subtle deck depth.
+6. Bottom nav feels like a premium floating/glass mobile nav.
+7. Provider badges are easier to see.
+8. Discover feels like a native swipe app, not a styled web page.
+9. No existing save/skip/watched/rewind functionality is broken.

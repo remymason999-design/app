@@ -1,0 +1,470 @@
+PostHog Analytics Implementation Plan
+
+Goal
+
+Use PostHog to understand:
+
+1. User engagement
+2. Recommendation quality
+3. Swipe behaviour
+4. Catalog exhaustion
+5. Personalization effectiveness
+6. Feed ranking performance
+7. Retention and conversion
+
+⸻
+
+Core User Events
+
+app_opened
+
+Trigger:
+
+* User opens app
+
+Properties:
+
+* user_id
+* subscription_services
+* country
+* app_version
+
+⸻
+
+session_started
+
+Trigger:
+
+* New session begins
+
+Properties:
+
+* user_id
+* timestamp
+
+⸻
+
+session_ended
+
+Trigger:
+
+* Session ends
+
+Properties:
+
+* session_duration
+* swipes_completed
+
+⸻
+
+Swipe Analytics
+
+movie_shown
+
+Trigger:
+
+* Card enters viewport
+
+Properties:
+
+* movie_id
+* title
+* rank_position
+* recommendation_score
+* quality_score
+* quality_tier
+* reason_code
+* source_pool
+* genres
+* provider
+* release_year
+* popularity
+
+Purpose:
+Measure what the ranking engine actually serves.
+
+⸻
+
+swipe_right
+
+Trigger:
+
+* User likes movie
+
+Properties:
+
+* movie_id
+* title
+* rank_position
+* recommendation_score
+* reason_code
+* genres
+* provider
+* time_to_swipe
+
+Purpose:
+Identify what users actually want.
+
+⸻
+
+swipe_left
+
+Trigger:
+
+* User rejects movie
+
+Properties:
+
+* movie_id
+* title
+* rank_position
+* recommendation_score
+* reason_code
+* genres
+* provider
+* time_to_swipe
+
+Purpose:
+Identify bad recommendations.
+
+⸻
+
+super_like
+
+Trigger:
+
+* User strongly likes movie
+
+Properties:
+
+* movie_id
+* title
+* recommendation_score
+* genres
+
+Purpose:
+Strong preference signal.
+
+⸻
+
+Recommendation Quality Tracking
+
+recommendation_served
+
+Trigger:
+
+* Every recommendation generated
+
+Properties:
+
+* movie_id
+* title
+* score
+* quality_score
+* quality_tier
+* reason_code
+
+Possible reason_code values:
+
+* collaborative
+* content_based
+* fresh_discovery
+* genre_broadening
+* fallback
+* reintroduced
+* trending
+* popular
+* upcoming
+
+Purpose:
+Determine which recommendation paths perform best.
+
+⸻
+
+recommendation_accepted
+
+Trigger:
+
+* User likes recommendation
+
+Properties:
+
+* movie_id
+* reason_code
+* score
+
+Purpose:
+Calculate acceptance rate by recommendation source.
+
+⸻
+
+recommendation_rejected
+
+Trigger:
+
+* User skips recommendation
+
+Properties:
+
+* movie_id
+* reason_code
+* score
+
+Purpose:
+Calculate rejection rate by recommendation source.
+
+⸻
+
+Personalization Tracking
+
+taste_profile_updated
+
+Trigger:
+
+* User preferences recalculated
+
+Properties:
+
+* top_genres
+* top_keywords
+* top_actors
+* top_directors
+* confidence_score
+
+Purpose:
+Monitor profile evolution.
+
+⸻
+
+personalization_snapshot
+
+Trigger:
+
+* Daily
+
+Properties:
+
+* top_10_genres
+* genre_distribution
+* average_recommendation_score
+* acceptance_rate
+
+Purpose:
+Track whether personalization improves over time.
+
+⸻
+
+Catalog Health
+
+catalog_pool_generated
+
+Trigger:
+
+* Feed generation
+
+Properties:
+
+* total_pool_size
+* eligible_titles
+* fresh_titles
+* reintroduced_titles
+* cooldown_titles
+* exhausted_percentage
+
+Purpose:
+Detect catalog exhaustion.
+
+⸻
+
+catalog_exhaustion_detected
+
+Trigger:
+
+* Pool below threshold
+
+Properties:
+
+* remaining_fresh_titles
+* total_swiped_titles
+* total_catalog_size
+
+Purpose:
+Identify power users running out of content.
+
+⸻
+
+Watchlist Analytics
+
+watchlist_add
+
+Trigger:
+
+* Movie added
+
+Properties:
+
+* movie_id
+* source_page
+* recommendation_score
+
+⸻
+
+watchlist_remove
+
+Trigger:
+
+* Movie removed
+
+Properties:
+
+* movie_id
+
+⸻
+
+watchlist_viewed
+
+Trigger:
+
+* User opens watchlist
+
+Properties:
+
+* total_saved_items
+
+⸻
+
+Discovery Analytics
+
+discovery_success
+
+Trigger:
+
+* User likes a discovery title
+
+Properties:
+
+* movie_id
+* discovery_type
+* genres
+* score
+
+Purpose:
+Measure successful discovery.
+
+⸻
+
+discovery_failure
+
+Trigger:
+
+* User rejects discovery title
+
+Properties:
+
+* movie_id
+* discovery_type
+* genres
+* score
+
+Purpose:
+Tune discovery ranking.
+
+⸻
+
+Funnel Tracking
+
+Track:
+
+App Open
+↓
+Feed View
+↓
+First Swipe
+↓
+10 Swipes
+↓
+Like
+↓
+Watchlist Add
+↓
+Return Next Day
+
+Purpose:
+Retention optimization.
+
+⸻
+
+Dashboards To Build
+
+Recommendation Dashboard
+
+Metrics:
+
+* Acceptance rate by reason_code
+* Rejection rate by reason_code
+* Likes per source
+* Watchlist adds per source
+
+⸻
+
+Personalization Dashboard
+
+Metrics:
+
+* Recommendation acceptance %
+* Average swipe depth
+* Discovery success rate
+* Genre affinity changes
+
+⸻
+
+Catalog Dashboard
+
+Metrics:
+
+* Pool size
+* Fresh titles remaining
+* Exhaustion rate
+* Reintroduced title frequency
+
+⸻
+
+Retention Dashboard
+
+Metrics:
+
+* DAU
+* WAU
+* MAU
+* D1 retention
+* D7 retention
+* D30 retention
+
+⸻
+
+Key Business Metrics
+
+North Star Metric:
+
+Recommendation Acceptance Rate
+
+Secondary Metrics:
+
+* Watchlist Add Rate
+* Discovery Success Rate
+* Session Length
+* Swipes Per Session
+* D7 Retention
+* Catalog Exhaustion Rate
+* Repeat Recommendation Rate
+
+Success Criteria:
+
+Users should increasingly:
+
+* Swipe more
+* Like more recommendations
+* Save more titles
+* Return more frequently
+
+while seeing fewer repeats and fewer irrelevant recommendations.

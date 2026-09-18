@@ -1,0 +1,369 @@
+Discover Layout Final Fix — Bigger Card, Search Icon, Profile in Bottom Nav
+
+Problem
+
+The Discover screen is still getting messy because too many elements are competing for space at the top.
+
+Current issues:
+
+* Greeting wastes vertical space.
+* Profile avatar / orange “R” is too visually loud.
+* Header pushes the recommendation card down.
+* Action buttons feel separate from the card.
+* Card should be bigger and more cinematic.
+* Search is useful, but it should not be a full search bar.
+
+The Discover screen should be built around one thing:
+
+Show me one great recommendation and let me act quickly.
+
+⸻
+
+Final Navigation Decision
+
+Move Profile into the bottom navigation.
+
+Bottom nav should be exactly:
+
+1. Discover
+2. Watchlist
+3. Friends
+4. Savings
+5. Profile
+
+Remove Profile/avatar from the top header completely.
+
+Profile page should contain account/settings, with Sign Out at the very bottom.
+
+⸻
+
+Final Header Decision
+
+Discover header should be extremely simple.
+
+Header layout
+
+Left:
+
+Discover
+
+Right:
+
+Search icon
+
+Optional:
+
+* Filter icon only if filters already exist and are needed.
+
+Do not show:
+
+* WatchSmart logo
+* Good morning greeting
+* “What are we watching tonight?”
+* Profile avatar
+* notification icon
+* large orange initial circle
+
+Header style
+
+* Compact height
+* Large bold “Discover”
+* Search icon top-right
+* Dark circular icon button
+* Subtle border
+* Orange hover/active state
+
+The header should not be the main visual focus.
+
+The movie card is the hero.
+
+⸻
+
+Search Behaviour
+
+Search should be a top-right icon, not a permanent search bar.
+
+Reason:
+Search is useful, but the primary app behaviour is swiping.
+
+A full search bar takes too much vertical space.
+
+When tapping search icon
+
+Open existing search flow or create a dedicated Search screen/modal.
+
+Search screen should support:
+
+* movies
+* TV shows
+* actors
+* directors
+* genres/keywords if available
+
+Search placeholder:
+
+Search movies, shows, actors…
+
+Search as Recommendation Signal
+
+Search is not just navigation. It is intent data.
+
+Track search-related events where possible:
+
+* searched_title
+* searched_actor
+* searched_director
+* searched_keyword
+* searched_then_saved
+* searched_then_watched
+* searched_then_added_to_watchlist
+
+If analytics support is not ready, leave clear TODO comments.
+
+These signals can later help recommendations.
+
+⸻
+
+Discover Tabs
+
+Tabs should remain:
+
+* For You
+* Movies
+* TV Shows
+* New
+
+Do not use:
+
+* Trending
+* Upcoming
+
+Tabs should be compact and sit directly under the header.
+
+⸻
+
+Bigger Recommendation Card
+
+Use the space saved from removing the greeting/profile/banner to make the card bigger.
+
+Card requirements
+
+* Card should start close under the tabs.
+* Card should be wider and taller.
+* Use most of the available viewport.
+* Keep cinematic poster/backdrop focus.
+* Rounded corners.
+* Dark gradient overlay.
+* Title must be dominant.
+* Content must not feel cramped.
+
+Target:
+The card should occupy the majority of the visible screen.
+
+Do not let the header or metadata steal focus from the card.
+
+⸻
+
+Floating Action Buttons Overlapping Card
+
+The action buttons should overlap the bottom edge of the card.
+
+They should not sit as a detached row below the card.
+
+Required buttons
+
+* Rewind
+* Skip
+* Watched
+* Save
+
+No separate Undo button.
+
+Rewind uses undo/reverse logic behind the scenes.
+
+Position
+
+Buttons should:
+
+* float over the bottom part of the card
+* overlap the card edge by roughly 30–40%
+* have a clear shadow/elevation
+* remain visually connected to the card
+* not be hidden below the fold
+* not overlap the bottom nav
+
+Visual style
+
+Circular premium buttons:
+
+Rewind:
+
+* dark button
+* orange outline/icon
+
+Skip:
+
+* dark button
+* muted/red icon
+
+Watched:
+
+* dark button
+* green icon
+
+Save:
+
+* dark button
+* orange icon
+
+Labels can be small underneath icons if space allows.
+
+If labels make the screen messy, use icons only with accessible aria labels.
+
+⸻
+
+Bottom Navigation
+
+Bottom nav should now contain five items:
+
+* Discover
+* Watchlist
+* Friends
+* Savings
+* Profile
+
+Style
+
+* fixed bottom
+* dark glass effect
+* subtle top border
+* active tab orange
+* inactive tabs grey
+* compact
+* safe-area aware
+
+Do not make the bottom nav too tall.
+
+It should not compete with the card.
+
+⸻
+
+Profile Page
+
+Profile is now reached from the bottom nav.
+
+Profile page should include:
+
+* profile/avatar
+* username
+* taste profile
+* stats
+* watch history
+* streaming services
+* settings
+* help/support if present
+
+Sign Out
+
+Sign Out must be at the very bottom of the Profile page.
+
+Style:
+
+* red text
+* low emphasis
+* separated from normal settings
+* not a primary button near the top
+
+Do not show Sign Out anywhere in the bottom nav.
+
+⸻
+
+Final Discover Layout
+
+The final layout should be:
+
+Discover                                      Search icon
+
+For You     Movies     TV Shows     New
+
+[Large cinematic recommendation card]
+
+ Floating buttons overlapping card:
+ Rewind     Skip     Watched     Save
+
+Bottom nav:
+Discover     Watchlist     Friends     Savings     Profile
+
+⸻
+
+What To Remove
+
+Remove from Discover:
+
+* greeting text
+* “Good morning”
+* “What are we watching tonight?”
+* WatchSmart logo
+* profile avatar / orange R
+* notification icon
+* full search bar
+* old arrows
+* separate Undo button
+* detached action button row
+* any header/banner that reduces card size unnecessarily
+
+⸻
+
+What Not To Break
+
+Do not break:
+
+* Discover feed loading
+* save
+* skip
+* watched
+* rewind/undo logic
+* search
+* provider filtering
+* match score
+* watchlist
+* friends
+* savings
+* profile/settings
+* analytics
+* GB region behaviour
+* bottom nav routing
+
+⸻
+
+Implementation Order
+
+1. Move Profile into BottomNav.
+2. Remove top-right profile avatar from Discover.
+3. Remove greeting/banner/header clutter.
+4. Create compact Discover header: Discover + search icon.
+5. Keep/adjust tabs: For You / Movies / TV Shows / New.
+6. Increase recommendation card size.
+7. Move action buttons so they overlap the bottom of the card.
+8. Ensure action buttons remain visible above bottom nav.
+9. Update Profile page so Sign Out is at the bottom.
+10. Test on mobile viewport and confirm no scrolling is needed for core Discover controls.
+
+⸻
+
+Acceptance Criteria
+
+This is complete when:
+
+1. Discover has no greeting.
+2. Discover has no top profile avatar / orange R.
+3. Discover has no logo banner.
+4. Header only shows Discover and search icon.
+5. Bottom nav includes Profile as fifth item.
+6. Search opens from top-right icon.
+7. Card is noticeably bigger.
+8. Action buttons overlap the card.
+9. Rewind / Skip / Watched / Save are visible.
+10. Sign Out is at the bottom of Profile.
+11. Core functionality still works.
+12. The screen feels cleaner, more premium, and more swipe-first.

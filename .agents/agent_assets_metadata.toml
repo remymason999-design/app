@@ -1,0 +1,36 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "5L4XFN6qmLOWU4baOiH1c"
+uri = "file://.local/skills/artifacts/SKILL.md"
+type = "text"
+title = "Artifacts Skill"
+
+[[outputs]]
+id = "xW3yOzWDUuDCcsXyZ6wDJ"
+uri = "file://attached_assets/generated/expo-go-qr.png"
+type = "image"
+title = "Expo Go QR code (SDK 54)"
+description = "Scan with your iPhone camera or Expo Go — now compatible with the public App Store Expo Go."
+
+[[outputs]]
+id = "3zaEqA2H0uUnsVNzLSVzx"
+uri = "file://attached_assets/expo-go-qr.png"
+type = "image"
+title = "Expo Go QR code"
+description = "Scan with your iPhone camera to open WatchSmart in Expo Go."
+
+[[outputs]]
+id = "ykKMHmTGnY4CvS4dwTcMN"
+uri = "file://attached_assets/expo-go-qr-2.png"
+type = "image"
+title = "Expo Go QR code"
+description = "Scan with your iPhone camera to open WatchSmart in Expo Go."
+
+[[outputs]]
+id = "rBmd1cK_kfG-d_KMQYi7O"
+uri = "file://frontend/public/brand/watchsmart-logo.png"
+type = "image"
+title = "WatchSmart Logo"
+description = "Official high-resolution WatchSmart logo in transparent PNG format (1179 × 2556)."

@@ -1,3 +1,5 @@
+test-results/
+playwright-report/
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # IDE and editors
@@ -80,3 +82,5 @@ memory/test_credentials.md
 
 # Mobile development
 android-sdk/
+# Local MongoDB data (persistent dev DB — never commit)
+.data/

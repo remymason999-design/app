@@ -5,8 +5,8 @@ module.exports = {
     theme: {
         extend: {
             fontFamily: {
-                heading: ['Cabinet Grotesk', 'sans-serif'],
-                sans: ['Satoshi', 'Helvetica Neue', 'sans-serif'],
+                heading: ['Inter', 'system-ui', 'sans-serif'],
+                sans: ['Inter', 'Helvetica Neue', 'system-ui', 'sans-serif'],
             },
             borderRadius: {
                 lg: 'var(--radius)',
@@ -16,13 +16,15 @@ module.exports = {
             colors: {
                 background: 'hsl(var(--background))',
                 foreground: 'hsl(var(--foreground))',
-                obsidian: '#060608',
-                velvet: '#0C0C10',
-                surface: '#1A1A20',
+                obsidian: '#05070A',
+                velvet: '#0B111A',
+                surface: '#111827',
                 amber: {
-                    DEFAULT: '#F59E0B',
-                    600: '#D97706',
+                    DEFAULT: '#FF7A18',
+                    600: '#FF4D00',
                 },
+                success: '#22C55E',
+                saving: '#F59E0B',
                 card: {
                     DEFAULT: 'hsl(var(--card))',
                     foreground: 'hsl(var(--card-foreground))',

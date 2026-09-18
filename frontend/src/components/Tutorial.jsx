@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ArrowRight, Heart, Eye, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Heart, Eye, Sparkles, X, Play } from "lucide-react";
+import { capture, EVENTS } from "@/lib/analytics";
 
-const KEY = "ws_tutorial_v1_seen";
+const KEY = "ws_tutorial_v2_seen";
 
 const STEPS = [
     {
@@ -30,6 +31,14 @@ const STEPS = [
         gesture: "down",
     },
     {
+        title: "Track every episode",
+        body: "Open Library and tap Update progress to choose your season and episode. WatchSmart will build Continue Watching, episode totals and watch-time stats as you go.",
+        icon: Play,
+        color: "text-amber",
+        accent: "bg-amber/20 border-amber/40",
+        gesture: "progress",
+    },
+    {
         title: "AI that knows your taste",
         body: "Tap any card for full details, the YouTube trailer, and a personal 'why you'll love this' from our AI.",
         icon: Sparkles,
@@ -53,6 +62,7 @@ export default function Tutorial({ open, onClose }) {
 
     const finish = () => {
         try { localStorage.setItem(KEY, "1"); } catch {}
+        capture(EVENTS.TUTORIAL_COMPLETED, { completed: last }, { allowDuplicate: false });
         onClose();
     };
 
@@ -149,6 +159,38 @@ export function resetTutorial() {
 }
 
 function DemoCard({ gesture }) {
+    if (gesture === "progress") {
+        return (
+            <div className="relative">
+                <motion.div
+                    className="w-40 h-16 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-900 border border-white/10 shadow-[0_0_20px_rgba(245,158,11,0.2)] flex flex-col justify-end p-2.5 gap-2"
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: [0.95, 1, 1, 0.95], opacity: [0, 1, 1, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                    <div className="flex items-end justify-between w-full">
+                        <div className="flex gap-1.5 flex-col flex-1">
+                            <div className="h-1.5 w-3/4 bg-white/20 rounded-full" />
+                            <div className="h-1 w-1/2 bg-white/10 rounded-full" />
+                        </div>
+                        <div className="text-[9px] font-heading text-amber">S1 E6</div>
+                    </div>
+                    <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                        <motion.div
+                            className="h-full bg-amber rounded-full"
+                            initial={{ width: "30%" }}
+                            animate={{ width: ["30%", "70%", "70%", "30%"] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                        />
+                    </div>
+                    <div className="flex justify-between text-[8px] text-zinc-300">
+                        <span>Update progress</span><span>39h watched</span>
+                    </div>
+                </motion.div>
+            </div>
+        );
+    }
+
     const variants = {
         right: { x: [0, 90, 90, 0], rotate: [0, 12, 12, 0], opacity: [1, 1, 0, 1] },
         left:  { x: [0, -90, -90, 0], rotate: [0, -12, -12, 0], opacity: [1, 1, 0, 1] },

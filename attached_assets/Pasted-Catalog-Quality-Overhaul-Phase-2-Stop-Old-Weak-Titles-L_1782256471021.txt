@@ -1,0 +1,268 @@
+Catalog Quality Overhaul Phase 2: Stop Old / Weak Titles Leaking Into Discover
+
+Problem
+
+The Discover feed is improved, but old and weak catalogue titles are still slipping through.
+
+Examples:
+
+* Too many pre-2005 titles still appearing.
+* At least one 1930s film appeared in Discover.
+* Older obscure titles are entering the recommendation pool even when they are unlikely to be useful for normal users.
+
+This should not happen by default.
+
+The recommendation engine should not be trying to rank weak catalogue candidates. The eligible catalogue/pool should be cleaner before ranking begins.
+
+⸻
+
+Goal
+
+Make the default Discover pool modern, relevant, English, available, and high quality.
+
+Old classics should only appear when they are genuinely strong titles, not because they happened to pass provider/catalog sync.
+
+Default experience should feel like:
+
+* 95% modern/relevant content
+* small number of exceptional classics
+* no obscure 1930s/1940s/1950s titles in normal Discover
+
+⸻
+
+Phase 1: Audit the Current Leak
+
+Generate a diagnostic report of the oldest titles currently eligible for Discover.
+
+Required report
+
+Output the 100 oldest titles currently marked as eligible or available to the Discover pool.
+
+For each title include:
+
+* title
+* media_type
+* release_year
+* original_language
+* provider(s)
+* popularity
+* vote_count
+* vote_average
+* quality_score
+* is_eligible
+* eligibility_reason
+* source_path if available
+* reason it passed filtering
+* whether it came from normal, discovery, fallback, reintro, provider sync, or catalog rebuild
+
+Also output counts for:
+
+* pre-1950 eligible titles
+* pre-1980 eligible titles
+* pre-1990 eligible titles
+* pre-2000 eligible titles
+* pre-2005 eligible titles
+* pre-2010 eligible titles
+
+This audit is mandatory before changing logic.
+
+⸻
+
+Phase 2: Add Stronger Release-Year Eligibility
+
+The current year filter is too permissive or is being bypassed by some recommendation paths.
+
+Default eligibility rules
+
+Movies
+
+Default eligible movie year:
+
+release_year >= 2000
+
+TV Shows
+
+Default eligible TV year:
+
+release_year >= 1995
+
+Do not allow titles older than these into the main Discover pool unless they pass the classic exception rules below.
+
+⸻
+
+Phase 3: Classic Exception Rules
+
+Older titles can still appear, but only if they are genuinely strong classics.
+
+Create a controlled legacy exception path.
+
+Movies before 2000 may be eligible only if:
+
+* vote_count is very high
+* popularity is high
+* quality_score is very high
+* has poster
+* has overview
+* original_language is English, unless user explicitly selected otherwise
+* available on selected user providers
+
+Suggested starting thresholds
+
+For pre-2000 movies:
+
+vote_count >= 3000
+quality_score >= 8.0
+popularity >= 25
+
+For pre-1980 movies:
+
+vote_count >= 5000
+quality_score >= 8.3
+popularity >= 35
+
+For pre-1960 movies:
+
+vote_count >= 8000
+quality_score >= 8.5
+popularity >= 50
+
+If these thresholds are too strict after audit, tune them, but the default should be strict.
+
+A random 1930s film must not pass eligibility unless it is a globally recognised classic with strong engagement metrics.
+
+⸻
+
+Phase 4: Create Content Age Tiers
+
+Assign every eligible title an age tier.
+
+Age tiers
+
+Tier A: Modern = 2010+
+Tier B: Recent Classic = 2000–2009
+Tier C: Legacy Classic = pre-2000
+
+Default Discover mix target:
+
+Tier A: 70–85%
+Tier B: 10–25%
+Tier C: 0–5%
+
+Legacy Classic should be capped, not just scored lower.
+
+⸻
+
+Phase 5: Add Hard Caps for Legacy Content
+
+Even if older titles pass eligibility, they should not dominate feeds.
+
+Feed caps
+
+For a normal Discover feed:
+
+pre-2000 titles: max 1 per feed batch
+pre-1990 titles: max 1 per 3 feed batches
+pre-1980 titles: max 1 per 5 feed batches
+pre-1960 titles: only if exceptional classic, never through fallback
+
+If the feed batch is small, apply the stricter cap.
+
+⸻
+
+Phase 6: Block Old Titles From Fallback / Broad Discovery
+
+Old titles should not enter through fallback when the normal pool is low.
+
+Update fallback logic:
+
+* fallback must still respect release_year eligibility
+* fallback must still respect classic exception thresholds
+* fallback must not bypass is_eligible
+* fallback must not use raw provider results without filtering
+* discovery must not bypass age tiers
+* reintro must not bypass age tiers
+
+This is likely where the leak is happening.
+
+⸻
+
+Phase 7: Add Age Penalty to Ranking
+
+After eligibility filtering, add a soft age penalty so older titles need to be genuinely excellent to rank high.
+
+Suggested scoring:
+
+2015+ = no penalty
+2010–2014 = small penalty
+2005–2009 = moderate penalty
+2000–2004 = stronger penalty
+1990–1999 = strong penalty unless classic exception
+pre-1990 = very strong penalty unless exceptional classic
+
+This should be a ranking penalty only after the hard eligibility rules.
+
+Do not rely on scoring alone to solve the problem.
+
+⸻
+
+Phase 8: Provider-Specific Audit
+
+Generate a provider report to find whether a specific service is injecting older catalogue content.
+
+For each provider, output:
+
+* total titles
+* eligible titles
+* average release year
+* median release year
+* oldest eligible title
+* number of pre-2005 eligible titles
+* number of pre-2000 eligible titles
+* number of pre-1980 eligible titles
+
+This should help identify if one provider is responsible for the old-title leakage.
+
+⸻
+
+Phase 9: Admin / Debug Visibility
+
+Add admin diagnostics for every served card:
+
+* title
+* release_year
+* age_tier
+* quality_score
+* provider
+* eligibility_reason
+* classic_exception: true/false
+* source_path
+* final_score
+* reason_code
+
+If a title older than 2000 appears, the logs must explain exactly why.
+
+⸻
+
+Acceptance Criteria
+
+This update is successful when:
+
+1. No obscure 1930s/1940s/1950s titles appear in normal Discover.
+2. Pre-2000 titles only appear if they pass strict classic exception rules.
+3. Pre-2005 titles are significantly reduced.
+4. Fallback/discovery/reintro cannot bypass the eligible catalogue rules.
+5. Admin logs explain why every old title appeared.
+6. The default feed feels modern and relevant.
+7. Existing provider, language, poster, overview, quality, and skip-cooldown filters still work.
+
+⸻
+
+Important Implementation Note
+
+Do not simply downrank old titles.
+
+The main fix must be at the catalogue eligibility layer.
+
+Bad candidates should not enter the Discover pool in the first place.
+
+Ranking should only sort already-eligible titles.

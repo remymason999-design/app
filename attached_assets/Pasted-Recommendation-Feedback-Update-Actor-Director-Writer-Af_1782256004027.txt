@@ -1,0 +1,260 @@
+Recommendation Feedback Update: Actor, Director, Writer Affinity + “More Like This” Signal
+
+Context
+
+A Reddit user gave useful feedback about how people actually use movie recommendations.
+
+They said they may “like” a movie even if they did not actually enjoy that specific movie, because it has qualities they want more recommendations for.
+
+Examples:
+
+* They may not love the movie, but they like the type of movie.
+* They may like an actor in it and want more of that actor’s work.
+* They also suggested this should apply to directors and writers.
+
+This exposes a weakness in the current swipe/save system.
+
+Right now, a save or skip can be too broad. A user may save something because of the actor, director, writer, genre, tone, or general style. A skip may mean “not interested in this exact title,” but not necessarily “show me less of this genre/actor/director/writer.”
+
+Goal
+
+Improve personalization by separating:
+
+1. “I want to watch/save this exact title”
+2. “I want more recommendations like this”
+3. “I like this actor/director/writer/style”
+4. “I do not want this specific title”
+
+The app should learn not just from title-level saves, but from the components inside those titles.
+
+This enhancement is additive and builds on top of the existing logic. It does not replace or interfere with current recommendation behavior, but instead refines and enriches it.
+
+Phase 1: Audit Current Metadata Support
+
+First, inspect the current movie/content data model.
+
+Check whether each title already stores:
+
+* genres
+* cast / actors
+* directors
+* writers
+* creators / showrunners
+* keywords / themes
+* tone / mood if available
+* franchise / collection if available
+
+Output where this data currently exists:
+
+* movies_cache
+* TMDB response cache
+* recommendation scoring file
+* feed generation logic
+* user taste profile generation logic
+
+Do not add new external services yet.
+
+Use existing TMDB/cache data where possible.
+
+Phase 2: Add Creator Affinity Scoring
+
+Add per-user affinity scoring for:
+
+* actors
+* directors
+* writers
+* creators/showrunners where available
+
+The system should learn from positive and negative actions.
+
+Suggested weighting:
+
+Positive signals
+
+Save / add to watchlist:
+
+* genre: +3
+* actor: +2
+* director: +3
+* writer: +3
+* creator/showrunner: +3
+* keywords/themes: +2
+
+Watched / marked watched:
+
+* genre: +4
+* actor: +2
+* director: +4
+* writer: +4
+* creator/showrunner: +4
+* keywords/themes: +3
+
+“More Like This” signal:
+
+* genre: +3
+* actor: +2
+* director: +3
+* writer: +3
+* creator/showrunner: +3
+* keywords/themes: +3
+* title itself should NOT necessarily be added to watchlist
+
+Negative signals
+
+Skip:
+
+* title: negative
+* genre: small negative only
+* actor/director/writer: very small negative only
+
+Important: A single skip should not heavily punish an actor, director, writer, or genre. Skips are ambiguous.
+
+Repeated skips across the same attribute should reduce affinity more strongly.
+
+Example:
+
+* Skip one crime film: do not reduce crime much.
+* Skip 10 crime films: reduce crime confidence.
+* Skip one Tom Hardy film: do not reduce Tom Hardy much.
+* Skip many Tom Hardy films: reduce Tom Hardy affinity.
+
+Phase 3: Add “More Like This” Action
+
+Add a new optional user action:
+
+More Like This
+
+This should mean:
+
+“I may or may not want to save this exact title, but I want the app to recommend similar titles.”
+
+This solves the Reddit feedback problem where a user likes the type of movie, actor, director, or writer, but does not necessarily want to save the exact movie.
+
+UI options:
+
+* Add a small sparkle/star icon on the movie card.
+* Or add it inside the card detail screen first to avoid cluttering the swipe UI.
+
+Do not make this required.
+
+This should be an extra positive signal, not a replacement for save/watchlist.
+
+Phase 4: Update Recommendation Ranking
+
+When scoring a candidate title, include:
+
+* genre affinity
+* actor affinity
+* director affinity
+* writer affinity
+* creator/showrunner affinity
+* keyword/theme affinity
+* quality score
+* provider availability
+* recency/freshness
+* diversity controls
+
+Creator affinity should help push titles higher when the user repeatedly saves/watches content from the same actor, director, writer, or creator.
+
+Example:
+If a user saves multiple David Fincher / Denis Villeneuve / Taylor Sheridan style titles, future titles connected to those creators should rank higher.
+
+Phase 5: Add Explanation / Reason Codes
+
+Update recommendation reason codes so the app/admin logs can explain why a title appeared.
+
+Examples:
+
+* actor_affinity
+* director_affinity
+* writer_affinity
+* creator_affinity
+* genre_affinity
+* more_like_this
+* theme_affinity
+* quality_match
+* provider_match
+* fresh_discovery
+
+For each served recommendation, log the top reasons.
+
+Admin/debug output should show:
+
+* title
+* total score
+* quality score
+* genre score
+* actor score
+* director score
+* writer score
+* creator score
+* more-like-this boost
+* final reason_code
+* matched actors/directors/writers
+* source path: normal, discovery, fallback, reintro
+
+Phase 6: Avoid Overfitting
+
+Do not let one actor/director/writer completely dominate the feed.
+
+Add caps:
+
+* no more than 2 titles from the same actor in a short run
+* no more than 2 titles from the same director in a short run
+* avoid showing too many franchise/collection titles together
+* keep diversity across genres and tones
+
+The feed should feel personal, not repetitive.
+
+Phase 7: Measurement
+
+Add diagnostics to prove this is working.
+
+For a test user, compare recommendations before and after 50+ interactions.
+
+Track:
+
+* save rate by swipe bucket
+* skip rate by swipe bucket
+* percentage of recommendations influenced by learned affinities
+* percentage influenced by actor/director/writer affinity
+* percentage influenced by fallback/discovery
+* top matched actors/directors/writers
+* whether user actions increase affinity over time
+
+Swipe buckets:
+
+* 0–25
+* 26–50
+* 51–100
+* 101–200
+
+Goal:
+After enough interactions, recommendations should rely more on learned preference signals and less on generic discovery/fallback logic.
+
+Important Product Principle
+
+Do not treat every save or skip as a simple like/dislike.
+
+A user may like:
+
+* the actor
+* the director
+* the writer
+* the genre
+* the mood
+* the style
+* the premise
+* the type of recommendation
+
+without necessarily liking the exact title.
+
+The recommendation system should learn from the parts of a title, not just the title-level action.
+
+Priority
+
+Phase 1 and Phase 2 are highest priority.
+
+If UI changes are too risky right now, add the backend affinity scoring first using existing saves/skips/watched data.
+
+Then add the “More Like This” UI after the scoring is stable.

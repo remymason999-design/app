@@ -1,0 +1,356 @@
+Add native “Sign in with Apple” authentication to the WatchSmart iOS app.
+
+IMPORTANT CONTEXT
+
+- WatchSmart is an Expo React Native iOS app with an existing FastAPI backend.
+- Production backend/domain: https://watchsmart.uk
+- The app already has normal email/password authentication.
+- Sign in with Apple has now been enabled manually in the Apple Developer portal for the WatchSmart App ID.
+- The app is already running through TestFlight, so do not make unrelated changes.
+- Do NOT remove, replace or redesign the existing email/password authentication.
+- Do NOT change the bundle identifier.
+- Do NOT change unrelated recommendation, onboarding, watchlist, friends, savings or subscription functionality.
+- Do NOT publish or submit a new build automatically when finished. I will do that separately.
+
+Before changing anything, inspect the existing mobile authentication code, backend authentication routes, user database model, Expo app configuration and current production API configuration.
+
+Then implement Sign in with Apple correctly end-to-end.
+
+-----------------------------------
+1. EXPO / NATIVE IOS SETUP
+-----------------------------------
+
+Use Expo’s official Apple authentication implementation.
+
+Install the Expo-compatible version of:
+
+expo-apple-authentication
+
+Use the Expo package installer rather than manually selecting a package version.
+
+Configure the Expo project so iOS has Sign in with Apple enabled.
+
+Ensure the appropriate iOS entitlement is generated:
+
+com.apple.developer.applesignin
+
+Do not change the existing iOS bundle identifier.
+
+Check the existing app.json/app configuration first and make the minimum required changes.
+
+Do not create a second Expo project or second Apple App ID.
+
+-----------------------------------
+2. LOGIN SCREEN
+-----------------------------------
+
+Add the official Apple authentication button to the existing WatchSmart login screen.
+
+Use Apple’s official AppleAuthenticationButton component rather than creating a fake/custom Apple button.
+
+The login page should essentially remain as it is now, with:
+
+Email
+Password
+Normal Sign In button
+
+OR
+
+Sign in with Apple
+
+Keep the design consistent with WatchSmart while complying with Apple’s button requirements.
+
+Do not remove normal login.
+
+-----------------------------------
+3. APPLE AUTHENTICATION
+-----------------------------------
+
+When the user taps Sign in with Apple:
+
+Use AppleAuthentication.signInAsync.
+
+Request:
+
+FULL_NAME
+EMAIL
+
+Retrieve Apple's:
+
+identityToken
+authorizationCode
+user identifier
+email where Apple supplies it
+full name where Apple supplies it
+
+Handle cancellation cleanly without showing an error.
+
+Never treat data supplied by the mobile client alone as proof of identity.
+
+-----------------------------------
+4. SERVER-SIDE TOKEN VERIFICATION
+-----------------------------------
+
+This is critical.
+
+Create an appropriate FastAPI endpoint for Apple authentication, following the conventions of the existing authentication API.
+
+For example:
+
+POST /api/auth/apple
+
+But inspect the current routing structure first and use the appropriate route rather than creating duplicate authentication systems.
+
+The mobile app should send the Apple identity token to the WatchSmart backend over HTTPS.
+
+The backend MUST cryptographically verify the Apple identity token using Apple's public signing keys.
+
+Validate at minimum:
+
+- token signature
+- issuer
+- audience
+- expiry
+- subject
+
+The audience must correspond to WatchSmart's actual Apple app/client identifier.
+
+Do NOT simply decode the JWT and trust its contents.
+
+Do NOT accept an email address from the app as authentication.
+
+After verification, use Apple's verified stable subject/user identifier as the Apple identity.
+
+-----------------------------------
+5. USER DATABASE
+-----------------------------------
+
+Inspect the current WatchSmart user model and authentication database before modifying it.
+
+Add a nullable Apple identity field if one does not already exist, e.g.:
+
+apple_sub
+
+It should be unique for Apple-linked accounts.
+
+Create the necessary safe database migration.
+
+Do NOT delete or reset existing users.
+
+Do NOT require Apple-created accounts to have a fake password.
+
+The existing password authentication system must continue working for existing accounts.
+
+-----------------------------------
+6. NEW APPLE USERS
+-----------------------------------
+
+If a verified Apple identity does not already belong to a WatchSmart user:
+
+Create a normal WatchSmart user account.
+
+Store:
+
+- verified Apple subject identifier
+- Apple relay/real email where provided
+- first/last name where provided
+
+Important:
+
+Apple may only provide the user's name and email during the FIRST authorization.
+
+Persist these values when they are supplied.
+
+Support users choosing Apple “Hide My Email”.
+
+Do not reject @privaterelay.appleid.com addresses.
+
+After creating the account, issue the same WatchSmart session/access/refresh token system used by normal authentication.
+
+The rest of WatchSmart should not care whether the user originally authenticated with Apple or email/password.
+
+-----------------------------------
+7. RETURNING APPLE USERS
+-----------------------------------
+
+For returning Apple users:
+
+Verify the identity token.
+
+Find the account using the stored verified Apple subject identifier.
+
+Log them into the same WatchSmart account.
+
+Do not rely on Apple returning their name or email again.
+
+Issue normal WatchSmart authentication/session tokens.
+
+-----------------------------------
+8. EXISTING WATCHSMART ACCOUNTS
+-----------------------------------
+
+Be extremely careful with account linking.
+
+Do NOT automatically merge accounts solely because an unverified client-supplied email matches.
+
+If Apple's verified token provides an email that matches an existing WatchSmart account, use a secure account-linking process appropriate to the current authentication architecture.
+
+The goal is to prevent account takeover while avoiding unnecessary duplicate WatchSmart accounts.
+
+Explain the account-linking behaviour you implement.
+
+-----------------------------------
+9. SESSION PERSISTENCE
+-----------------------------------
+
+Make Apple-authenticated users use the SAME session/token handling as normal WatchSmart users.
+
+Check the existing mobile secure token storage.
+
+Apple users must remain signed in after:
+
+- closing the app
+- reopening the app
+- backgrounding the app
+- restarting the iPhone
+
+Refresh tokens/session renewal must work normally.
+
+Do not build a separate session system specifically for Apple.
+
+-----------------------------------
+10. ONBOARDING
+-----------------------------------
+
+A brand-new Apple user should continue into the normal WatchSmart onboarding process.
+
+An existing Apple-linked user should go directly into their existing account.
+
+Do not create a separate Apple onboarding flow.
+
+All existing WatchSmart features must work normally for Apple users.
+
+-----------------------------------
+11. ERROR HANDLING
+-----------------------------------
+
+Handle:
+
+- user cancels Apple sign-in
+- Apple credential failure
+- missing identity token
+- expired/invalid token
+- backend unavailable
+- network timeout
+- account linking conflict
+
+Show normal user-friendly errors.
+
+Never display raw backend exceptions, JWT contents, secrets or Apple credentials to users.
+
+-----------------------------------
+12. ACCOUNT DELETION
+-----------------------------------
+
+Inspect WatchSmart's existing in-app account deletion functionality.
+
+Apple-authenticated accounts must also be fully deletable using the existing account deletion flow.
+
+Ensure Apple-linked identity information is removed when the WatchSmart account is deleted.
+
+If Apple requires authorization/token revocation as part of the applicable account-deletion flow, implement the appropriate revocation handling rather than simply deleting the local Apple identifier.
+
+-----------------------------------
+13. SECURITY
+-----------------------------------
+
+Do not put:
+
+- private keys
+- Apple secrets
+- signing secrets
+- database credentials
+
+inside the React Native application.
+
+Anything secret must remain server-side and use the existing secure environment/secrets system.
+
+Do not log complete Apple identity tokens or authentication secrets.
+
+-----------------------------------
+14. EXISTING LOGIN OUTAGE
+-----------------------------------
+
+There is currently also a serious issue where normal WatchSmart users cannot reliably sign in and requests have been timing out.
+
+Do NOT use Sign in with Apple as a workaround that hides this problem.
+
+While inspecting authentication, identify whether the existing login outage shares a backend/session/network cause.
+
+Do not make broad unrelated changes, but report anything you find that explains:
+
+- login request timeouts
+- users unable to sign in
+- users being unexpectedly signed out
+
+Sign in with Apple and normal email/password authentication must BOTH work before release.
+
+-----------------------------------
+15. TESTING
+-----------------------------------
+
+After implementation, test as much as possible without publishing.
+
+Run:
+
+- TypeScript/type checking
+- Expo Doctor
+- backend tests
+- authentication tests
+- production build/config validation
+
+Verify that existing email/password authentication has not been broken.
+
+Test/validate these flows:
+
+1. Existing email/password login
+2. New Apple user
+3. Returning Apple user
+4. Apple Hide My Email user
+5. Apple sign-in cancellation
+6. Invalid Apple token rejected by backend
+7. App closed and reopened while signed in
+8. Token/session refresh
+9. Sign out then Sign in with Apple again
+10. New Apple user enters normal onboarding
+11. Existing Apple user retains existing WatchSmart data
+12. Account deletion for Apple user
+
+Where a real Apple authorization flow cannot be completed in the Replit environment, clearly state that it requires testing on the new native TestFlight build rather than pretending it was tested.
+
+-----------------------------------
+16. BEFORE FINISHING
+-----------------------------------
+
+Give me a report containing:
+
+- files changed
+- packages added
+- database migration performed
+- backend endpoint added
+- how Apple identity tokens are verified
+- how Apple users map to WatchSmart users
+- how existing-account linking works
+- how Hide My Email is handled
+- how sessions are persisted
+- any environment variables/secrets required
+- whether any existing login timeout issue was identified
+- tests/checks passed
+- anything I must configure manually in Apple/Expo
+- whether EAS needs to regenerate the provisioning profile
+
+Do NOT publish.
+Do NOT submit to TestFlight.
+Do NOT increment the production version/build unless it is technically required at this stage.
+
+Stop after implementation, validation and the report so I can review everything before creating the next TestFlight build.

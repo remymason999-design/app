@@ -1,0 +1,163 @@
+MASTER LAUNCH SPEC
+
+Stabilize and complete the app for launch without redesigning the core UI.
+
+GOAL:
+Build a premium, reliable, personalized movie recommendation app that:
+- remembers each user
+- learns from every action
+- avoids repeats
+- respects filters
+- refreshes daily
+- has a large movie pool
+- clearly shows where to watch
+- feels trustworthy and launch-ready
+
+1. ACCOUNT / AUTH STABILITY
+- Keep users logged in after refresh/reopen.
+- Restore the same account on startup.
+- Prevent duplicate guest/user sessions.
+- Persist watchlist, watched, skipped, shown history, filters, subscriptions, and learning data.
+
+2. MASSIVE DAILY-UPDATING CATALOG
+- Import movies/TV daily from TMDB.
+- Use multiple endpoints and pagination.
+- Deduplicate by tmdb_id.
+- Store posters, runtime, ratings, trailers, providers, genres, overview, year.
+- Keep a large usable pool, not a small seed list.
+
+3. FULL-CATALOG SEARCH
+- Search the full database, not just Discover.
+- Results should open MovieDetail reliably.
+- Add clear back/close search option.
+- Show availability clearly.
+
+4. SMART FILTERING
+- Default:
+  - Show Anime = OFF
+  - Show Family & Kids = OFF
+  - Show Bollywood = OFF
+- Treat Family/Kids as audience categories, not normal genres.
+- Exclude hidden categories before genre ranking.
+- Respect subscriptions and movie/TV filters.
+
+5. PERSONALIZATION / LEARNING ENGINE
+- Learn from saves, skips, watched, searches, detail opens, trailer opens, and watchlist actions.
+- Update genre, tone, runtime, audience, decade, popularity, and provider preferences.
+- Make each session improve future recommendations.
+
+6. NO-REPEAT MEMORY
+- Track every movie shown.
+- Exclude saved, watched, skipped, disliked, and recently shown movies.
+- Never repeat in the same session.
+- Use cooldowns before resurfacing old titles.
+
+7. DAILY PERSONAL USER POOL REFRESH
+- Refresh each user’s Discover pool daily.
+- Use latest catalog, filters, subscriptions, exclusions, and learned preferences.
+- Do not reset user history.
+
+8. ONBOARDING / TASTE TRAINING
+Correct flow:
+1. Create account
+2. Pick streaming services
+3. Pick favourite genres
+4. Content preferences:
+   - Show Anime
+   - Show Family & Kids
+   - Show Bollywood
+5. Taste training swipes
+6. Personalized Discover feed
+
+- Taste training cards must be dynamic, not static.
+- Onboarding swipes must train the user profile immediately.
+
+9. MOVIE DETAIL / STREAMING UX
+- Clearly separate:
+  - Included with subscriptions
+  - Rent or buy
+  - Not available
+- Prioritize user subscriptions.
+- Make provider display cleaner and smarter.
+
+10. DISCOVER / SWIPE UX
+- Fix swipe down for Watched.
+- Keep buttons visible at the bottom on mobile.
+- No sideways scrolling for buttons.
+- Prevent tap-after-drag bugs.
+
+11. UI POLISH
+- Keep black/gold cinematic style.
+- Improve skeleton loading, empty states, spacing, buttons, search UX, notification UX.
+- Remove beta tag.
+- Do not redesign the app.
+
+12. FIRST-LOGIN TUTORIAL
+- Add short tutorial shown once.
+- Explain swiping, learning, watchlist, and subscriptions.
+- Make it skippable.
+
+13. ANALYTICS / DEBUGGING
+Track:
+- saves
+- skips
+- watched
+- shown movies
+- searches
+- trailer opens
+- retention
+- pool size
+- top liked/disliked genres
+- repeat prevention stats
+
+14. LEGAL / TRUST
+- Add footer links:
+  - Privacy Policy
+  - Terms & Conditions
+  - Contact
+- Link to simple hosted pages.
+
+15. CONTINUOUS USER LEARNING LOOP
+- Every user action must update their profile.
+- Recent behaviour should matter more than old behaviour.
+- Avoid overfitting by keeping some variety.
+- Every session should make the next session smarter.
+
+16. MOVIE DETAIL RELEVANCE + TRAILERS
+- “More like this” must be relevant to the current title.
+- Use genres, tone, themes, audience, runtime, popularity, and user preferences.
+- Show runtime clearly.
+- Add trailer play button in top-right corner where trailers exist.
+- Track trailer opens as a learning signal.
+
+17. FIX MOVIE CARD DISAPPEARING
+- Opening MovieDetail must not remove the card.
+- Returning should restore the same Discover card and stack.
+- Only remove a card after swipe/action.
+- Detail open should count as learning only, not removal.
+
+18. NOTIFICATIONS
+- Add clear notifications.
+- Add mark all as read.
+- Prevent duplicate notifications.
+
+FINAL REQUIREMENT:
+Before finishing, verify every item above has been completed.
+Run tests for:
+- account persistence
+- movie loading
+- search
+- filtering
+- no repeats
+- onboarding learning
+- daily refresh
+- swipe actions
+- trailers
+- MovieDetail return behavior
+- mobile layout
+
+Report:
+- what was completed
+- what was tested
+- what still needs work
+- any known bugs remaining

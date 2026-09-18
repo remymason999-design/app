@@ -1,0 +1,58 @@
+New explicit assignment: fix the Friends / Compare Friends scrolling and loading bug.
+On the Compare Friends page, when scrolling through another user's list, the page keeps becoming longer, scroll position jumps, content glitches, and performance gets worse as more titles load.
+I want this changed from effectively unlimited/infinite loading to proper pagination.
+Please inspect the current implementation first and identify why the list keeps expanding or reloading while scrolling.
+Then implement:
+pagination instead of endless append/infinite scroll
+20 titles per page on desktop
+10–12 titles per page on mobile
+Previous / Next controls
+current page indicator such as Page 2 of 6
+keep the current tab/filter when changing pages
+keep the selected friend when changing pages
+when changing page, return the results area to the top
+lazy-load poster images
+prevent duplicate API requests
+prevent duplicate titles being appended
+do not reload the whole Compare Friends screen unnecessarily
+Apply this to:
+Watchlists
+Watched
+For You Both
+Also fix the scrolling bug so the page does not:
+automatically move downward
+jump while posters load
+continually increase in height from duplicate results
+trigger repeated loading near the bottom
+render the same page multiple times
+Check for:
+duplicate scroll listeners
+IntersectionObserver firing repeatedly
+state effects refetching because of incorrect dependencies
+pagination state being appended instead of replaced
+image sizes changing after load and causing layout shift
+unstable React keys
+repeated backend/API calls
+Reserve the poster/card dimensions before images load so the layout does not jump.
+Add a loading skeleton for the next page rather than shifting the whole layout.
+Preserve the existing WatchSmart styling and existing Compare Friends functionality.
+Do not remove reaction data, tabs, filters, or friend comparison logic.
+Before marking complete, test:
+Scroll to the bottom of page 1.
+Confirm the page does not automatically keep expanding.
+Go to page 2.
+Go back to page 1.
+Switch between Watchlists, Watched and For You Both.
+Switch between You / friend filters where applicable.
+Confirm no duplicate cards appear.
+Confirm scroll position no longer jumps while posters load.
+Test mobile Safari and desktop web.
+Confirm API calls are not firing repeatedly while idle.
+When finished, tell me:
+what caused the bug
+files changed
+pagination size used
+API/backend changes
+performance improvements
+tests performed
+whether production web needs republishing

@@ -1,0 +1,89 @@
+modules = ["nodejs-20", "python-3.12", "web", "postgresql-16"]
+[agent]
+expertMode = true
+stack = "BEST_EFFORT_FALLBACK"
+integrations = ["resend:1.0.0"]
+
+[nix]
+channel = "stable-25_05"
+packages = ["cargo", "glibcLocales", "libiconv", "libxcrypt", "openssl", "pkg-config", "rustc"]
+
+[userenv]
+
+[userenv.shared]
+DB_NAME = "watchsmart"
+REACT_APP_BACKEND_URL = ""
+
+[userenv.production]
+PUBLIC_APP_URL = "https://Watchsmart.replit.app"
+EXPO_PUBLIC_API_URL = "https://watchsmart.uk"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start Mobile"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash start.sh"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
+name = "Start Mobile"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd mobile && EXPO_PUBLIC_API_URL=\"https://$REPLIT_DEV_DOMAIN\" npx expo start --port 8080"
+waitForPort = 8080
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 5001
+externalPort = 3002
+
+[[ports]]
+localPort = 8000
+externalPort = 80
+exposeLocalhost = true
+
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 23636
+externalPort = 3001
+
+[deployment]
+deploymentTarget = "vm"
+run = ["bash", "-c", "cd backend && exec python3 -m uvicorn server:app --host 0.0.0.0 --port 8000"]
+build = ["bash", "-c", "cd frontend && npm run build"]
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 300000

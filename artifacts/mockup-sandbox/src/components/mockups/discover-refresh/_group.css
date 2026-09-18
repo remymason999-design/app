@@ -1,0 +1,90 @@
+@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500,400&f[]=satoshi@900,700,500,400&display=swap');
+
+:root {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 97%;
+    --card: 240 8% 6%;
+    --card-foreground: 0 0% 97%;
+    --popover: 240 8% 6%;
+    --popover-foreground: 0 0% 97%;
+    --primary: 38 96% 50%;
+    --primary-foreground: 240 10% 4%;
+    --secondary: 240 6% 11%;
+    --secondary-foreground: 0 0% 97%;
+    --muted: 240 6% 11%;
+    --muted-foreground: 240 5% 64%;
+    --accent: 38 96% 50%;
+    --accent-foreground: 240 10% 4%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 97%;
+    --border: 240 6% 13%;
+    --input: 240 6% 13%;
+    --ring: 38 96% 50%;
+    --radius: 1rem;
+}
+
+html, body {
+    background: #060608;
+    color: #f8f8f8;
+    font-family: 'Satoshi', 'Helvetica Neue', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+
+* {
+    border-color: hsl(var(--border));
+}
+
+.font-heading {
+    font-family: 'Cabinet Grotesk', 'Satoshi', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.font-display {
+    font-family: 'Cabinet Grotesk', sans-serif;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+}
+
+.glass {
+    background: rgba(12, 12, 16, 0.65);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-strong {
+    background: rgba(6, 6, 8, 0.78);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.amber-glow {
+    box-shadow:
+        0 0 0 1px rgba(245, 158, 11, 0.2),
+        0 8px 24px -4px rgba(245, 158, 11, 0.4);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+.no-scrollbar {
+    scrollbar-width: none;
+}
+
+.card-shadow {
+    box-shadow:
+        0 30px 60px -15px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+::selection {
+    background: rgba(245, 158, 11, 0.35);
+    color: #fff;
+}

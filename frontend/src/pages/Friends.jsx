@@ -7,9 +7,12 @@ import {
 } from "lucide-react";
 import { apiGet, apiPost, apiDelete, formatApiError } from "@/lib/api";
 import { toast } from "sonner";
+import { capture, EVENTS } from "@/lib/analytics";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Friends() {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [me, setMe] = useState(null);
     const [friends, setFriends] = useState([]);
     const [requests, setRequests] = useState({ incoming: [], outgoing: [] });
@@ -17,6 +20,8 @@ export default function Friends() {
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState(false);
     const [copied, setCopied] = useState(null);
+    useEffect(() => { capture(EVENTS.FRIENDS_SCREEN_VIEWED, {}, { user, dedupeKey: "friends-screen" }); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     const refresh = async () => {
         const [m, f, r] = await Promise.all([
@@ -52,6 +57,7 @@ export default function Friends() {
             else if (r.status === "already_friends") toast.info("Already sharing with them");
             else if (r.status === "already_requested") toast.info("Request already pending");
             setCode("");
+            capture(EVENTS.FRIEND_REQUEST_SENT, { action: "request_sent", result: r.status }, { user, dedupeKey: `share:request:${trimmed}` });
             refresh();
         } catch (err) {
             toast.error(formatApiError(err.response?.data?.detail) || "Couldn't send request");
@@ -64,6 +70,7 @@ export default function Friends() {
         setBusy(true);
         try {
             await apiPost(`/share/requests/${id}/accept`);
+            capture(EVENTS.FRIEND_REQUEST_ACCEPTED, { action: "request_accepted", result: "accepted" }, { user, dedupeKey: `share:accept:${id}` });
             toast.success("Accepted");
             refresh();
         } catch (err) {
@@ -93,6 +100,7 @@ export default function Friends() {
 
     const nativeShare = async () => {
         if (!me?.share_url) return;
+        capture(EVENTS.FRIEND_CODE_SHARED, { source: "friends", result: "started" }, { user });
         if (navigator.share) {
             try {
                 await navigator.share({
@@ -118,13 +126,13 @@ export default function Friends() {
         <div className="min-h-screen px-5 pt-10 pb-28 max-w-md mx-auto" data-testid="friends-page">
             <button
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-2 text-zinc-400 hover:text-zinc-100 mb-6 text-sm"
+                className="flex items-center gap-2 text-zinc-300 hover:text-zinc-100 mb-6 text-sm"
                 data-testid="friends-back"
             >
                 <ArrowLeft className="w-4 h-4" /> Back
             </button>
 
-            <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Compare with friends</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-zinc-400">Compare with friends</p>
             <h1 className="font-display text-4xl mt-2 leading-tight">Two heads.<br />Better picks.</h1>
 
             {/* My code card */}
@@ -134,8 +142,8 @@ export default function Friends() {
             >
                 <div className="flex items-start justify-between gap-3 mb-4">
                     <div>
-                        <p className="text-[11px] uppercase tracking-wider text-zinc-500 mb-1">Your code</p>
-                        <div className="font-display text-4xl tracking-[0.18em]" data-testid="my-share-code">{me?.share_code}</div>
+                        <p className="text-[11px] uppercase tracking-wider text-zinc-300 mb-1">Your code</p>
+                        <div className="font-display text-4xl font-semibold text-amber tracking-[0.18em]" data-testid="my-share-code">{me?.share_code}</div>
                     </div>
                     <button
                         onClick={() => copyTo(me?.share_code || "", "code")}
@@ -147,7 +155,7 @@ export default function Friends() {
                     </button>
                 </div>
                 <div className="flex items-center gap-2 bg-black/30 rounded-xl p-2.5 border border-white/5">
-                    <code className="text-[11px] text-zinc-300 break-all flex-1 px-1" data-testid="my-share-url">
+                    <code className="text-[11px] text-zinc-200 break-all flex-1 px-1" data-testid="my-share-url">
                         {me?.share_url}
                     </code>
                     <button
@@ -162,14 +170,14 @@ export default function Friends() {
 
             {/* Add by code */}
             <form onSubmit={sendRequest} className="mt-6 space-y-2" data-testid="add-friend-form">
-                <p className="text-[11px] uppercase tracking-wider text-zinc-500">Add a friend by code</p>
+                <p className="text-[11px] uppercase tracking-wider text-zinc-400">Add a friend by code</p>
                 <div className="flex gap-2">
                     <input
                         value={code}
                         onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 12))}
                         placeholder="e.g. K7M3PQ"
                         autoCapitalize="characters"
-                        className="flex-1 bg-white/4 border border-white/10 rounded-xl px-4 py-3 font-mono tracking-[0.2em] outline-none focus:border-amber/50"
+                        className="flex-1 min-w-0 bg-white/[0.07] border border-white/20 text-white placeholder:text-zinc-300 caret-amber rounded-xl px-4 py-3 font-mono tracking-[0.2em] outline-none focus:border-amber/70"
                         data-testid="friend-code-input"
                     />
                     <button
@@ -207,7 +215,7 @@ export default function Friends() {
                                     <Avatar user={r.from} />
                                     <div className="flex-1 min-w-0">
                                         <div className="font-heading text-sm truncate">{r.from?.name || "Someone"}</div>
-                                        <div className="text-[11px] text-zinc-500">wants to compare watchlists</div>
+                                        <div className="text-[11px] text-zinc-400">wants to compare watchlists</div>
                                     </div>
                                     <button
                                         onClick={() => accept(r.request_id)}
@@ -220,7 +228,7 @@ export default function Friends() {
                                     <button
                                         onClick={() => reject(r.request_id)}
                                         disabled={busy}
-                                        className="h-9 w-9 grid place-items-center rounded-lg bg-white/5 hover:bg-white/10 text-zinc-400"
+                                        className="h-9 w-9 grid place-items-center rounded-lg bg-white/5 hover:bg-white/10 text-zinc-300"
                                         aria-label="Reject"
                                         data-testid={`reject-${r.request_id}`}
                                     >
@@ -236,16 +244,16 @@ export default function Friends() {
             {/* Outgoing requests */}
             {requests.outgoing.length > 0 && (
                 <div className="mt-6" data-testid="outgoing-requests">
-                    <h2 className="font-heading text-base mb-3 text-zinc-400">Pending</h2>
+                    <h2 className="font-heading text-base mb-3 text-zinc-300">Pending</h2>
                     <ul className="space-y-2">
                         {requests.outgoing.map((r) => (
                             <li key={r.request_id} className="rounded-2xl px-4 py-3 border border-white/5 flex items-center gap-3 bg-white/[0.02]">
                                 <Avatar user={r.to} />
                                 <div className="flex-1 min-w-0">
                                     <div className="text-sm truncate">{r.to?.name || "Friend"}</div>
-                                    <div className="text-[11px] text-zinc-500">Awaiting their response</div>
+                                    <div className="text-[11px] text-zinc-400">Awaiting their response</div>
                                 </div>
-                                <Sparkles className="w-3.5 h-3.5 text-zinc-600" />
+                                <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
                             </li>
                         ))}
                     </ul>
@@ -258,7 +266,7 @@ export default function Friends() {
                     <Users className="w-4 h-4 text-amber" /> Your watchlist friends
                 </h2>
                 {friends.length === 0 ? (
-                    <p className="text-sm text-zinc-500 glass rounded-2xl p-5">
+                    <p className="text-sm text-zinc-400 glass rounded-2xl p-5">
                         Share your code with someone to start comparing watchlists.
                     </p>
                 ) : (
@@ -274,7 +282,7 @@ export default function Friends() {
                                 <Avatar user={f} />
                                 <div className="flex-1 min-w-0">
                                     <div className="font-heading text-sm truncate">{f.name}</div>
-                                    <div className="text-[11px] text-zinc-500">{f.watchlist_size} saved</div>
+                                    <div className="text-[11px] text-zinc-400">{f.watchlist_size} saved</div>
                                 </div>
                                 <button
                                     onClick={() => navigate(`/compare/${f.user_id}`)}
@@ -285,7 +293,7 @@ export default function Friends() {
                                 </button>
                                 <button
                                     onClick={() => unfriend(f.user_id)}
-                                    className="h-9 w-9 grid place-items-center rounded-lg hover:bg-red-500/10 text-zinc-500 hover:text-red-300"
+                                    className="h-9 w-9 grid place-items-center rounded-lg hover:bg-red-500/10 text-zinc-400 hover:text-red-300"
                                     aria-label="Unfriend"
                                     data-testid={`unfriend-${f.user_id}`}
                                 >

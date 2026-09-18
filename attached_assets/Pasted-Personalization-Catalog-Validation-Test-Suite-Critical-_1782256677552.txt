@@ -1,0 +1,473 @@
+Personalization & Catalog Validation Test Suite (Critical Before Public Growth)
+
+Objective
+
+We have made significant improvements to:
+
+* Catalog eligibility
+* Recommendation ranking
+* Discovery logic
+* Taste profiles
+* Save/skip learning
+* Provider filtering
+* Quality scoring
+
+However, we currently have a major unanswered question:
+
+Is the system actually becoming better for users over time?
+
+The goal of this project is to prove that:
+
+1. New users receive increasingly relevant recommendations.
+2. The catalog quality remains high.
+3. Personalization becomes stronger as more interactions occur.
+4. Discovery remains relevant without becoming random.
+5. Old/low-quality titles are not leaking into the feed.
+6. The system is learning from behaviour rather than simply collecting data.
+
+This project should create measurable evidence that recommendation quality improves over time.
+
+⸻
+
+Phase 1: User Journey Simulation Testing
+
+Create test users that simulate realistic behaviour.
+
+Test User A: Crime/Thriller Fan
+
+Positive:
+
+* Breaking Bad
+* Better Call Saul
+* True Detective
+* Mindhunter
+* Prisoners
+* Sicario
+* The Night Of
+
+Negative:
+
+* Teen Drama
+* Reality TV
+* Romantic Comedy
+
+Run:
+
+* 25 swipes
+* 50 swipes
+* 100 swipes
+* 200 swipes
+
+Store results.
+
+⸻
+
+Test User B: Mainstream Viewer
+
+Positive:
+
+* Marvel
+* Action
+* Adventure
+* Popular Netflix originals
+
+Negative:
+
+* Foreign language content
+* Slow arthouse films
+
+Run:
+
+* 25
+* 50
+* 100
+* 200 swipes
+
+⸻
+
+Test User C: Prestige TV Viewer
+
+Positive:
+
+* Succession
+* The Bear
+* Severance
+* Chernobyl
+* Slow Horses
+
+Negative:
+
+* Reality TV
+* Sitcoms
+
+Run:
+
+* 25
+* 50
+* 100
+* 200 swipes
+
+⸻
+
+Test User D: Heavy User
+
+Simulate:
+
+* 500+
+* 1000+
+* 1500+ swipes
+
+Purpose:
+
+Verify catalog exhaustion handling.
+
+⸻
+
+Phase 2: Recommendation Improvement Measurement
+
+For each test user calculate:
+
+First 25 Swipes
+
+Measure:
+
+* Save rate
+* Skip rate
+* Average recommendation score
+* Genre overlap
+* Taste profile confidence
+
+⸻
+
+50 Swipes
+
+Repeat.
+
+⸻
+
+100 Swipes
+
+Repeat.
+
+⸻
+
+200 Swipes
+
+Repeat.
+
+⸻
+
+Required Outcome
+
+The system should demonstrate:
+
+Increasing:
+
+* Save rate
+* Taste confidence
+* Genre accuracy
+* Theme accuracy
+
+Decreasing:
+
+* Skip rate
+* Fallback usage
+* Random discovery leakage
+
+If metrics remain flat:
+
+The engine is collecting data but not learning effectively.
+
+⸻
+
+Phase 3: Feed Quality Audits
+
+For each user stage:
+
+* 0 swipes
+* 25 swipes
+* 50 swipes
+* 100 swipes
+* 200 swipes
+
+Generate top 100 recommendations.
+
+For every recommendation output:
+
+* title
+* year
+* provider
+* quality_score
+* reason_code
+* source_path
+* genre overlap
+* theme overlap
+* ranking breakdown
+* discovery contribution
+* personalization contribution
+
+⸻
+
+Phase 4: Catalog Quality Validation
+
+Generate reports on all eligible titles.
+
+Output:
+
+* total eligible titles
+* average release year
+* median release year
+* oldest eligible title
+* newest eligible title
+
+Breakdown:
+
+* pre-1960
+* pre-1980
+* pre-1990
+* pre-2000
+* pre-2005
+* 2005-2010
+* 2010+
+
+⸻
+
+Validation Rules
+
+The system should confirm:
+
+* No obscure pre-1960 titles
+* Very few pre-1980 titles
+* Limited pre-2000 titles
+* Majority modern content
+
+If old titles appear:
+
+Output exactly why.
+
+⸻
+
+Phase 5: Discovery Quality Testing
+
+Discovery is valuable.
+
+Randomness is not.
+
+Audit all cards with:
+
+* fresh_discovery
+* genre_broadening
+* fallback
+* reintroduced
+
+For each card:
+
+Output:
+
+* title
+* year
+* quality_score
+* user genre overlap
+* user theme overlap
+* why selected
+
+⸻
+
+Discovery Pass Criteria
+
+A crime/thriller user should receive:
+
+Good discovery:
+
+* mystery
+* noir
+* psychological thriller
+* prestige drama
+
+Bad discovery:
+
+* teen romance
+* reality TV
+* unrelated comedy
+
+Measure percentage of discovery cards that are adjacent to known preferences.
+
+Target:
+
+80%+ adjacent discovery.
+
+⸻
+
+Phase 6: New User Learning Verification
+
+This is the most important test.
+
+For every test profile:
+
+Compare:
+
+Recommendations at 10 swipes
+
+vs
+
+Recommendations at 100 swipes
+
+Calculate:
+
+* average genre overlap
+* average theme overlap
+* average save probability
+* average ranking confidence
+
+Question:
+
+Does the feed clearly become more personalized?
+
+If not:
+
+Investigate ranking weights.
+
+⸻
+
+Phase 7: Learning Source Analysis
+
+For each recommendation shown:
+
+Log:
+
+* onboarding influence %
+* taste profile influence %
+* save history influence %
+* watched history influence %
+* discovery influence %
+* quality influence %
+* fallback influence %
+
+Output averages at:
+
+* 0 swipes
+* 25 swipes
+* 50 swipes
+* 100 swipes
+* 200 swipes
+
+Expected trend:
+
+Onboarding influence decreases.
+
+Behaviour influence increases.
+
+⸻
+
+Phase 8: Real User Validation
+
+Run analysis on actual users.
+
+Examples:
+
+* George
+* Chloe
+* Mike
+* Other active users
+
+For each user:
+
+Output:
+
+* total swipes
+* saves
+* skips
+* watched
+* taste profile confidence
+* top genres
+* top themes
+* top actors/directors if available
+
+Then answer:
+
+1. Has the system learned anything unique about this user?
+2. Is the current feed reflecting those learned preferences?
+3. What percentage of recommendations come from learned behaviour versus generic ranking?
+
+⸻
+
+Phase 9: Personalization Score
+
+Create a new metric:
+
+personalization_score
+
+Scale:
+
+0-100
+
+Factors:
+
+* behaviour learned
+* confidence
+* recommendation accuracy
+* save rate
+* genre consistency
+* theme consistency
+
+Examples:
+
+0-30:
+Generic recommendations
+
+30-60:
+Basic personalization
+
+60-80:
+Strong personalization
+
+80-100:
+Highly personalized feed
+
+Display this in diagnostics.
+
+⸻
+
+Success Criteria
+
+The project passes only if all of the following are true:
+
+✓ Catalog is predominantly modern and high quality.
+
+✓ Old-title leakage is explained and controlled.
+
+✓ Save rates improve after learning begins.
+
+✓ Skip rates decrease over time.
+
+✓ Discovery remains adjacent to user tastes.
+
+✓ Behaviour-based ranking overtakes onboarding-based ranking.
+
+✓ Active users receive noticeably different feeds from one another.
+
+✓ Recommendation explanations clearly reflect learned preferences.
+
+✓ Personalization improves between 25 and 100+ interactions.
+
+✓ We can prove with data that the engine is becoming better for individual users.
+
+⸻
+
+Final Deliverable
+
+Produce a Recommendation Health Report showing:
+
+* Catalog quality score
+* Discovery quality score
+* Personalization score
+* Learning effectiveness score
+* Fallback dependency score
+* Top recommendation issues
+* Suggested ranking improvements
+
+The report should allow us to confidently answer:
+
+“Is WatchSmart genuinely learning from users and improving recommendations over time?”
+
+with measurable evidence rather than assumptions.

@@ -1,0 +1,76 @@
+Fix long-session personalization learning.
+
+Problem:
+After 130 swipes, the feed still does not feel personalised.
+It keeps showing:
+- Japanese/international films I do not want
+- documentaries I would never watch
+- older 70s/80s/90s films I am not interested in
+
+Requirements:
+- After enough swipe history, user behaviour must strongly affect the feed.
+- 130 swipes should be enough to noticeably change recommendations.
+
+Add stronger negative learning:
+- repeated skips on Japanese/international titles should reduce foreign-language/international exposure
+- repeated skips on old films should reduce older decade exposure
+- repeated skips on certain documentary types should reduce those documentary subtypes
+- repeated skips should matter more than one-off skips
+
+Track and learn:
+- original language / country
+- decade preference
+- release year range
+- documentary subtype
+- tone
+- pacing
+- genre
+- runtime
+- popularity level
+
+Add user controls/preferences:
+- Show international/foreign-language films
+- Show older films/classics
+- Preferred release years:
+  - Recent only
+  - Last 10 years
+  - Any year
+  - Classics included
+- Documentary subtypes:
+  - true crime
+  - sport
+  - nature
+  - history
+  - music
+  - political
+  - celebrity
+  - war
+
+Ranking rules:
+- If user repeatedly skips a pattern, reduce it quickly.
+- If user saves/watches a pattern, increase it gradually.
+- Do not keep showing the same disliked pattern because it scores highly.
+- Recent swipe behaviour should matter more than onboarding choices.
+- After 50+ actions, behaviour should outweigh cold-start assumptions.
+- After 100+ actions, feed should feel clearly adapted.
+
+Debug:
+Add user taste debug showing:
+- skipped languages
+- skipped decades
+- disliked documentary subtypes
+- preferred decades
+- preferred languages
+- top negative signals
+- why a card was still shown
+
+Test:
+- simulate 130 swipes with repeated skips on Japanese films
+- confirm Japanese films reduce sharply
+- simulate skips on 70s/80s/90s films
+- confirm older films reduce
+- simulate skips on unwanted documentary subtypes
+- confirm those subtypes reduce
+
+Goal:
+The feed should stop repeating patterns the user is clearly rejecting.

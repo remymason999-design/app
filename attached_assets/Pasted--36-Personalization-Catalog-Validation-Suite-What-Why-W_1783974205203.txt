@@ -1,0 +1,44 @@
+#36 - Personalization & Catalog Validation Suite
+
+What & Why
+
+We need measurable proof that the engine actually gets better for users over time — not just that it collects data. This task builds a repeatable validation harness that simulates realistic test users, runs them through staged swipe volumes, and measures whether personalization strengthens and catalog quality holds. It produces a Recommendation Health Report so we can answer "Is WatchSmart genuinely learning?" with evidence. This is diagnostics/measurement only — it must not change live ranking behaviour for real users.
+
+Important: a known real-data finding is that taste profiles currently generate empty (generated_at null, zero genre weights, zero interactions) — so the engine effectively still runs on onboarding data. A first job of this suite is to surface whether learning is actually happening; if profiles stay empty after swipes, the report must flag the taste-profile generation gap rather than silently reporting "flat."
+
+Done looks like
+
+Simulated test personas exist (e.g. crime/thriller fan, mainstream viewer, prestige-TV viewer, heavy user) with realistic positive/negative preferences.
+Each persona can be run through staged swipe volumes (25 / 50 / 100 / 200, plus a heavy 500+/1000+ run for catalog-exhaustion) with results stored.
+For each stage the suite reports save rate, skip rate, average recommendation score, genre/theme overlap, and taste-profile confidence — and shows the trend across stages.
+Feed-quality audits output the top recommendations per stage with title, year, provider, quality_score, reason_code, source_path, genre/theme overlap, and personalization vs discovery contribution.
+Catalog-quality validation reports total eligible titles, avg/median/oldest/newest year, and the pre-1960/80/90/2000/2005/2005-2010/2010+ breakdown, flagging any old titles with the reason they passed.
+Discovery-quality audit measures what % of discovery cards are adjacent to a user's known tastes (target 80%+ adjacent), listing bad discovery (e.g. teen romance for a crime fan).
+Learning-source analysis estimates onboarding vs taste vs save vs watched vs discovery vs quality vs fallback influence and shows onboarding influence falling / behaviour influence rising across stages.
+A new personalization_score (0–100) is computed and shown in diagnostics, plus analysis of real active users (e.g. George, Chloe) answering whether the system learned anything unique about them.
+A final Recommendation Health Report summarizes catalog quality, discovery quality, personalization, learning effectiveness, and fallback dependency, with top issues and suggested ranking improvements.
+The report clearly separates two kinds of learning: (1) per-user learning — "does this user's feed improve as they swipe?" — and (2) system-wide learning — "do new users get a better Day-1 experience than older users did?". The system-wide part is not solved here, but the report measures a baseline so the global-learning task can improve it later.
+The suite enforces explicit pass/fail thresholds on taste-profile formation and FAILS (flagging a critical bug) if profiles stay empty past the interaction thresholds below.
+Out of scope
+
+Changing the live ranking/scoring for real users (this suite only measures; tuning is a follow-up).
+The aggregate cross-user / community learning system (separate task).
+Building new UI beyond diagnostics output (report can live in the existing admin diagnostics surface).
+Steps
+
+Persona simulation harness — Build configurable test users with positive/negative taste definitions and a runner that issues N simulated swipes against the real engine, recording each decision and the served feed.
+Per-stage metrics — At 25/50/100/200 (and heavy runs), compute save/skip rate, avg score, genre/theme overlap, and taste confidence; store per stage for trend comparison.
+Feed-quality audit — For each stage emit the top recommendations with full ranking breakdown (reason_code, source_path, overlaps, personalization vs discovery contribution).
+Catalog-quality validation — Report eligible-title counts, year stats, and the age-band breakdown; flag and explain any old titles (cross-checks the Catalog Quality Phase 2 work).
+Discovery-quality audit — Classify discovery/broadening/fallback/reintro cards by adjacency to user tastes and report the adjacent percentage against the 80% target.
+Learning-source analysis — Estimate the influence mix per recommendation and average it per stage to show onboarding→behaviour shift.
+Personalization score + real-user analysis — Define and compute personalization_score (0–100); run it on real active users and summarize learned preferences vs generic ranking.
+Pass/fail rules on learning — Enforce staged thresholds and fail the suite (flagging a critical bug) when they're violated: 0–25 swipes onboarding-led is acceptable; 25–50 swipes the taste profile should begin forming; 50+ swipes the taste profile must NOT be empty; 100+ swipes behaviour-based influence should be clearly visible; 200+ swipes recommendations should be materially different from Day 1.
+Recommendation Health Report — Assemble all scores and findings into one report surfaced in admin diagnostics, including top issues and suggested improvements; explicitly flag the taste-profile generation gap if profiles remain empty. Separate per-user learning from system-wide (new-user Day-1) learning and record a system-wide baseline for the global-learning task to improve later.
+Relevant files
+
+backend/sim_personas.py
+backend/engine.py
+backend/taste.py
+backend/core.py:399,697
+backend/routers/discovery.py:73-80,225-260

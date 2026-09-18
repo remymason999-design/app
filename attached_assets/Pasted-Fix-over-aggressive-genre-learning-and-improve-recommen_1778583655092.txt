@@ -1,0 +1,132 @@
+Fix over-aggressive genre learning and improve recommendation personalization.
+
+PROBLEMS
+
+1. The recommendation engine overreacts to single interactions.
+Example:
+- liking one Action Comedy suddenly floods Discover with Comedy titles.
+- recommendation reasons become generic:
+  “Because you like Comedy.”
+
+2. Recommendations do not feel nuanced or personal enough.
+
+3. Documentary recommendations are weak/inconsistent and often do not appear correctly.
+
+====================================================================
+1. FIX OVER-WEIGHTED GENRE LEARNING
+====================================================================
+
+Requirements:
+- Do NOT massively boost a genre from a single like/save/swipe.
+- Use gradual learning instead of instant genre domination.
+- Add decay/balance logic so one interaction cannot overwhelm Discover.
+
+Example:
+- One liked Action Comedy should slightly increase:
+  - Action
+  - Comedy
+  - tone similarity
+but should NOT turn the feed into mostly Comedy.
+
+Use weighted signals:
+- multiple saves
+- repeated watches
+- repeated trailer opens
+- repeated detail views
+- search frequency
+- completion/watch confirmations
+- long-term engagement
+
+Add balancing:
+- genre diversity
+- tone diversity
+- popularity diversity
+- freshness diversity
+
+Goal:
+Recommendations should evolve naturally over time instead of swinging aggressively.
+
+====================================================================
+2. IMPROVE PERSONALIZATION
+====================================================================
+
+Current problem:
+Reasons feel generic and shallow.
+
+Requirements:
+- Build deeper user taste understanding using:
+  - themes
+  - tones
+  - pacing
+  - runtime preference
+  - dark/light mood
+  - realism vs fantasy
+  - intense vs relaxed
+  - mainstream vs niche
+  - emotional vs action-heavy
+- Recommendation reasons should reference:
+  - viewing behavior
+  - saved titles
+  - skipped patterns
+  - runtime preferences
+  - streaming habits
+  - recurring themes
+
+Avoid generic:
+- “Because you like Comedy”
+- “Because you like Action”
+
+Prefer:
+- “You tend to save darker crime stories with fast pacing.”
+- “Similar tone to thrillers you recently watched.”
+- “A shorter sci-fi pick based on your recent viewing habits.”
+
+Goal:
+The app should feel like it understands WHY users like films.
+
+====================================================================
+3. FIX DOCUMENTARY HANDLING
+====================================================================
+
+Problem:
+Documentaries are not surfacing correctly.
+
+Requirements:
+- Ensure Documentary works as a proper genre in:
+  - Discover
+  - onboarding taste-check
+  - search
+  - recommendation ranking
+- Documentary should not be treated as fallback/noise content.
+- If a user genuinely engages with documentaries:
+  - increase documentary ranking gradually
+  - diversify documentary subtypes
+- Distinguish:
+  - true documentaries
+  - docu-series
+  - reality TV
+  - biography/history content
+
+Test:
+- Documentary-only user
+- Documentary + Crime user
+- Documentary + History user
+
+====================================================================
+4. TESTING
+====================================================================
+
+Before marking complete:
+- test users with mixed tastes
+- test long-term preference balancing
+- test documentary-heavy profiles
+- verify recommendations stay diverse
+- verify recommendation reasons become more nuanced
+- verify one interaction does not dominate the feed
+
+Report:
+1. what ranking logic changed
+2. what learning weights changed
+3. how diversity balancing works
+4. documentary fixes
+5. before vs after examples

@@ -69,6 +69,11 @@ export default function ForgotPassword() {
                     <div className="space-y-5" data-testid="forgot-result">
                         <div className="glass rounded-2xl p-5">
                             <div className="text-sm text-zinc-300 mb-3">{result.message}</div>
+                            {!result.reset_url && (
+                                <p className="text-xs text-emerald-400">
+                                    If that email is registered, check your inbox — the link expires in 1 hour.
+                                </p>
+                            )}
                             {result.reset_url && (
                                 <>
                                     <p className="text-[11px] uppercase tracking-wider text-zinc-500 mb-2">Your reset link (1 hour)</p>
@@ -86,7 +91,7 @@ export default function ForgotPassword() {
                                         </button>
                                     </div>
                                     <p className="text-[11px] text-zinc-500 mt-3">
-                                        Email delivery isn't wired yet — copy this link or open it directly to set a new password.
+                                        Dev mode — the link is shown here for convenience. In production it's sent by email only.
                                     </p>
                                 </>
                             )}

@@ -1,0 +1,648 @@
+Discover Screen Redesign Fix — Final Detailed Specification
+
+Problem
+
+The current redesign is becoming messy.
+
+It is still too close to the old Discover layout with a visual skin applied.
+
+Main issues:
+
+* Top bar looks cluttered and unpremium.
+* Logo/search/notification/profile/greeting are fighting for attention.
+* Movie card has too many badges and metadata items.
+* Primary action buttons are not visible enough.
+* Rewind / Skip / Watched / Save must always be easy to access.
+* The screen does not yet feel like a clean swipe-first decision app.
+
+The goal is not to keep tweaking the current layout.
+
+The goal is to simplify and rebuild the Discover screen around one clear action:
+
+Find something to watch quickly.
+
+⸻
+
+Core Principle
+
+Discover should feel like:
+
+Netflix meets Tinder
+
+Not:
+
+TMDB with orange buttons
+
+The user should immediately understand:
+
+1. What is being recommended.
+2. Why it is being recommended.
+3. What action they can take.
+
+⸻
+
+1. Remove the Current Top Bar
+
+Remove from the Discover header:
+
+* WatchSmart logo
+* large orange profile initial circle
+* notification badge
+* cramped “GOOD MORNING REMY” styling
+* any header layout that causes text truncation
+
+The logo should appear on:
+
+* splash screen
+* onboarding
+* profile/settings
+* website/app branding
+
+It should NOT dominate the Discover screen.
+
+⸻
+
+2. New Discover Header
+
+Use a simple premium header.
+
+Layout
+
+Top left:
+
+Good morning, Remy
+
+Below it:
+
+What are we watching tonight?
+
+Top right:
+
+* Search icon
+* Small profile avatar
+
+No notification badge for now unless it is already essential.
+
+Style
+
+“Good morning, Remy”
+
+* small
+* muted grey
+* normal weight
+
+“What are we watching tonight?”
+
+* large
+* bold
+* white
+* must not be truncated
+* allow wrapping to 2 lines if needed
+
+Profile avatar:
+
+* small
+* 36–40px
+* not oversized
+* not bright orange unless using real avatar fallback
+* should not overpower the card
+
+Search:
+
+* small circular dark icon button
+* subtle border
+* muted icon
+
+⸻
+
+3. Discover Tabs
+
+Replace current tabs:
+
+* For You
+* Trending
+* Upcoming
+
+with:
+
+* For You
+* Movies
+* TV Shows
+* New
+
+Reason:
+Trending and Upcoming are recommendation sources/categories, not user decision modes.
+
+The tabs should answer what the user wants to browse.
+
+Style
+
+Active tab:
+
+* orange pill
+* dark text or white text depending readability
+
+Inactive tabs:
+
+* dark surface
+* muted grey text
+* subtle border
+
+Tabs should fit horizontally and scroll only if absolutely necessary.
+
+⸻
+
+4. Main Card: Reduce Information Density
+
+The current card shows too many items at once.
+
+Do not show everything on the card.
+
+The card should show only the essentials.
+
+Card hierarchy
+
+The order of importance must be:
+
+1. Poster/backdrop image
+2. Title
+3. Why recommended
+4. Match score
+5. Basic metadata
+6. Provider availability
+
+The title must be the dominant text element.
+
+⸻
+
+5. Card Layout
+
+Use one large cinematic card.
+
+Card size
+
+* Card should take most of the available screen height.
+* Rounded corners.
+* Strong dark gradient overlay from bottom.
+* Subtle orange/dark shadow.
+* Image should be high impact.
+
+Top of card
+
+Top left:
+
+* Match score pill only
+
+Example:
+
+92% Match
+
+Top right:
+
+* Info icon
+
+Do not add multiple icons here.
+
+⸻
+
+6. Card Badge Rules
+
+Do NOT show too many badges.
+
+Current issue:
+Dark / Adult / Crime / Drama / reason / rating / year / runtime / providers are all competing.
+
+Show max 3 genre/tone chips
+
+Example:
+Crime · Thriller · Mystery
+
+If more exist, hide them or show “+2”.
+
+Do not show “Adult” as a large chip
+
+If age rating exists, show it in the metadata row instead.
+
+Example:
+2007 · 2h 3m · 15
+
+Remove excessive tone badges from the visible card
+
+Tone/reason should be in one simple line.
+
+⸻
+
+7. Recommendation Reason
+
+Keep one short reason line.
+
+Example:
+
+Because you liked Mindhunter
+
+or
+
+More crime thrillers you might enjoy
+
+or
+
+Dark drama based on your saves
+
+Style
+
+* orange text
+* small
+* one line only
+* truncate if too long
+
+Do not allow long AI-like reason text to clutter the card.
+
+⸻
+
+8. Title Treatment
+
+Title should be:
+
+* large
+* bold
+* white
+* 2 lines max
+* visually dominant
+
+If the title is long, reduce font size slightly but do not let it destroy layout.
+
+Example:
+
+National Treasure:
+Book of Secrets
+
+should look clean across two lines.
+
+⸻
+
+9. Metadata Row
+
+Under the title:
+
+Rating · Year · Runtime · Age rating
+
+Example:
+
+★ 7.9 · 2007 · 2h 3m · 15
+
+Keep this single-line where possible.
+
+Use muted white/grey.
+
+Do not make metadata brighter than the title.
+
+⸻
+
+10. Overview Text
+
+Show max 2 lines only.
+
+Do not allow long descriptions to push buttons off screen.
+
+If more text is needed, user taps info/detail.
+
+⸻
+
+11. Provider Badges
+
+Provider badges should be at the bottom-left of the card.
+
+Show max 3 providers.
+
+If more exist:
+
++2
+
+Provider badges should be small, clean, and not overpower the card.
+
+⸻
+
+12. Fixed Action Buttons
+
+This is critical.
+
+The Discover action buttons must always be visible.
+
+They should NOT disappear below the fold.
+
+They should NOT require scrolling down.
+
+They should be sticky/fixed above the bottom navigation.
+
+Required buttons
+
+Rewind · Skip · Watched · Save
+
+No separate Undo button.
+
+Rewind uses the undo/reverse logic behind the scenes.
+
+Position
+
+Buttons sit in a fixed action bar:
+
+* above bottom navigation
+* below the card
+* always visible
+* safe-area aware on iPhone
+* not hidden by Safari/mobile browser bottom bar
+* not pushed off screen by card content
+
+Layout
+
+Four evenly spaced circular buttons.
+
+Label under each button:
+
+* Rewind
+* Skip
+* Watched
+* Save
+
+Button meanings
+
+Rewind:
+
+* restores previous card
+* reverses previous action if needed
+* one step only
+
+Skip:
+
+* current title not interested
+
+Watched:
+
+* user has already watched it
+* removes from future feed
+* applies watched signal
+
+Save:
+
+* add to watchlist
+
+⸻
+
+13. Button Visual Style
+
+Rewind:
+
+* dark button
+* orange outline/icon
+* label muted/orange
+
+Skip:
+
+* dark button
+* red or muted icon
+* label muted
+
+Watched:
+
+* dark button
+* green icon
+* label muted/green
+
+Save:
+
+* dark button
+* orange or green heart icon
+* label orange/green
+
+Buttons should feel premium, not toy-like.
+
+Do not use huge bright circles that overpower the card.
+
+⸻
+
+14. Bottom Navigation
+
+Bottom nav remains:
+
+Discover · Watchlist · Friends · Savings
+
+Profile is not in bottom nav.
+
+Bottom nav style
+
+* fixed bottom
+* dark glass effect
+* subtle border
+* active item orange
+* inactive items muted grey
+* compact height
+* safe-area padding
+
+The action buttons must sit above this bottom nav.
+
+There should be clear separation between:
+
+* card
+* action buttons
+* bottom nav
+
+⸻
+
+15. No Page Scrolling for Main Discover Decision
+
+The main Discover view should fit inside the viewport.
+
+The user should not need to scroll just to access the core controls.
+
+Allowed:
+
+* detail page can scroll
+* expanded info panel can scroll
+* watchlist can scroll
+* savings can scroll
+
+But the primary Discover decision screen must be one-screen-first.
+
+If content exceeds height, reduce:
+
+* overview length
+* card height
+* chip count
+* metadata
+* header spacing
+
+Do not push buttons off screen.
+
+⸻
+
+16. Mobile Viewport Requirements
+
+Test on mobile widths:
+
+* iPhone 13/14/15 standard
+* small mobile width around 375px
+* Safari mobile browser
+* PWA/mobile viewport if available
+
+Acceptance:
+
+* Header does not truncate awkwardly.
+* Card fits cleanly.
+* Rewind/Skip/Watched/Save visible.
+* Bottom nav visible.
+* No accidental overlap with browser/Safari controls.
+* No horizontal overflow.
+
+⸻
+
+17. Discover Screen Final Structure
+
+The final Discover structure should be:
+
+1. Premium header
+    * Good morning, Remy
+    * What are we watching tonight?
+    * Search
+    * Profile avatar
+2. Tabs
+    * For You
+    * Movies
+    * TV Shows
+    * New
+3. Cinematic recommendation card
+    * Match score
+    * Info
+    * Title
+    * Short reason
+    * Genres
+    * Metadata
+    * 2-line overview
+    * Provider badges
+4. Fixed action buttons
+    * Rewind
+    * Skip
+    * Watched
+    * Save
+5. Fixed bottom nav
+    * Discover
+    * Watchlist
+    * Friends
+    * Savings
+
+⸻
+
+18. What To Remove
+
+Remove from visible Discover:
+
+* permanent WatchSmart logo
+* notification badge unless required
+* oversized orange profile initial
+* Trending tab
+* Upcoming tab
+* too many genre/tone chips
+* long recommendation reason text
+* long overview text
+* old arrows
+* separate Undo button
+* any action buttons hidden below scroll
+
+⸻
+
+19. What Not To Break
+
+Do not break:
+
+* recommendation feed loading
+* provider filtering
+* save action
+* skip action
+* watched action
+* rewind/undo backend logic
+* match score
+* detail/info view
+* watchlist
+* savings
+* friends
+* profile/settings
+* analytics
+* GB region behaviour
+
+⸻
+
+20. Implementation Order
+
+Do this in order:
+
+Step 1
+
+Rebuild the Discover header.
+
+Step 2
+
+Replace tabs with:
+For You / Movies / TV Shows / New
+
+Step 3
+
+Simplify the recommendation card content.
+
+Step 4
+
+Make title and image the visual focus.
+
+Step 5
+
+Add fixed action button bar:
+Rewind / Skip / Watched / Save
+
+Step 6
+
+Ensure bottom nav remains fixed and does not overlap action buttons.
+
+Step 7
+
+Test mobile viewport and safe-area spacing.
+
+Step 8
+
+Compile and verify no functionality broke.
+
+⸻
+
+21. Acceptance Criteria
+
+This task is complete only when:
+
+1. Discover no longer looks like the old layout with a new colour scheme.
+2. The top bar is clean and premium.
+3. The logo is removed from the Discover header.
+4. Search/profile are subtle and not dominant.
+5. Tabs are For You / Movies / TV Shows / New.
+6. Card is cinematic and less cluttered.
+7. Title is the dominant card text.
+8. Recommendation reason is short and useful.
+9. Max 3 chips are visible.
+10. Overview is max 2 lines.
+11. Provider badges are clean and small.
+12. Rewind / Skip / Watched / Save are always visible.
+13. Buttons are fixed above bottom nav.
+14. Bottom nav remains Discover / Watchlist / Friends / Savings.
+15. No scrolling is required to use Discover.
+16. Existing recommendation functionality still works.
+
+⸻
+
+Final Direction
+
+Do not keep polishing the current messy screen.
+
+Simplify it.
+
+The Discover screen should feel like a fast premium decision screen.
+
+One recommendation.
+
+Four actions.
+
+No clutter.

@@ -24,6 +24,8 @@ Hierarchy:
 """
 from __future__ import annotations
 
+import math
+from datetime import datetime, timezone
 from typing import Optional
 
 # Genre tiers --------------------------------------------------------------
@@ -53,6 +55,7 @@ THEME_KEYWORDS = {
     "biographical": ("based on the true story", "real life", "biopic"),
     "true-crime": ("true crime", "real-life murder", "investigation"),
     "feel-good": ("feel-good", "heartwarming", "uplift", "joyful"),
+    "holiday": ("christmas", "santa", "holiday season", "thanksgiving", "yuletide", "festive"),
     "psychological": ("psychological", "obsession", "unreliable narrator"),
     "survival": ("survive", "stranded", "wilderness", "isolat"),
     "dystopian": ("dystopia", "totalitarian", "oppressive society"),
@@ -126,6 +129,12 @@ KEYWORD_THEME_MAP = {
     "wilderness": "survival",
     "feel good": "feel-good",
     "heartwarming": "feel-good",
+    "wholesome": "feel-good",
+    "christmas": "holiday",
+    "christmas movie": "holiday",
+    "santa claus": "holiday",
+    "holiday": "holiday",
+    "thanksgiving": "holiday",
     "nostalgic": "nostalgic",
     "romance": "romance",
     "love": "romance",
@@ -143,9 +152,220 @@ KEYWORD_THEME_MAP = {
     "hospital": "medical-drama",
     "lawyer": "courtroom",
     "courtroom": "courtroom",
+    "court room": "courtroom",
+    "trial": "courtroom",
     "orphan": "found-family",
     "dramatic": "drama-heavy",
     "suspenseful": "suspense",
+    # ── New theme vocabulary (Task #8) ───────────────────────────────────────
+    # Superhero / comic-book
+    "superhero": "superhero",
+    "marvel comic": "superhero",
+    "marvel cinematic universe": "superhero",
+    "dc comics": "superhero",
+    "dc extended universe": "superhero",
+    "based on dc comic": "comic-book",
+    "based on marvel comic": "comic-book",
+    "comic book": "comic-book",
+    "graphic novel": "comic-book",
+    # Horror sub-types
+    "slasher": "slasher",
+    "slasher film": "slasher",
+    "splatter": "slasher",
+    "ghost": "supernatural",
+    "haunting": "supernatural",
+    "haunted house": "supernatural",
+    "vampire": "supernatural",
+    "werewolf": "supernatural",
+    "witch": "supernatural",
+    "demon": "supernatural",
+    "exorcism": "supernatural",
+    "zombie": "supernatural",
+    "psychological horror": "psychological-horror",
+    # Crime sub-types
+    "serial killer": "serial-killer",
+    "gangster": "gangster",
+    "gang": "gangster",
+    "mafia": "mafia",
+    "organized crime": "mafia",
+    "yakuza": "mafia",
+    "revenge": "revenge",
+    "vendetta": "revenge",
+    "prison": "prison-drama",
+    "prisoner": "prison-drama",
+    "jail": "prison-drama",
+    # Action sub-types
+    "martial arts": "martial-arts",
+    "kung fu": "martial-arts",
+    "karate": "martial-arts",
+    "samurai": "martial-arts",
+    "wuxia": "martial-arts",
+    "disaster": "disaster",
+    "disaster film": "disaster",
+    "apocalypse": "disaster",
+    # Sci-Fi sub-types
+    "time travel": "time-travel",
+    "time loop": "time-travel",
+    "alternate timeline": "time-travel",
+    "cyberpunk": "cyberpunk",
+    "robot": "robots-ai",
+    "artificial intelligence": "robots-ai",
+    "alien": "alien-contact",
+    "first contact": "alien-contact",
+    # Documentary sub-types
+    "sport": "sports-doc",
+    "sports": "sports-doc",
+    "athlete": "sports-doc",
+    "music documentary": "music-doc",
+    "musician": "music-doc",
+    "concert film": "music-doc",
+    "rockumentary": "music-doc",
+    "nature": "nature-doc",
+    "wildlife": "nature-doc",
+    "environment": "nature-doc",
+    "ocean": "nature-doc",
+    "food": "food-doc",
+    "cooking": "food-doc",
+    "history": "history-doc",
+    "historical": "history-doc",
+    # Drama / character pieces
+    "family drama": "family-drama",
+    "wedding": "romance",
+    "musical": "musical",
+    "western": "western-classic",
+    "noir": "neo-noir",
+    "neo-noir": "neo-noir",
+    "film noir": "neo-noir",
+    "heist movie": "heist",
+    # Tone / mood markers
+    "violent": "graphic-violence",
+    "gore": "graphic-violence",
+    "weird": "surreal",
+    "surreal": "surreal",
+    "absurd": "surreal",
+    "experimental": "surreal",
+}
+
+# Studio → themes (Task #8): well-known production companies and franchises
+# carry strong taste signal. Stored on titles as `studio_names`.
+STUDIO_THEME_MAP: dict[str, tuple[str, ...]] = {
+    "marvel studios":                  ("superhero", "comic-book"),
+    "marvel entertainment":            ("superhero", "comic-book"),
+    "marvel television":               ("superhero", "comic-book"),
+    "dc films":                        ("superhero", "comic-book"),
+    "dc entertainment":                ("superhero", "comic-book"),
+    "dc studios":                      ("superhero", "comic-book"),
+    "lucasfilm":                       ("space-opera", "epic-journey"),
+    "pixar":                           ("feel-good", "family-drama"),
+    "pixar animation studios":         ("feel-good", "family-drama"),
+    "walt disney animation studios":   ("feel-good",),
+    "studio ghibli":                   ("anime",),
+    "blumhouse productions":           ("supernatural", "psychological"),
+    "a24":                             ("psychological", "surreal"),
+    "hammer film productions":         ("supernatural",),
+    "amblin entertainment":            ("feel-good", "epic-journey"),
+    "hbo":                             ("limited-series",),
+    "bbc":                             ("limited-series",),
+    "wwe studios":                     ("sports-doc",),
+    "espn films":                      ("sports-doc",),
+    "imagine documentaries":           ("biographical",),
+}
+
+# Country code → themes. Origin country gives strong stylistic priors
+# independent of language (Korean cinema, Nordic noir, etc.).
+COUNTRY_THEME_MAP: dict[str, tuple[str, ...]] = {
+    "KR": ("k-content",),
+    "JP": ("j-content",),
+    "IN": ("bollywood",),       # mirror of tags['bollywood']
+    "FR": ("french-cinema",),
+    "ES": ("spanish-cinema",),
+    "DE": ("german-cinema",),
+    "IT": ("italian-cinema",),
+    "MX": ("latin-american",),
+    "BR": ("latin-american",),
+    "AR": ("latin-american",),
+    "CN": ("chinese-cinema",),
+    "TW": ("chinese-cinema",),
+    "HK": ("hong-kong",),
+    "SE": ("nordic",),
+    "NO": ("nordic",),
+    "DK": ("nordic",),
+    "FI": ("nordic",),
+    "IS": ("nordic",),
+    "TR": ("turkish-cinema",),
+}
+
+# Language code → themes. Used when country is unavailable.
+LANGUAGE_THEME_MAP: dict[str, tuple[str, ...]] = {
+    "ko": ("k-content",),
+    "ja": ("j-content",),
+    "fr": ("french-cinema",),
+    "es": ("spanish-cinema",),
+    "de": ("german-cinema",),
+    "it": ("italian-cinema",),
+    "zh": ("chinese-cinema",),
+    "cn": ("chinese-cinema",),
+    "sv": ("nordic",),
+    "no": ("nordic",),
+    "da": ("nordic",),
+    "fi": ("nordic",),
+    "is": ("nordic",),
+    "tr": ("turkish-cinema",),
+}
+
+# Actor → themes (small high-signal set; carries persona/subgenre intent that
+# regularly drives audience expectations — e.g. a Jackie Chan film is almost
+# always martial-arts, a Vin Diesel film is almost always action-thriller).
+ACTOR_THEME_MAP: dict[str, tuple[str, ...]] = {
+    "jackie chan":         ("martial-arts",),
+    "jet li":              ("martial-arts",),
+    "donnie yen":          ("martial-arts",),
+    "tony jaa":            ("martial-arts",),
+    "bruce lee":           ("martial-arts",),
+    "michelle yeoh":       ("martial-arts",),
+    "vin diesel":          ("action-thriller",),
+    "jason statham":       ("action-thriller",),
+    "dwayne johnson":      ("action-thriller",),
+    "keanu reeves":        ("action-thriller",),
+    "liam neeson":         ("revenge", "action-thriller"),
+    "tom cruise":          ("action-thriller", "espionage"),
+    "denzel washington":   ("moral-grey",),
+    "robert de niro":      ("gangster", "mafia"),
+    "al pacino":           ("gangster", "mafia"),
+    "joe pesci":           ("gangster", "mafia"),
+    "adam sandler":        ("feel-good",),
+    "kevin hart":          ("feel-good",),
+    "melissa mccarthy":    ("feel-good",),
+    "will ferrell":        ("dark-comedy",),
+    "steve carell":        ("dark-comedy",),
+    "tom hanks":           ("feel-good", "biographical"),
+    "leonardo dicaprio":   ("biographical", "moral-grey"),
+    "robert downey jr.":   ("superhero", "comic-book"),
+    "chris evans":         ("superhero", "comic-book"),
+    "chris hemsworth":     ("superhero", "comic-book"),
+    "scarlett johansson":  ("superhero", "comic-book"),
+    "ryan reynolds":       ("superhero", "comic-book"),
+    "hugh jackman":        ("superhero", "comic-book"),
+    "henry cavill":        ("superhero", "comic-book"),
+    "ben affleck":         ("superhero", "comic-book"),
+    "gal gadot":           ("superhero", "comic-book"),
+}
+
+# Director → themes (small high-signal set; avoid making this a fan database)
+DIRECTOR_THEME_MAP: dict[str, tuple[str, ...]] = {
+    "christopher nolan":     ("mind-bending", "psychological"),
+    "denis villeneuve":      ("mind-bending", "space-opera"),
+    "david fincher":         ("psychological", "serial-killer"),
+    "quentin tarantino":     ("revenge", "moral-grey", "neo-noir"),
+    "martin scorsese":       ("gangster", "mafia"),
+    "wes anderson":          ("surreal", "feel-good"),
+    "guillermo del toro":    ("supernatural", "high-fantasy"),
+    "james wan":             ("supernatural", "slasher"),
+    "ari aster":             ("psychological-horror", "supernatural"),
+    "jordan peele":          ("psychological-horror", "supernatural"),
+    "ken burns":             ("history-doc",),
+    "david attenborough":    ("nature-doc",),
+    "werner herzog":         ("nature-doc", "psychological"),
 }
 
 # Audience by certification (region-specific). Includes UK BBFC + US MPA + TV ratings.
@@ -177,52 +397,115 @@ def _certification_audience(cert: Optional[str]) -> Optional[str]:
 def _extract_themes_split(movie: dict) -> tuple[list[str], list[str]]:
     """Returns (verified_themes, inferred_themes).
 
-      verified  = TMDB curated keyword taxonomy mapped via KEYWORD_THEME_MAP
-      inferred  = overview lexical hints + genre-combo derived themes
+      verified  = TMDB curated taxonomy (keywords + studio/collection/director)
+      inferred  = overview lexical hints + genre-combo + country/language priors
     """
     verified: list[str] = []
     inferred: list[str] = []
 
-    # 1. Verified — TMDB canonical keywords
+    def _push_verified(t: str) -> None:
+        if t and t not in verified:
+            verified.append(t)
+
+    def _push_inferred(t: str) -> None:
+        if t and t not in verified and t not in inferred:
+            inferred.append(t)
+
+    # 1a. Verified — TMDB canonical keywords
     for kw in (movie.get("keywords") or []):
         mapped = KEYWORD_THEME_MAP.get(kw.lower().strip())
-        if mapped and mapped not in verified:
-            verified.append(mapped)
+        if mapped:
+            _push_verified(mapped)
+
+    # 1b. Verified — production studios (Marvel/DC → superhero etc.)
+    for studio in (movie.get("studio_names") or []):
+        for t in STUDIO_THEME_MAP.get(studio.lower().strip(), ()):
+            _push_verified(t)
+
+    # 1c. Verified — collection / franchise membership (movies only)
+    coll = (movie.get("collection_name") or "").lower().strip()
+    if coll:
+        if any(s in coll for s in ("marvel", "avengers", "x-men", "spider-man")):
+            _push_verified("superhero"); _push_verified("comic-book")
+        elif any(s in coll for s in ("dc ", "batman", "superman", "justice league")):
+            _push_verified("superhero"); _push_verified("comic-book")
+        elif "star wars" in coll:
+            _push_verified("space-opera"); _push_verified("epic-journey")
+        elif any(s in coll for s in ("james bond", "mission: impossible", "jason bourne")):
+            _push_verified("espionage")
+        elif any(s in coll for s in ("fast", "furious")):
+            _push_verified("action-thriller")
+        elif any(s in coll for s in ("conjuring", "insidious", "halloween", "scream", "saw", "nightmare on elm")):
+            _push_verified("supernatural")
+        elif any(s in coll for s in ("rocky", "creed")):
+            _push_verified("sports-doc")  # boxing → sports vibe
+
+    # 1d. Verified — director signatures
+    for director in (movie.get("director_names") or []):
+        for t in DIRECTOR_THEME_MAP.get(director.lower().strip(), ()):
+            _push_verified(t)
+
+    # 1e. Verified — lead-cast signatures (top 5 only to avoid noise from
+    # large ensembles)
+    for actor in (movie.get("cast_names") or [])[:5]:
+        for t in ACTOR_THEME_MAP.get(actor.lower().strip(), ()):
+            _push_verified(t)
 
     # 2. Inferred — overview lexical hints
     overview = (movie.get("overview") or "").lower()
     for theme, needles in THEME_KEYWORDS.items():
-        if theme in verified:
-            continue
         if any(n in overview for n in needles):
-            inferred.append(theme)
+            _push_inferred(theme)
 
-    # 3. Inferred — genre-combo rules
+    # 3. Inferred — country / language priors
+    countries = movie.get("origin_country") or movie.get("production_countries") or []
+    if isinstance(countries, str):
+        countries = [countries]
+    for c in countries:
+        code = c if isinstance(c, str) else (c.get("iso_3166_1") if isinstance(c, dict) else None)
+        if code:
+            for t in COUNTRY_THEME_MAP.get(code.upper(), ()):
+                _push_inferred(t)
+    lang = (movie.get("original_language") or "").lower().strip()
+    if lang and not countries:
+        for t in LANGUAGE_THEME_MAP.get(lang, ()):
+            _push_inferred(t)
+
+    # 4. Inferred — genre-combo rules
     genres = set(movie.get("genres") or [])
-    combo_themes = []
     if "Adventure" in genres and ("Family" in genres or "Animation" in genres):
-        combo_themes.append("epic-journey")
+        _push_inferred("epic-journey")
     if "Crime" in genres and "Drama" in genres:
-        combo_themes.append("moral-grey")
+        _push_inferred("moral-grey")
     if "Sci-Fi" in genres and ("Mystery" in genres or "Thriller" in genres):
-        combo_themes.append("mind-bending")
+        _push_inferred("mind-bending")
     if "Horror" in genres and "Mystery" in genres:
-        combo_themes.append("dread")
+        _push_inferred("dread")
     if "Fantasy" in genres and ("Adventure" in genres or "Action" in genres):
-        combo_themes.append("high-fantasy")
+        _push_inferred("high-fantasy")
     if "Sci-Fi" in genres and "Action" in genres:
-        combo_themes.append("space-opera")
+        _push_inferred("space-opera")
     if "Documentary" in genres and "Crime" in genres:
-        combo_themes.append("true-crime")
+        _push_inferred("true-crime")
+    if "Documentary" in genres and "Music" in genres:
+        _push_inferred("music-doc")
+    if "Documentary" in genres and "History" in genres:
+        _push_inferred("history-doc")
     if "War" in genres:
-        combo_themes.append("war-drama")
+        _push_inferred("war-drama")
     if "Animation" in genres and "Family" in genres:
-        combo_themes.append("feel-good")
-    for t in combo_themes:
-        if t not in verified and t not in inferred:
-            inferred.append(t)
+        _push_inferred("feel-good")
+    if "Action" in genres and "Adventure" in genres and any(
+        any(s in (st or "").lower() for s in ("marvel", "dc ", "dc films", "dc studios"))
+        for st in (movie.get("studio_names") or [])
+    ):
+        _push_inferred("superhero")
+    if "Western" in genres:
+        _push_inferred("western-classic")
+    if "Horror" in genres and ("Thriller" in genres or "Mystery" in genres):
+        _push_inferred("psychological-horror")
 
-    return verified[:8], inferred[:8]
+    return verified[:10], inferred[:10]
 
 
 def _extract_themes(movie: dict) -> list[str]:
@@ -303,6 +586,9 @@ def _classify_audience(movie: dict) -> tuple[str, bool]:
     if g & {"Horror"} or "War" in g:
         return "adult", False
     if "Animation" in g and "Family" in g:
+        return "family", False
+    # Action/adventure animation (e.g. Spider-Verse) is family content, not kids-only
+    if "Animation" in g and (g & {"Action", "Adventure"}):
         return "family", False
     if "Animation" in g:
         return "kids", False
@@ -494,6 +780,100 @@ def _resolve_genre_conflicts(genres: list[str], cert_audience_tier: Optional[str
 # Public
 # ---------------------------------------------------------------------------
 
+def compute_quality_score(movie: dict, card_confidence: Optional[float] = None) -> tuple[int, str]:
+    """Soft 0-100 catalogue-quality score + tier (A/B/C/D).
+
+    Derived purely from soft signals (TMDB rating, vote count, popularity,
+    poster/overview presence, metadata completeness, release recency,
+    English-language preference, streaming availability, genre/card confidence).
+
+    Critical contract: missing/unknown fields ALWAYS receive the benefit of the
+    doubt — they get a neutral-to-favourable contribution so a title is NEVER
+    pushed below the recommendable threshold on the strength of a missing field
+    alone. The score drives ranking/sampling priority only — it must never be
+    used as a hard pool filter.
+    """
+    # ── rating (28) — missing => 7.0 benefit of doubt ────────────────────────
+    rating = movie.get("rating")
+    rating = 7.0 if rating is None else float(rating)
+    s_rating = max(0.0, min(10.0, rating)) / 10.0 * 28.0
+
+    # ── vote_count (18) — log-scaled; missing/0 => neutral 12 ────────────────
+    vc = movie.get("vote_count")
+    if not vc or vc <= 0:
+        s_votes = 12.0
+    else:
+        s_votes = min(1.0, math.log1p(vc) / math.log1p(3000)) * 18.0
+
+    # ── popularity (12) — missing/0 => neutral 7 ─────────────────────────────
+    pop = movie.get("popularity")
+    if not pop or pop <= 0:
+        s_pop = 7.0
+    else:
+        s_pop = min(1.0, math.log1p(pop) / math.log1p(200)) * 12.0
+
+    # ── poster (6) / overview (6) ────────────────────────────────────────────
+    s_poster = 6.0 if movie.get("poster_url") else 0.0
+    s_overview = 6.0 if (movie.get("overview") or "").strip() else 0.0
+
+    # ── metadata completeness (8): genres, runtime, year, language ──────────
+    s_meta = 0.0
+    if movie.get("genres"):
+        s_meta += 2.0
+    if movie.get("runtime") or movie.get("total_runtime"):
+        s_meta += 2.0
+    if movie.get("year"):
+        s_meta += 2.0
+    if movie.get("original_language"):
+        s_meta += 2.0
+
+    # ── recency (6) — high floor so beloved classics aren't penalised ────────
+    year = movie.get("year") or 0
+    if not year:
+        s_recency = 4.0
+    else:
+        age = max(0, datetime.now(timezone.utc).year - int(year))
+        if age <= 5:
+            s_recency = 6.0
+        elif age <= 15:
+            s_recency = 5.0
+        elif age <= 30:
+            s_recency = 4.0
+        else:
+            s_recency = 3.5
+
+    # ── English-language prior (6) — missing => benefit; foreign mild ────────
+    lang = movie.get("original_language")
+    s_lang = 6.0 if (lang is None or lang == "en") else 4.0
+
+    # ── streaming availability (6) — none => neutral 3, never zero ───────────
+    has_prov = bool(
+        movie.get("available_on") or movie.get("rent_on") or movie.get("buy_on")
+    )
+    s_avail = 6.0 if has_prov else 3.0
+
+    # ── genre / card confidence (4) — missing => 0.7 benefit ────────────────
+    conf = card_confidence
+    if conf is None:
+        conf = float((movie.get("card") or {}).get("confidence_score") or 0.7)
+    s_conf = max(0.0, min(1.0, conf)) * 4.0
+
+    total = (
+        s_rating + s_votes + s_pop + s_poster + s_overview
+        + s_meta + s_recency + s_lang + s_avail + s_conf
+    )
+    score = int(round(max(0.0, min(100.0, total))))
+    if score >= 72:
+        tier = "A"
+    elif score >= 56:
+        tier = "B"
+    elif score >= 42:
+        tier = "C"
+    else:
+        tier = "D"
+    return score, tier
+
+
 def build_card(movie: dict) -> dict:
     """Build and attach a content card to a movie dict (returns the card).
 
@@ -571,6 +951,19 @@ def build_card(movie: dict) -> dict:
         overview=(movie.get("overview") or ""),
     )
 
+    quality_score, quality_tier = compute_quality_score(
+        movie, card_confidence=min(1.0, final)
+    )
+
+    collection_name = (movie.get("collection_name") or "").strip()
+    collection_id = movie.get("collection_id")
+    franchise = None
+    if collection_id is not None or collection_name:
+        franchise = {
+            "id": collection_id,
+            "name": collection_name or None,
+        }
+
     return {
         "primary_category": primary,
         "secondary_categories": secondaries,
@@ -585,20 +978,77 @@ def build_card(movie: dict) -> dict:
         "theme_confidence": subs["theme_confidence"],
         "metadata_confidence": subs["metadata_confidence"],
         "confidence_score": round(min(1.0, final), 2),
+        "quality_score": quality_score,
+        "quality_tier": quality_tier,
         "conflicts_resolved": conflicts,
+        # ── Extra similarity signals (used by /movies/{id}/similar) ──────────
+        "franchise": franchise,
+        "cast": [str(c).lower() for c in (movie.get("cast_names") or [])[:5]],
+        "language": (movie.get("original_language") or None),
+        "year": (movie.get("year") or None),
     }
+
+
+def franchise_identity(franchise) -> Optional[str]:
+    """Stable franchise key: TMDB collection id first, normalized name fallback."""
+    if isinstance(franchise, dict):
+        if franchise.get("id") is not None:
+            return f"tmdb:{franchise['id']}"
+        franchise = franchise.get("name")
+    if isinstance(franchise, str) and franchise.strip():
+        return f"name:{franchise.strip().casefold()}"
+    return None
+
+
+def franchise_matches(left, right) -> bool:
+    """Match IDs when both exist; otherwise fall back to normalized names."""
+    def _parts(value):
+        if isinstance(value, dict):
+            return value.get("id"), (
+                value.get("name").strip().casefold()
+                if isinstance(value.get("name"), str) and value.get("name").strip()
+                else None
+            )
+        return None, (
+            value.strip().casefold()
+            if isinstance(value, str) and value.strip()
+            else None
+        )
+
+    left_id, left_name = _parts(left)
+    right_id, right_name = _parts(right)
+    if left_id is not None and right_id is not None:
+        return left_id == right_id
+    return bool(left_name and right_name and left_name == right_name)
+
+
+CARD_SCHEMA_VERSION = 5  # bump to force in-memory card rebuild after franchise schema changes
 
 
 def attach_cards(catalog: list[dict]) -> None:
     """Mutate every catalog item in place — adds/refreshes a `card` field.
 
-    Cards are rebuilt when they're missing OR when they predate the iter-12
-    schema (no `tone_confidence` field).
+    Cards are rebuilt when they're missing, predate the iter-12 schema (no
+    `tone_confidence`), or carry an older taxonomy version than
+    `CARD_SCHEMA_VERSION` (bumped whenever theme rules change).
     """
     for m in catalog:
         existing = m.get("card") or {}
-        if not existing or "tone_confidence" not in existing:
-            m["card"] = build_card(m)
+        if (
+            not existing
+            or "tone_confidence" not in existing
+            or existing.get("schema_version", 1) < CARD_SCHEMA_VERSION
+        ):
+            card = build_card(m)
+            card["schema_version"] = CARD_SCHEMA_VERSION
+            m["card"] = card
+        # Mirror canonical theme list to a top-level `themes` field on the
+        # title doc so downstream code (and any callers inspecting raw
+        # movies_cache documents) can read normalized themes without
+        # having to dig into `card`. `card.themes` remains the source of
+        # truth — this is a denormalized convenience copy refreshed every
+        # time attach_cards runs.
+        m["themes"] = list((m.get("card") or {}).get("themes") or [])
 
 
 # ---------------------------------------------------------------------------
@@ -653,6 +1103,32 @@ def card_similarity(target: dict, candidate: dict) -> float:
     sec_b = set(candidate.get("secondary_categories") or [])
     if sec_a or sec_b:
         score += W_GENRE * 0.3 * (len(sec_a & sec_b) / max(1, len(sec_a | sec_b)))
+
+    # ── Bonus signals beyond the core spec: franchise, cast, language, era ──
+    # "More like this" should strongly surface the same franchise and shared
+    # leads, and gently prefer the same language/era. Added on top of the base
+    # (which sums to 1.0) then clamped, so franchise/cast titles rank higher
+    # without distorting the theme/tone-driven core.
+    bonus = 0.0
+    if franchise_matches(target.get("franchise"), candidate.get("franchise")):
+        bonus += 0.35
+    cast_a = set(target.get("cast") or [])
+    cast_b = set(candidate.get("cast") or [])
+    if cast_a and cast_b:
+        bonus += 0.15 * (len(cast_a & cast_b) / max(1, len(cast_a | cast_b)))
+    if target.get("language") and target.get("language") == candidate.get("language"):
+        bonus += 0.05
+    ya, yb = target.get("year"), candidate.get("year")
+    try:
+        if ya and yb:
+            _d = abs(int(ya) - int(yb))
+            if _d <= 3:
+                bonus += 0.05
+            elif _d <= 10:
+                bonus += 0.025
+    except (TypeError, ValueError):
+        pass  # malformed year data — skip era bonus, never error the endpoint
+    score = min(1.0, score + bonus)
 
     # Damp by min confidence so half-classified items don't ride high similarity
     conf = min(target.get("confidence_score", 0.6), candidate.get("confidence_score", 0.6))

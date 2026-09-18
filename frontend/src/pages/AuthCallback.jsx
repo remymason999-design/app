@@ -11,19 +11,26 @@ export default function AuthCallback() {
     useEffect(() => {
         if (processed.current) return;
         processed.current = true;
-        const hash = window.location.hash || "";
-        const match = hash.match(/session_id=([^&]+)/);
-        const sessionId = match?.[1];
+
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get("code");
+        const provider = params.get("provider") || "google";
+        const error = params.get("error");
+
         (async () => {
             try {
-                if (!sessionId) throw new Error("No session id");
-                const data = await apiPost("/auth/google/session", null, {
-                    headers: { "X-Session-ID": sessionId },
+                if (error) throw new Error(`OAuth error: ${error}`);
+                if (!code) throw new Error("No authorisation code received");
+
+                const redirectUri = window.location.origin + "/auth/callback";
+                const data = await apiPost(`/auth/${provider}/callback`, {
+                    code,
+                    redirect_uri: redirectUri,
                 });
                 if (data.access_token) setToken(data.access_token);
                 setUser(data.user);
-                window.history.replaceState({}, "", "/discover");
-                const next = data.user.subscriptions?.length ? "/discover" : "/onboarding/services";
+                window.history.replaceState({}, "", "/");
+                const next = data.user.onboarding_completed ? "/discover" : "/onboarding";
                 navigate(next, { replace: true });
             } catch {
                 await refresh();

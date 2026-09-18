@@ -2,25 +2,89 @@
 from fastapi import APIRouter, Depends
 
 from core import (
-    require_user, get_catalog, movies_by_ids, STREAMING_SERVICES,
+    require_user, get_catalog, movies_by_ids, STREAMING_SERVICES, db,
 )
 
 router = APIRouter(tags=["savings"])
+
+
+async def _plan_price_index() -> dict:
+    """Map plan_id → plan doc (active GB plans) for effective-cost lookups."""
+    plans = await db.streaming_plans.find(
+        {"region": "GB"}, {"_id": 0}
+    ).to_list(length=2000)
+    return {p["id"]: p for p in plans}
+
+
+def _cheapest_standard_price(service_id: str, plans_by_id: dict) -> tuple:
+    """Return (price, plan_name) for the cheapest standard paid plan of a service.
+
+    Standard = active, not promo, not add-on, not free/licence, price > 0.
+    Falls back to the service registry price_monthly when no plan doc exists.
+    """
+    candidates = [
+        p for p in plans_by_id.values()
+        if p.get("service_id") == service_id
+        and p.get("active")
+        and not p.get("is_promo")
+        and not p.get("addon")
+        and p.get("billing_type") not in ("free", "licence_required")
+        and float(p.get("monthly_price") or 0) > 0
+    ]
+    if candidates:
+        best = min(candidates, key=lambda p: float(p["monthly_price"]))
+        return float(best["monthly_price"]), best.get("name")
+    svc = next((s for s in STREAMING_SERVICES if s["id"] == service_id), None)
+    return (float(svc.get("price_monthly", 0)) if svc else 0.0), None
 
 
 @router.get("/savings")
 async def savings(user: dict = Depends(require_user)):
     subs = user.get("subscriptions") or []
     services_by_id = {s["id"]: s for s in STREAMING_SERVICES}
-    total = sum(services_by_id.get(s, {}).get("price_monthly", 0) for s in subs)
+    sub_plans = user.get("subscription_plans") or {}
+    plans_by_id = await _plan_price_index()
     activity_ids = (user.get("saved") or []) + (user.get("watched") or [])
     activity = movies_by_ids(activity_ids)
 
+    def _effective_for(sid: str) -> tuple:
+        """Return (monthly_cost, plan_name, billing_cycle) for a subscribed service.
+
+        Priority:
+          1. subscription_plans[sid].effective_monthly_cost (custom or derived)
+          2. cheapest standard plan price for the service
+          3. free / licence_required services contribute £0 unless the user
+             entered a custom price.
+        effective_monthly_cost is always a MONTHLY figure (annual billing is
+        stored as annual/12 by the client), so total_yearly = monthly × 12.
+        """
+        entry = sub_plans.get(sid) or {}
+        chosen_plan = plans_by_id.get(entry.get("plan_id")) if entry.get("plan_id") else None
+        billing_cycle = entry.get("billing_cycle") or "monthly"
+        # 1. Explicit effective cost (custom price OR client-derived).
+        if entry.get("effective_monthly_cost") is not None:
+            name = chosen_plan.get("name") if chosen_plan else None
+            return float(entry["effective_monthly_cost"]), name, billing_cycle
+        # 2. Derive from the chosen plan.
+        if chosen_plan:
+            if billing_cycle == "annual" and chosen_plan.get("annual_price"):
+                return round(float(chosen_plan["annual_price"]) / 12.0, 2), chosen_plan.get("name"), "annual"
+            bt = chosen_plan.get("billing_type")
+            if bt in ("free", "licence_required") and not entry.get("custom_price"):
+                return 0.0, chosen_plan.get("name"), billing_cycle
+            return float(chosen_plan.get("monthly_price") or 0), chosen_plan.get("name"), billing_cycle
+        # 3. Fallback: cheapest standard plan price.
+        price, name = _cheapest_standard_price(sid, plans_by_id)
+        return price, name, "monthly"
+
+    total = 0.0
     usage = []
     for sid in subs:
         svc = services_by_id.get(sid)
         if not svc:
             continue
+        monthly_cost, plan_name, billing_cycle = _effective_for(sid)
+        total += monthly_cost
         count = sum(1 for m in activity if sid in m.get("available_on", []))
         seen = set(activity_ids + (user.get("skipped") or []))
         avail_unseen = sum(
@@ -29,7 +93,15 @@ async def savings(user: dict = Depends(require_user)):
         )
         usage.append({
             "service_id": sid, "name": svc["name"], "logo_color": svc["logo_color"],
-            "price_monthly": svc["price_monthly"],
+            # Backward-compat: price_monthly now reflects the user's effective
+            # monthly cost for this service (was the flat registry price).
+            "price_monthly": round(monthly_cost, 2),
+            "plan_name": plan_name,
+            "monthly_cost": round(monthly_cost, 2),
+            "billing_cycle": billing_cycle,
+            # True when the user has not explicitly confirmed a plan for this
+            # service (mobile shows a "confirm your plan" prompt).
+            "needs_plan": sid not in sub_plans,
             "activity_count": count, "available_unseen": avail_unseen,
         })
     usage.sort(key=lambda x: x["activity_count"])

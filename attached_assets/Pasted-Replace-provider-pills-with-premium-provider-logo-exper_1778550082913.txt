@@ -1,0 +1,122 @@
+Replace provider pills with premium provider logo experiences across the landing page, Discover cards, and MovieDetail.
+
+CURRENT PROBLEM
+Provider pills are too text-heavy, repetitive, and cluttered.
+The UI feels like raw API output or filter tags instead of a premium streaming experience.
+
+====================================================================
+1. LANDING PAGE STREAMING SECTION
+====================================================================
+
+Current problem:
+The provider pills at the bottom of the landing page feel like selectable filter tags instead of premium streaming platforms.
+
+Requirements:
+- Remove the outlined provider pill style.
+- Replace with a cleaner streaming-platform showcase section.
+- Use official provider logos/icons:
+  - Netflix
+  - Disney+
+  - Max
+  - Prime Video
+  - Apple TV+
+  - Hulu
+  - Paramount+
+  - Peacock
+etc.
+
+Design:
+- horizontal logo strip or premium logo grid
+- subtle spacing and glow
+- no outlined pills
+- no selectable-tag appearance
+- maintain black/gold cinematic aesthetic
+- mobile responsive
+
+Keep footer links below:
+- Privacy Policy
+- Terms & Conditions
+- Contact
+
+Goal:
+The section should feel like:
+“WatchSmart works across all major streaming platforms”
+not:
+“random filter buttons.”
+
+====================================================================
+2. DISCOVER / HOME CARDS
+====================================================================
+
+Requirements:
+- Replace provider text pills with provider logos/icons.
+- Use official provider branding where possible.
+- Show maximum 3 provider logos per card.
+- Prioritize the user’s selected subscriptions first.
+- If additional providers exist, show:
+  +2
+or similar overflow indicator.
+- Keep logos small, clean, and premium.
+- Maintain mobile responsiveness.
+- Preserve the black/gold cinematic aesthetic.
+- Keep the rest of the Discover card layout unchanged.
+
+Goal:
+Discover cards should feel cleaner, more premium, and instantly readable.
+
+====================================================================
+3. MOVIEDETAIL STREAMING UI
+====================================================================
+
+Current problem:
+The Rent/Buy section is repetitive because every provider appears multiple times separately:
+- Rent • Amazon
+- Buy • Amazon
+etc.
+
+Requirements:
+- Replace provider pills with branded provider cards/logo rows.
+- Group providers by platform:
+  - Amazon Video
+  - Apple TV
+  - YouTube
+  - Google Play
+etc.
+
+Each provider card should show:
+- provider logo
+- provider name
+- small Rent / Buy label beneath or beside it
+
+Streaming sections:
+- Included with your subscriptions
+- Also available on
+- Rent or buy
+
+Requirements:
+- cleaner spacing
+- reduce visual clutter
+- premium streaming-service feel
+- mobile responsive
+- avoid oversized logos
+- prioritize user subscriptions first
+- keep MovieDetail layout otherwise unchanged
+
+====================================================================
+FINAL REQUIREMENT
+====================================================================
+
+Before marking complete:
+- test landing page
+- test Discover cards
+- test MovieDetail
+- test with multiple providers
+- verify logos load correctly
+- verify mobile responsiveness
+- verify no overflow/clipping issues
+
+Report:
+1. what components were updated
+2. what provider logos are supported
+3. what was tested
+4. any remaining edge cases

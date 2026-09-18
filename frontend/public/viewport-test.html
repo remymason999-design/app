@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Viewport test harness</title>
+<style>
+  body { margin: 0; background: #1a1a1a; font-family: sans-serif; }
+  .row { display: flex; gap: 12px; padding: 10px; align-items: flex-start; }
+  .slot { flex: 0 0 auto; }
+  .label { color: #ddd; font-size: 13px; margin-bottom: 4px; text-align: center; }
+  .frame-wrap { transform: scale(0.72); transform-origin: top left; }
+  iframe { border: 1px solid #555; background: #000; display: block; }
+</style>
+</head>
+<body>
+<div class="row" id="row"></div>
+<script>
+  const params = new URLSearchParams(location.search);
+  const path = params.get('path') || '/discover';
+  const token = params.get('token') || '';
+  const devices = [
+    { w: 375, h: 667, name: '375 (iPhone SE)' },
+    { w: 390, h: 844, name: '390 (iPhone 14)' },
+    { w: 412, h: 915, name: '412 (Pixel 7)' },
+    { w: 430, h: 932, name: '430 (iPhone 15 PM)' },
+  ];
+  const row = document.getElementById('row');
+  for (const d of devices) {
+    const slot = document.createElement('div');
+    slot.className = 'slot';
+    slot.style.width = (d.w * 0.72) + 'px';
+    slot.style.height = (d.h * 0.72 + 24) + 'px';
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = d.name;
+    const wrap = document.createElement('div');
+    wrap.className = 'frame-wrap';
+    const f = document.createElement('iframe');
+    f.width = d.w;
+    f.height = d.h;
+    f.src = path + (path.includes('?') ? '&' : '?') + 'dev_token=' + encodeURIComponent(token);
+    wrap.appendChild(f);
+    slot.appendChild(label);
+    slot.appendChild(wrap);
+    row.appendChild(slot);
+  }
+</script>
+</body>
+</html>

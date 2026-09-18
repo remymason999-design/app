@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -6,8 +6,10 @@ import {
     Film, Tv as TvIcon, Layers, Sparkles, X, SkipForward, Star,
 } from "lucide-react";
 import { apiGet, apiPost, apiPut, formatApiError } from "@/lib/api";
+import { ProviderLogo } from "@/components/ProviderLogo";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { capture, EVENTS } from "@/lib/analytics";
 
 const MOODS = [
     { id: "funny", label: "Funny" },
@@ -40,7 +42,18 @@ const COUNTRY_LIST = [
 export default function Onboarding() {
     const navigate = useNavigate();
     const { user, setUser } = useAuth();
-    const [step, setStep] = useState(1);
+    const [step, _setStep] = useState(() => {
+        const saved = parseInt(sessionStorage.getItem("ws_onboarding_step") || "1", 10);
+        return saved >= 1 && saved <= 4 ? saved : 1;
+    });
+    const setStep = (s) => {
+        _setStep((prev) => {
+            const next = typeof s === "function" ? s(prev) : s;
+            try { sessionStorage.setItem("ws_onboarding_step", String(next)); } catch {}
+            return next;
+        });
+    };
+    const [savingStep, setSavingStep] = useState(false);
     const [genres, setGenres] = useState([]);
     const [services, setServices] = useState([]);
 
@@ -52,10 +65,20 @@ export default function Onboarding() {
     const [titles, setTitles] = useState([]);
     const [titleIdx, setTitleIdx] = useState(0);
     const [titlesLoading, setTitlesLoading] = useState(true);
+    const [titlesError, setTitlesError] = useState(false);
+    const [titlesRetry, setTitlesRetry] = useState(0);
     const [ratingBusy, setRatingBusy] = useState(false);
     const [ratedCount, setRatedCount] = useState(0);
+    const [progress, setProgress] = useState(null);
+    const [progressLoading, setProgressLoading] = useState(false);
+    const [progressError, setProgressError] = useState(false);
+    const [progressRetry, setProgressRetry] = useState(0);
+    const [earlyPromptDismissed, setEarlyPromptDismissed] = useState(false);
 
     // Step 3
+    const [excludeFamily, setExcludeFamily] = useState(
+        (user?.excluded_categories || []).includes("family")
+    );
     const [excludeAnime, setExcludeAnime] = useState(
         (user?.excluded_categories || []).includes("anime")
     );
@@ -69,22 +92,58 @@ export default function Onboarding() {
     // Step 4
     const [pickedServices, setPickedServices] = useState(new Set(user?.subscriptions || []));
     const [finishing, setFinishing] = useState(false);
+    const onboardingStartedRef = useRef(false);
+    const onboardingStartedAt = useMemo(() => Date.now(), []);
+
+    useEffect(() => {
+        if (onboardingStartedRef.current) return;
+        onboardingStartedRef.current = true;
+        capture(EVENTS.ONBOARDING_STARTED, {}, { user, dedupeKey: "onboarding:start" });
+    // A flow is mounted once; auth identity changes must not restart it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         Promise.all([apiGet("/genres"), apiGet("/services")])
             .then(([g, s]) => { setGenres(g); setServices(s); });
     }, []);
 
-    // Lazy-load rate-titles only when entering step 2
+    // Progress is authoritative for resumed onboarding and completion gates.
     useEffect(() => {
-        if (step === 2 && titles.length === 0) {
+        if (step !== 4) return;
+        let active = true;
+        setProgressLoading(true);
+        setProgressError(false);
+        apiGet("/onboarding/progress")
+            .then((next) => {
+                if (!active) return;
+                setProgress(next);
+                setRatedCount(Number.isFinite(Number(next?.interactions)) ? Number(next.interactions) : 0);
+            })
+            .catch(() => {
+                if (active) setProgressError(true);
+            })
+            .finally(() => {
+                if (active) setProgressLoading(false);
+            });
+        return () => { active = false; };
+    }, [step, progressRetry]);
+
+    // Lazy-load at most ten cards only when entering step 4. The API returns
+    // the remaining deck for a resumed user.
+    useEffect(() => {
+        if (step === 4 && titles.length === 0) {
             setTitlesLoading(true);
-            apiGet("/onboarding/titles?limit=18")
+            setTitlesError(false);
+            apiGet("/onboarding/titles?limit=10")
                 .then(setTitles)
-                .catch(() => toast.error("Couldn't load titles"))
+                .catch(() => {
+                    setTitlesError(true);
+                    toast.error("Couldn't load titles");
+                })
                 .finally(() => setTitlesLoading(false));
         }
-    }, [step, titles.length]);
+    }, [step, titles.length, titlesRetry]);
 
     const toggle = (set, setSet, val) => {
         const next = new Set(set);
@@ -92,21 +151,50 @@ export default function Onboarding() {
         setSet(next);
     };
 
-    // ---- Step 1 ---------------------------------------------------------
+    // ---- Step 1 (Services) ---------------------------------------------
     const next1 = async () => {
-        if (pickedGenres.size > 0 || pickedMoods.size > 0) {
+        if (pickedServices.size > 0) {
+            setSavingStep(true);
+            try {
+                const updated = await apiPut("/user/preferences", {
+                    services: Array.from(pickedServices),
+                });
+                setUser(updated);
+                capture(EVENTS.ONBOARDING_STEP_COMPLETED, { step: "services", selected_count: pickedServices.size }, { user });
+            } catch (err) {
+                toast.error(formatApiError(err.response?.data?.detail) || "Couldn't save your services. Please try again.");
+                setSavingStep(false);
+                return;
+            }
+            setSavingStep(false);
+        }
+        setStep(2);
+    };
+
+    // ---- Step 2 (Genres/Moods) -----------------------------------------
+    const next2 = async () => {
+        {
+            setSavingStep(true);
             try {
                 const updated = await apiPut("/user/preferences", {
                     genres: Array.from(pickedGenres),
                     moods: Array.from(pickedMoods),
                 });
                 setUser(updated);
-            } catch {/* non-blocking */}
+                capture(EVENTS.ONBOARDING_STEP_COMPLETED, { step: "taste", genre_count: pickedGenres.size, mood_count: pickedMoods.size }, { user });
+                setTitles([]);
+                setTitleIdx(0);
+            } catch (err) {
+                toast.error(formatApiError(err.response?.data?.detail) || "Couldn't save your preferences. Please try again.");
+                setSavingStep(false);
+                return;
+            }
+            setSavingStep(false);
         }
-        setStep(2);
+        setStep(3);
     };
 
-    // ---- Step 2 ---------------------------------------------------------
+    // ---- Step 4 (Rating swipes) -----------------------------------------
     const rate = async (rating) => {
         if (ratingBusy || titleIdx >= titles.length) return;
         setRatingBusy(true);
@@ -114,8 +202,18 @@ export default function Onboarding() {
         try {
             const r = await apiPost("/onboarding/rate", { movie_id: movieId, rating });
             if (r.user) setUser(r.user);
-            if (rating !== "skip") setRatedCount((c) => c + 1);
+            capture(EVENTS.ONBOARDING_TITLE_FEEDBACK, { content_id: movieId, feedback: rating, media_type: titles[titleIdx]?.type || "movie" }, { user, dedupeKey: `onboarding:rating:${movieId}` });
+            // Skip is neutral to taste, but is still a deliberate interaction
+            // and counts toward the five-card minimum.
+            setRatedCount((c) => c + 1);
             setTitleIdx((i) => i + 1);
+            try {
+                const nextProgress = await apiGet("/onboarding/progress");
+                setProgress(nextProgress);
+            } catch {
+                // The interaction is saved; the next progress refresh will
+                // restore the authoritative completion gate.
+            }
         } catch (err) {
             toast.error(formatApiError(err.response?.data?.detail) || "Couldn't save rating");
         } finally {
@@ -123,13 +221,13 @@ export default function Onboarding() {
         }
     };
 
-    const next2 = () => setStep(3);
-
-    // ---- Step 3 ---------------------------------------------------------
+    // ---- Step 3 (Preferences) ------------------------------------------
     const next3 = async () => {
         const cats = [];
+        if (excludeFamily) cats.push("family");
         if (excludeAnime) cats.push("anime");
         if (excludeBollywood) cats.push("bollywood");
+        setSavingStep(true);
         try {
             const updated = await apiPut("/user/preferences", {
                 excluded_categories: cats,
@@ -138,19 +236,32 @@ export default function Onboarding() {
                 country,
             });
             setUser(updated);
-        } catch {/* non-blocking */}
+            capture(EVENTS.ONBOARDING_STEP_COMPLETED, { step: "preferences", content_type: contentType, country }, { user });
+        } catch (err) {
+            toast.error(formatApiError(err.response?.data?.detail) || "Couldn't save your filters. Please try again.");
+            setSavingStep(false);
+            return;
+        }
+        setSavingStep(false);
         setStep(4);
     };
 
-    // ---- Step 4 (final) -------------------------------------------------
+    // ---- Step 4 finish (Rating complete → /onboarding/complete) ----------
     const finish = async () => {
+        const supplyExhausted = !titlesLoading && !titlesError && (titles.length === 0 || titleIdx >= titles.length);
+        const allowed = Boolean(progress?.can_finish || progress?.is_complete || supplyExhausted);
+        if (!allowed) return;
         setFinishing(true);
         try {
-            await apiPut("/user/preferences", {
-                services: Array.from(pickedServices),
-            });
             const completed = await apiPost("/onboarding/complete");
             setUser(completed);
+            capture(EVENTS.ONBOARDING_COMPLETED, {
+                providers_selected: completed?.subscriptions?.length,
+                genres_selected: completed?.genres?.length,
+                titles_rated: ratedCount,
+                duration_ms: Math.max(0, Date.now() - onboardingStartedAt),
+            }, { user: completed });
+            sessionStorage.removeItem("ws_onboarding_step");
             toast.success("All set — handpicked just for you");
             navigate("/discover", { replace: true });
         } catch (err) {
@@ -163,6 +274,12 @@ export default function Onboarding() {
     const monthlyTotal = useMemo(() => services
         .filter((s) => pickedServices.has(s.id))
         .reduce((sum, s) => sum + s.price_monthly, 0), [services, pickedServices]);
+    const supplyExhausted = !titlesLoading && !titlesError && (titles.length === 0 || titleIdx >= titles.length);
+    const minimumInteractions = Number(progress?.minimum_interactions) || 5;
+    const maximumInteractions = Number(progress?.maximum_interactions) || 10;
+    const canFinish = !progressLoading && Boolean(
+        progress?.can_finish || progress?.is_complete || supplyExhausted
+    );
 
     return (
         <div className="min-h-screen px-6 pt-10 pb-32 max-w-md mx-auto" data-testid="onboarding-page">
@@ -171,7 +288,41 @@ export default function Onboarding() {
 
             <AnimatePresence mode="wait">
                 {step === 1 && (
-                    <Step key="1" title="What do you love?" subtitle="Pick a few — skip if you'd rather we learn from your swipes.">
+                    <Step key="1" title="What do you pay for?" subtitle="We'll only surface titles you can stream right now. You can change this anytime.">
+                        <div className="grid grid-cols-2 gap-3">
+                            {services.map((s, i) => {
+                                const on = pickedServices.has(s.id);
+                                return (
+                                    <motion.button
+                                        key={s.id}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: i * 0.03 }}
+                                        onClick={() => toggle(pickedServices, setPickedServices, s.id)}
+                                        data-testid={`service-${s.id}`}
+                                        className={`relative text-left rounded-2xl p-4 border transition-all ${
+                                            on ? "border-amber bg-amber/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+                                        }`}
+                                    >
+                                        <div className="mb-3">
+                                            <ProviderLogo sid={s.id} size={36} shape="rounded-xl" />
+                                        </div>
+                                        <div className="font-heading text-base">{s.name}</div>
+                                        <div className="text-xs text-zinc-400 mt-1">£{s.price_monthly.toFixed(2)}/mo</div>
+                                        {on && (
+                                            <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-amber flex items-center justify-center">
+                                                <Check className="w-3.5 h-3.5 text-obsidian" strokeWidth={3} />
+                                            </div>
+                                        )}
+                                    </motion.button>
+                                );
+                            })}
+                        </div>
+                    </Step>
+                )}
+
+                {step === 2 && (
+                    <Step key="2" title="What do you love?" subtitle="Pick a few — we'll use these to kick-start your feed immediately.">
                         <SectionLabel>Genres</SectionLabel>
                         <ChipGroup
                             items={genres.map((g) => ({ id: g, label: g }))}
@@ -189,23 +340,17 @@ export default function Onboarding() {
                     </Step>
                 )}
 
-                {step === 2 && (
-                    <Step key="2" title="Quick taste check" subtitle="Tap thumbs up on what catches your eye. Skip anything unfamiliar — this trains your feed instantly.">
-                        <RateDeck
-                            titles={titles}
-                            idx={titleIdx}
-                            loading={titlesLoading}
-                            onRate={rate}
-                            ratedCount={ratedCount}
-                            ratingBusy={ratingBusy}
-                        />
-                    </Step>
-                )}
-
                 {step === 3 && (
                     <Step key="3" title="Filter the noise" subtitle="Hide anything you'll never watch. Applied across Discover, Search and Trending.">
                         <SectionLabel>Categories to hide</SectionLabel>
                         <div className="space-y-2">
+                            <ToggleRow
+                                label="Family & Kids"
+                                description="Hides content aimed at children and families."
+                                value={excludeFamily}
+                                onChange={setExcludeFamily}
+                                testid="toggle-family"
+                            />
                             <ToggleRow
                                 label="Anime"
                                 description="Hides Japanese animation strictly — Pixar/Western animation stays."
@@ -215,7 +360,7 @@ export default function Onboarding() {
                             />
                             <ToggleRow
                                 label="Bollywood"
-                                description="Hides Hindi-language Bollywood productions."
+                                description="Hides South-Asian cinema (Hindi, Telugu, Tamil, and more)."
                                 value={excludeBollywood}
                                 onChange={setExcludeBollywood}
                                 testid="toggle-bollywood"
@@ -255,39 +400,25 @@ export default function Onboarding() {
                 )}
 
                 {step === 4 && (
-                    <Step key="4" title="What do you pay for?" subtitle="We'll only surface things you can stream right now.">
-                        <div className="grid grid-cols-2 gap-3">
-                            {services.map((s, i) => {
-                                const on = pickedServices.has(s.id);
-                                return (
-                                    <motion.button
-                                        key={s.id}
-                                        initial={{ opacity: 0, y: 8 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: i * 0.03 }}
-                                        onClick={() => toggle(pickedServices, setPickedServices, s.id)}
-                                        data-testid={`service-${s.id}`}
-                                        className={`relative text-left rounded-2xl p-4 border transition-all ${
-                                            on ? "border-amber bg-amber/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
-                                        }`}
-                                    >
-                                        <div
-                                            className="w-9 h-9 rounded-xl mb-3 flex items-center justify-center text-sm font-heading text-white"
-                                            style={{ backgroundColor: s.logo_color }}
-                                        >
-                                            {s.name.slice(0, 1)}
-                                        </div>
-                                        <div className="font-heading text-base">{s.name}</div>
-                                        <div className="text-xs text-zinc-400 mt-1">£{s.price_monthly.toFixed(2)}/mo</div>
-                                        {on && (
-                                            <div className="absolute top-3 right-3 w-6 h-6 rounded-full bg-amber flex items-center justify-center">
-                                                <Check className="w-3.5 h-3.5 text-obsidian" strokeWidth={3} />
-                                            </div>
-                                        )}
-                                    </motion.button>
-                                );
-                            })}
-                        </div>
+                    <Step key="4" title="Quick taste check" subtitle="Up to 10 titles selected for your genres. Each deliberate tap trains your feed instantly.">
+                        <RateDeck
+                            titles={titles}
+                            idx={titleIdx}
+                            loading={titlesLoading}
+                            titlesError={titlesError}
+                            onRetryTitles={() => setTitlesRetry((count) => count + 1)}
+                            onRate={rate}
+                            ratedCount={ratedCount}
+                            ratingBusy={ratingBusy}
+                            progressLoading={progressLoading}
+                            progressError={progressError}
+                            onRetryProgress={() => setProgressRetry((count) => count + 1)}
+                            canFinish={canFinish}
+                            maximumInteractions={maximumInteractions}
+                            onFinish={finish}
+                            onContinue={() => setEarlyPromptDismissed(true)}
+                            earlyPromptDismissed={earlyPromptDismissed}
+                        />
                     </Step>
                 )}
             </AnimatePresence>
@@ -305,14 +436,25 @@ export default function Onboarding() {
                     step === 1 ? next1 :
                     step === 2 ? next2 :
                     step === 3 ? next3 :
-                    finish
+                    canFinish ? finish : null
                 }
-                primaryLabel={step === 4 ? (finishing ? "Finishing…" : "Get my picks") : "Continue"}
-                primaryDisabled={step === 4 && finishing}
+                primaryLabel={
+                    step === 4
+                        ? (finishing
+                            ? "Finishing…"
+                            : canFinish
+                                ? "Finish onboarding"
+                                : `${minimumInteractions} interactions minimum`)
+                        : (savingStep ? "Saving…" : "Continue")
+                }
+                primaryDisabled={savingStep || (step === 4 && (finishing || !canFinish))}
                 helper={
-                    step === 2 ? (
-                        <span data-testid="step2-helper">{ratedCount} rated</span>
-                    ) : step === 4 && pickedServices.size > 0 ? (
+                    step === 4 ? (
+                        <span data-testid="step4-helper">
+                            {ratedCount}/{maximumInteractions} interactions
+                            {canFinish && ratedCount < maximumInteractions ? " · finish whenever you’re ready" : ""}
+                        </span>
+                    ) : step === 1 && pickedServices.size > 0 ? (
                         <span>£{monthlyTotal.toFixed(2)}<span className="text-zinc-500">/mo</span></span>
                     ) : null
                 }
@@ -327,10 +469,10 @@ export default function Onboarding() {
 
 function ProgressBar({ step }) {
     const steps = [
-        { id: 1, label: "Taste" },
-        { id: 2, label: "Rate" },
+        { id: 1, label: "Stream" },
+        { id: 2, label: "Taste" },
         { id: 3, label: "Filter" },
-        { id: 4, label: "Stream" },
+        { id: 4, label: "Rate" },
     ];
     return (
         <div className="mb-8" data-testid="onboarding-progress">
@@ -444,11 +586,65 @@ function Segmented({ value, onChange, options }) {
     );
 }
 
-function RateDeck({ titles, idx, loading, onRate, ratedCount, ratingBusy }) {
+function RateDeck({
+    titles,
+    idx,
+    loading,
+    titlesError,
+    onRetryTitles,
+    onRate,
+    ratedCount,
+    ratingBusy,
+    progressLoading,
+    progressError,
+    onRetryProgress,
+    canFinish,
+    maximumInteractions,
+    onFinish,
+    onContinue,
+    earlyPromptDismissed,
+}) {
+    if (progressLoading) {
+        return (
+            <div className="h-96 grid place-items-center">
+                <div className="h-8 w-8 rounded-full border-2 border-amber border-t-transparent animate-spin" />
+            </div>
+        );
+    }
+    if (progressError) {
+        return (
+            <div className="glass rounded-2xl p-6 text-center">
+                <p className="text-sm text-zinc-300 mb-4">Couldn&apos;t resume your taste check.</p>
+                <button
+                    type="button"
+                    onClick={onRetryProgress}
+                    className="border border-white/15 rounded-xl px-4 py-2 text-sm text-zinc-200 hover:bg-white/5"
+                    data-testid="retry-onboarding-progress"
+                >
+                    Try again
+                </button>
+            </div>
+        );
+    }
     if (loading) {
         return (
             <div className="h-96 grid place-items-center">
                 <div className="h-8 w-8 rounded-full border-2 border-amber border-t-transparent animate-spin" />
+            </div>
+        );
+    }
+    if (titlesError) {
+        return (
+            <div className="glass rounded-2xl p-6 text-center">
+                <p className="text-sm text-zinc-300 mb-4">Couldn&apos;t load titles right now.</p>
+                <button
+                    type="button"
+                    onClick={onRetryTitles}
+                    className="border border-white/15 rounded-xl px-4 py-2 text-sm text-zinc-200 hover:bg-white/5"
+                    data-testid="retry-onboarding-titles"
+                >
+                    Try again
+                </button>
             </div>
         );
     }
@@ -464,8 +660,8 @@ function RateDeck({ titles, idx, loading, onRate, ratedCount, ratingBusy }) {
         return (
             <div className="glass rounded-3xl p-8 text-center" data-testid="rate-done">
                 <Sparkles className="w-6 h-6 text-amber mx-auto mb-3" />
-                <h3 className="font-heading text-xl mb-2">{ratedCount} ratings in.</h3>
-                <p className="text-sm text-zinc-400">Your feed is already learning. Tap continue to keep going.</p>
+                <h3 className="font-heading text-xl mb-2">{ratedCount} interactions in.</h3>
+                <p className="text-sm text-zinc-400">Your feed is already learning. Finish now, or keep going for stronger personalisation.</p>
             </div>
         );
     }
@@ -525,7 +721,36 @@ function RateDeck({ titles, idx, loading, onRate, ratedCount, ratingBusy }) {
                 />
             </div>
 
-            <p className="text-center text-[11px] text-zinc-500 mt-3">{idx + 1} of {titles.length} · feed updates live</p>
+            <p className="text-center text-[11px] text-zinc-500 mt-3">
+                {ratedCount} of {maximumInteractions} interactions · feed updates live
+            </p>
+            {canFinish && idx < titles.length && !earlyPromptDismissed && (
+                <div className="mt-4 rounded-2xl border border-amber/25 bg-amber/5 px-4 py-3 flex items-center gap-3" data-testid="early-finish">
+                    <p className="text-xs text-zinc-300 flex-1">
+                        {ratedCount >= maximumInteractions
+                            ? "You’ve reached the full taste check."
+                            : `You’ve made ${ratedCount} deliberate choices — that’s enough to start.`}
+                    </p>
+                    <div className="shrink-0 flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={onContinue}
+                            className="text-xs text-zinc-400 hover:text-zinc-100"
+                            data-testid="continue-to-10"
+                        >
+                            Continue to 10
+                        </button>
+                        <button
+                            type="button"
+                            onClick={onFinish}
+                            className="text-xs font-heading text-amber hover:text-amber-300"
+                            data-testid="finish-early"
+                        >
+                            Finish now
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

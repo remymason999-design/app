@@ -1,0 +1,102 @@
+WatchSmart into a native iOS and Android app.
+
+Do not replace, delete, restructure or break the existing working web app, FastAPI backend, recommendation system, database, authentication, watchlists or user data.
+
+First, audit the existing project and produce a detailed native mobile migration plan before making major changes.
+
+The intended architecture is:
+
+Existing FastAPI backend remains the main backend.
+Existing recommendation engine and personalisation logic must be reused.
+Existing accounts, user profiles, interactions, watchlists, friends data, subscription settings and analytics data must carry over.
+Create a separate Expo React Native mobile frontend.
+Keep the existing web application available.
+Share API types, constants and reusable business logic where practical, but do not force web UI code into the native app.
+Do not rebuild recommendation logic separately inside the mobile frontend.
+
+Native mobile screens required:
+
+Splash screen
+Login and account creation
+Password reset
+Onboarding and taste selection
+Discover/swipe screen
+Film and television information view
+Search
+Watchlist
+Friends
+Savings
+Profile and settings
+Subscription provider selection
+Notifications
+Series tracking where already supported
+
+The bottom navigation must remain:
+
+Discover
+Watchlist
+Friends
+Savings
+
+Profile should remain accessible through the avatar in the top-right corner.
+
+The native app must preserve the current WatchSmart branding, colour scheme, logo, card styling and overall design rather than generating a generic Expo interface.
+
+Native functionality should include:
+
+Smooth swipe gestures
+Save, skip, watched and rewind actions
+Haptic feedback
+Native screen transitions
+Safe-area support
+Proper keyboard handling
+Loading, empty, offline and error states
+Secure authentication token storage
+Persistent login
+Deep linking readiness
+Push-notification readiness
+PostHog analytics
+Crash reporting
+App Store and Google Play build readiness
+Accessibility labels and suitable touch-target sizes
+
+Before implementation, inspect and document:
+
+Current frontend structure
+Existing backend endpoints
+Authentication flow
+Database and user-data dependencies
+Recommendation and impression logging
+Watchlist actions
+Friends functionality
+Image and TMDB dependencies
+Environment variables
+Features that currently depend on browser-only functionality
+Any missing APIs needed by the native app
+
+Then provide:
+
+Recommended project/folder structure
+Screens and components that need rebuilding
+Existing functionality that can be reused unchanged
+Required backend changes
+Authentication and secure-storage plan
+Analytics and crash-reporting plan
+Testing strategy
+Expo development-build plan
+App Store and Google Play preparation plan
+Risks that could affect the existing app
+
+Do not begin a full uncontrolled rewrite.
+
+After presenting the audit and migration plan, begin only with the safe foundation:
+
+Create the separate Expo app
+Configure navigation
+Configure environment variables
+Connect it safely to the existing FastAPI API
+Add authentication persistence
+Build the branded splash and login screens
+Confirm the existing web application still works
+
+At the end of this first stage, report every file created or changed, how to run the web and native apps separately, and any actions I need to complete outside Replit.

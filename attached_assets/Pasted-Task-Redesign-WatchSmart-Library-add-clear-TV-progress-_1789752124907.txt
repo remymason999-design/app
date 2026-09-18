@@ -1,0 +1,363 @@
+Task: Redesign WatchSmart Library + add clear TV progress tracking and tutorial feature card
+
+I want the WatchSmart Library redesigned. Please treat this as one complete feature update and do not make unrelated changes elsewhere in the app.
+
+The current Library works, but it is confusing, TV episode tracking is not obvious, watch-time statistics are not clearly visible, and the web/native versions have started to differ.
+
+Important: inspect the existing implementation, backend APIs, watched/reaction system and native/web Library screens before changing anything. Reuse existing functionality wherever possible. Do not create duplicate data models or duplicate endpoints if equivalent functionality already exists.
+
+1. Library overall layout
+
+Keep the existing WatchSmart dark design and orange branding.
+
+At the top:
+
+Library
+
+Keep the large segmented control:
+
+♡ Watchlist | ◉ Watched
+
+It should be immediately obvious which section is selected.
+
+Keep:
+
+All | Movies | TV
+
+and the existing sorting control such as:
+
+Recently added
+
+Make spacing, typography and poster sizes consistent on mobile web and the native app.
+
+⸻
+
+2. Watched tab — new layout
+
+At the top of the Watched tab add a compact statistics panel showing:
+
+* Number of titles watched
+* Total watch time
+* Number of episodes watched
+
+Example:
+
+3 titles watched | 39h 22m watch time | 47 episodes
+
+These must use real user data, not placeholders.
+
+If the backend already contains enough data to calculate these figures, use it. If not, add the minimum backend calculation needed.
+
+Movies should contribute their runtime.
+
+TV watch time should be calculated from episodes the user has actually logged as watched, not the runtime of the entire series.
+
+⸻
+
+3. Continue Watching
+
+Create a clear Continue watching section for TV programmes that have started but are not completed.
+
+Each card should contain:
+
+* Poster
+* Title
+* Current season/episode
+* Episodes watched / episodes available where known
+* Progress percentage
+* Orange progress bar
+* Update progress button
+* ••• menu for secondary actions
+
+Example:
+
+Fringe
+
+S1 E6 of 20
+
+[progress bar] 30%
+
+[Update progress] [...]
+
+Do NOT use the current unexplained:
+
+− S1 E1 +
+
+control directly underneath posters.
+
+It is not obvious enough to users what that control does.
+
+⸻
+
+4. Update Progress flow
+
+Pressing Update progress should open a clear modal/bottom sheet.
+
+It should say something similar to:
+
+Update your progress
+
+Season: 1
+
+Episode: 6
+
+Include simple controls to select the season and episode.
+
+Include:
+
+Mark next episode watched
+
+Mark season complete
+
+and, where appropriate:
+
+I’ve finished the series
+
+Saving should immediately update:
+
+* Library progress
+* Continue Watching
+* episode count
+* percentage
+* total watch time
+
+Users must also be able to correct progress if they accidentally log too many episodes.
+
+⸻
+
+5. Completed section
+
+Under Continue Watching, create:
+
+Completed
+
+Completed movies and completed TV series should appear here.
+
+Movies should show the user’s existing WatchSmart reaction where available:
+
+❤️ Loved
+
+👍 Liked
+
+😐 Okay
+
+👎 Didn't like
+
+etc.
+
+Also show movie runtime.
+
+Example:
+
+Rocketman
+
+❤️ Loved
+
+2h 1m
+
+TV programmes should only appear as completed when the series/current available content has genuinely been marked completed.
+
+Do not show the same programme unnecessarily in both Continue Watching and Completed.
+
+⸻
+
+6. Watchlist tab
+
+Watchlist should remain much simpler.
+
+Saved titles should display in a clean 2-column grid.
+
+Movies:
+
+* Poster
+* title
+* runtime where known
+* provider
+* saved date if available
+* Watch now where appropriate
+
+TV:
+
+* poster
+* title
+* number of seasons where known
+* provider
+* saved date
+* Start tracking
+
+For TV, use Start tracking instead of immediately displaying episode +/- controls.
+
+When Start tracking is pressed, let the user select where they currently are in the programme.
+
+Once tracking has started it moves into/appears within Continue Watching.
+
+⸻
+
+7. Marking a TV programme as Watched elsewhere
+
+Check the Discover/title-detail watched flow.
+
+Currently WatchSmart asks for a reaction when something is marked Watched on the native app.
+
+Keep this behaviour.
+
+For a TV series, do not assume pressing Watched means every episode of every season has been completed.
+
+Ask:
+
+How far have you watched?
+
+Allow season + episode selection.
+
+Also include:
+
+I've finished the series
+
+Then ask/use the existing reaction system.
+
+Do not create a second reaction system.
+
+⸻
+
+8. First-time tutorial card
+
+We already have first-time onboarding/tutorial cards.
+
+Add one additional tutorial poster/card explaining this Library feature.
+
+Do NOT create another popup tutorial later in the Library.
+
+Tutorial card:
+
+Track every episode 📺
+
+Keep up with your TV shows, log the season and episode you’re on, and WatchSmart will track your progress and total watch time.
+
+Visually demonstrate:
+
+* a TV poster
+* S1 E6
+* a progress bar
+* Update progress
+* a small example such as 39h watched
+
+It should visually match the rest of the existing WatchSmart onboarding/tutorial and should not look like a separate design system.
+
+This card only needs to appear as part of the normal first-time tutorial flow.
+
+⸻
+
+9. Website/native parity
+
+Implement this so that the website and native application behave consistently.
+
+The UI can adapt appropriately for React Native vs web, but the available features and data should match.
+
+In particular verify:
+
+* Watchlist
+* Watched
+* reactions
+* Continue Watching
+* episode tracking
+* total watch time
+* Movies/TV filters
+* Completed
+
+Do not remove working native functionality just because the web version currently lacks it.
+
+Bring the web version up to parity where necessary.
+
+⸻
+
+10. Mobile layout requirements
+
+The screenshots show the current Library being used on an iPhone-sized screen.
+
+Ensure:
+
+* 2-column poster grid
+* no horizontal overflow
+* no text clipping
+* readable secondary text
+* good contrast
+* buttons have suitable mobile tap targets
+* posters/cards use consistent dimensions
+* content can scroll completely above the fixed bottom navigation
+* the bottom navigation must NOT cover the last Library cards or statistics
+* iPhone safe-area padding is handled correctly
+
+Keep the existing orange/navy-black WatchSmart styling.
+
+⸻
+
+11. Do not fake functionality
+
+Do not hard-code:
+
+* watch hours
+* episode totals
+* progress percentage
+* reactions
+* completed status
+
+All information must come from actual user history/backend data.
+
+Where metadata such as episode count or runtime is needed, use the existing TMDB/backend metadata infrastructure rather than creating a separate source.
+
+⸻
+
+12. Existing data
+
+This update must be backwards-compatible with users who already have:
+
+* saved titles
+* watched titles
+* reactions
+* TV progress
+
+Do not wipe or reset existing Library/watch-history data.
+
+Add sensible migration/fallback behaviour if existing records don’t contain some newer progress fields.
+
+⸻
+
+13. Acceptance tests
+
+Before saying this task is complete, test at minimum:
+
+1. Save a movie → appears in Watchlist.
+2. Save a TV programme → appears in Watchlist.
+3. Start tracking a TV programme.
+4. Log several episodes.
+5. Refresh/reopen → progress remains correct.
+6. Change from one season to another.
+7. Correct incorrectly entered progress.
+8. Mark a season complete.
+9. Mark an entire series complete.
+10. Mark a movie watched and choose Loved/Liked/Okay/Didn’t like.
+11. Reaction appears correctly in Library.
+12. Watch-time total changes appropriately.
+13. Movie runtime counts only once.
+14. TV runtime counts only watched episodes.
+15. All / Movies / TV filters work.
+16. Watchlist / Watched switch works.
+17. No duplicate Continue Watching/Completed entries.
+18. Website and native app use the same underlying data.
+19. Bottom navigation does not obscure Library content.
+20. First-time tutorial contains the new Track Every Episode card.
+
+Final review
+
+Once implemented, give me:
+
+* files changed
+* backend/database changes made
+* whether any migration was required
+* what changed on web
+* what changed on native
+* confirmation that existing user data remains intact
+* tests performed and results
+* whether any change introduced requires a new native/TestFlight build rather than an OTA/web deployment
+
+Do not mark the task complete until the full flow has been tested.

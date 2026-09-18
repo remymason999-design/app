@@ -1,0 +1,77 @@
+Fix two critical launch blockers only: swipe performance and global search.
+
+Do not change recommendation logic unless required for performance.
+
+==================================================
+1. SWIPING IS TOO SLOW / BLANK SCREEN
+==================================================
+
+Problem:
+During swiping, the app often shows a blank screen and the next movie is not ready.
+
+Requirements:
+- Cards must be preloaded before the user swipes.
+- Keep at least 20–50 cards ready in memory.
+- Initial Discover load should fetch a large queue.
+- Refill should trigger before stack is low.
+- Never wait for backend after every swipe.
+- Preload poster/backdrop images for upcoming cards.
+- Show skeleton only on first load, not between every swipe.
+- Optimise frontend rendering so next card appears instantly.
+- Add performance debug:
+  - current stack size
+  - queue size
+  - refill in progress
+  - image preload count
+  - API response time
+  - render time
+
+Test:
+- swipe 100 cards quickly
+- no blank screen
+- no visible loading gap
+- refill happens silently
+
+==================================================
+2. SEARCH DOES NOT SEARCH FULL DATABASE
+==================================================
+
+Problem:
+Search bar is not searching the full catalogue/database. It only returns some results.
+
+Requirements:
+- Search must query the full backend database, not Discover/feed/local state.
+- Search should support:
+  - title
+  - TV title
+  - actor/cast
+  - director
+  - genre
+  - year
+  - provider
+  - keyword/theme
+- Search should return paginated results.
+- Do not apply Discover subscription filters to search.
+- Label results instead:
+  - Included with your subscriptions
+  - Available elsewhere
+  - Rent or buy
+  - Unavailable
+- Add database indexes if needed.
+- Add search debug:
+  - total matches
+  - returned count
+  - query type detected
+  - filters applied
+  - database collection searched
+
+Test:
+- search famous titles
+- search obscure titles
+- search actor names
+- search genre names
+- search provider names
+- confirm results come from full catalogue
+
+Goal:
+Swipe must feel instant, and Search must behave like a full movie database.

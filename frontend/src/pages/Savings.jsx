@@ -1,14 +1,38 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { TrendingDown, ArrowUpRight, Sparkles, Trophy, Gauge, Tv2 } from "lucide-react";
 import { apiGet } from "@/lib/api";
+import { capture, EVENTS } from "@/lib/analytics";
 import AccountMenu from "@/components/AccountMenu";
+import { ProviderLogo } from "@/components/ProviderLogo";
 
 export default function Savings() {
+    useEffect(() => { capture(EVENTS.SAVINGS_SCREEN_VIEWED, {}, { dedupeKey: "savings-screen" }); }, []);
     const [data, setData] = useState(null);
     const [value, setValue] = useState(null);
     const [insights, setInsights] = useState(null);
     const [loading, setLoading] = useState(true);
+    const suggestionNodes = useRef(new Map());
+    const viewedSuggestions = useRef(new Set());
+    useEffect(() => {
+        if (!data?.suggestions?.length || typeof IntersectionObserver === "undefined") return;
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting || entry.intersectionRatio < 0.5) return;
+                const index = Number(entry.target.dataset.suggestionIndex);
+                if (!Number.isFinite(index) || viewedSuggestions.current.has(index)) return;
+                viewedSuggestions.current.add(index);
+                const suggestion = data.suggestions[index];
+                capture(EVENTS.SAVINGS_RECOMMENDATION_VIEWED, {
+                    position: index,
+                    estimated_monthly_saving: suggestion?.monthly_savings,
+                }, { dedupeKey: `savings-recommendation:${index}` });
+                observer.unobserve(entry.target);
+            });
+        }, { threshold: 0.5 });
+        suggestionNodes.current.forEach((node) => observer.observe(node));
+        return () => observer.disconnect();
+    }, [data]);
 
     useEffect(() => {
         Promise.all([
@@ -29,6 +53,11 @@ export default function Savings() {
     }
 
     const totalSavings = data.suggestions.reduce((s, x) => s + (x.monthly_savings || 0), 0);
+    const usageByService = Object.fromEntries(data.usage.map((row) => [row.service_id, row]));
+    const monthlyCostFor = (service) => {
+        const usage = usageByService[service.service_id];
+        return usage?.monthly_cost ?? usage?.price_monthly ?? service.price_monthly;
+    };
 
     return (
         <div className="min-h-screen px-5 pt-10 pb-28 max-w-md mx-auto" data-testid="savings-page">
@@ -64,10 +93,10 @@ export default function Savings() {
                         </div>
                         <div>
                             <div className="font-heading text-base">
-                                Save £{totalSavings.toFixed(2)}/mo
+                                Potential saving: £{totalSavings.toFixed(2)}/mo
                             </div>
                             <div className="text-xs text-zinc-400">
-                                That's £{(totalSavings * 12).toFixed(0)} a year back in your pocket.
+                                Up to £{(totalSavings * 12).toFixed(0)} a year from subscriptions worth reviewing.
                             </div>
                         </div>
                     </div>
@@ -83,17 +112,20 @@ export default function Savings() {
                             </h2>
                             <p className="text-xs text-zinc-500 mt-0.5">{insights.month_label} · {insights.total_watched} title{insights.total_watched === 1 ? "" : "s"} watched</p>
                         </div>
-                        {insights.potential_savings > 0 && (
+                        {totalSavings > 0 && (
                             <div className="text-right">
                                 <div className="text-[10px] uppercase tracking-wider text-zinc-500">Could save</div>
                                 <div className="font-display text-xl text-amber" data-testid="insights-potential-savings">
-                                    {insights.currency}{insights.potential_savings.toFixed(2)}
+                                    {insights.currency}{totalSavings.toFixed(2)}
                                 </div>
                             </div>
                         )}
                     </div>
                     <ul className="space-y-2.5">
-                        {insights.services.map((s, i) => (
+                        {insights.services.map((s, i) => {
+                            const monthlyCost = monthlyCostFor(s);
+                            const costPerWatch = s.titles_watched > 0 ? monthlyCost / s.titles_watched : null;
+                            return (
                             <motion.li
                                 key={s.service_id}
                                 initial={{ opacity: 0, y: 8 }}
@@ -104,13 +136,13 @@ export default function Savings() {
                             >
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-9 h-9 rounded-lg shrink-0" style={{ backgroundColor: s.logo_color }} />
+                                        <ProviderLogo sid={s.service_id} size={36} shape="rounded-lg" />
                                         <div className="min-w-0">
                                             <div className="font-heading text-sm truncate">{s.name}</div>
                                             <div className="text-[11px] text-zinc-500">
-                                                {insights.currency}{s.price_monthly.toFixed(2)}/mo
-                                                {s.cost_per_watch != null && (
-                                                    <> · {insights.currency}{s.cost_per_watch.toFixed(2)} per watch</>
+                                                 {insights.currency}{monthlyCost.toFixed(2)}/mo
+                                                 {costPerWatch != null && (
+                                                     <> · {insights.currency}{costPerWatch.toFixed(2)} per watch</>
                                                 )}
                                             </div>
                                         </div>
@@ -143,7 +175,8 @@ export default function Savings() {
                                     </div>
                                 )}
                             </motion.li>
-                        ))}
+                            );
+                        })}
                     </ul>
                 </div>
             )}
@@ -163,6 +196,11 @@ export default function Savings() {
                     {data.suggestions.map((s, i) => (
                         <motion.li
                             key={i}
+                            ref={(node) => {
+                                if (node) suggestionNodes.current.set(i, node);
+                                else suggestionNodes.current.delete(i);
+                            }}
+                            data-suggestion-index={i}
                             initial={{ opacity: 0, y: 8 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: i * 0.06 }}
@@ -178,8 +216,13 @@ export default function Savings() {
                                     )}
                                 </div>
                                 <div className="flex-1">
-                                    <div className="font-heading text-base mb-1">{s.headline}</div>
+                                    <div className="font-heading text-base mb-1">
+                                        {s.type === "cancel"
+                                            ? `Review ${data.usage.find((u) => u.service_id === s.service_id)?.name || "this subscription"}`
+                                            : s.headline}
+                                    </div>
                                     <p className="text-sm text-zinc-400">{s.reason}</p>
+                                    <p className="text-[11px] text-zinc-500 mt-2">Why shown: based on your recorded WatchSmart activity and current plan cost.</p>
                                 </div>
                             </div>
                         </motion.li>
@@ -196,7 +239,7 @@ export default function Savings() {
                         data-testid={`usage-${u.service_id}`}
                     >
                         <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg" style={{ backgroundColor: u.logo_color }} />
+                            <ProviderLogo sid={u.service_id} size={32} shape="rounded-lg" />
                             <div>
                                 <div className="font-heading text-sm">{u.name}</div>
                                 <div className="text-[11px] text-zinc-500">
@@ -230,7 +273,7 @@ export default function Savings() {
                             <li key={s.service_id} className="glass rounded-2xl p-4" data-testid={`value-${s.service_id}`}>
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg" style={{ backgroundColor: s.logo_color }} />
+                                        <ProviderLogo sid={s.service_id} size={32} shape="rounded-lg" />
                                         <div>
                                             <div className="font-heading text-sm">{s.name}</div>
                                             <div className="text-[11px] text-zinc-500">

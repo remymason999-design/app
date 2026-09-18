@@ -1,0 +1,67 @@
+New explicit assignment: prepare a fresh WatchSmart iOS TestFlight build because native capabilities have changed.
+We have added/changed:
+Push notifications
+Sign in with Apple
+These require a new native iOS build. Do not use an OTA update for this release.
+Before building, verify the following:
+1. Push notifications
+expo-notifications is installed and correctly configured.
+Push Notifications capability is enabled for iOS.
+The iOS app contains the correct push notification entitlement.
+EAS/Apple push credentials are configured.
+Permission handling is implemented correctly.
+Expo push token/device token registration works.
+Tokens are associated with the correct logged-in WatchSmart user.
+Notification failures do not break login or app startup.
+2. Sign in with Apple
+Sign in with Apple capability is enabled for bundle identifier com.watchsmart.app.
+expo-apple-authentication or the existing Apple authentication implementation is correctly configured.
+Native configuration/entitlements are correct.
+Apple sign-in works for both new and existing users.
+Existing email/password accounts are not duplicated accidentally.
+Hide My Email/private relay addresses are handled correctly.
+Login state persists after restarting the app.
+3. Production configuration
+Verify:
+bundle identifier remains com.watchsmart.app
+correct EAS project
+production API remains https://watchsmart.uk
+production environment variables are present
+no development/local URLs are included
+no API secrets are bundled into the client
+current app version is correct
+increment the iOS build number
+4. Existing functionality
+Run checks before building:
+TypeScript
+Expo Doctor
+authentication
+Discover
+Library
+Friends
+Savings
+Profile
+existing account deletion
+Sign out
+Do not change unrelated functionality just to make the build pass.
+5. iOS credentials
+Check the current EAS iOS credentials before starting the build.
+Ensure the production provisioning profile includes the new capabilities. If the provisioning profile needs regenerating because Push Notifications or Sign in with Apple were added, regenerate it correctly rather than reusing an incompatible profile.
+Do not revoke working Apple certificates/keys unnecessarily.
+6. Build
+Once the checks pass, create a fresh production iOS build and submit it to TestFlight/App Store Connect.
+Use the existing WatchSmart App Store Connect app. Do NOT create another app listing.
+This is a TestFlight build only. Do not submit the public App Store release.
+7. After submission
+Tell me:
+app version
+new build number
+whether Push Notifications capability was detected
+whether Sign in with Apple capability was detected
+whether the provisioning profile had to be regenerated
+whether push credentials are configured
+EAS build result
+App Store Connect submission result
+whether Apple is processing the build
+any warnings/errors
+anything I still need to do manually

@@ -7,7 +7,7 @@ import time
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://watchsmart-3.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "http://localhost:8000").rstrip("/")
 API = f"{BASE_URL}/api"
 
 
@@ -205,6 +205,27 @@ class TestSharing:
             assert rec["id"] not in all_seen
         assert c["pick_tonight"] is not None
         assert "synced_at" in c
+
+        paged_resp = alice["session"].get(
+            f"{API}/share/compare/{bob_id}",
+            params={"view": "recs", "scope": "overlap", "page": 1, "page_size": 2},
+        )
+        assert paged_resp.status_code == 200, paged_resp.text
+        paged = paged_resp.json()
+        assert set(paged) >= {"items", "pagination", "sentiment", "progress"}
+        assert paged["pagination"]["page"] == 1
+        assert paged["pagination"]["page_size"] == 2
+        assert len(paged["items"]) <= 2
+        assert len({item["id"] for item in paged["items"]}) == len(paged["items"])
+
+        watchlists_resp = alice["session"].get(
+            f"{API}/share/compare/{bob_id}",
+            params={"view": "watchlists", "scope": "overlap", "page": 1, "page_size": 2},
+        )
+        assert watchlists_resp.status_code == 200, watchlists_resp.text
+        watchlists = watchlists_resp.json()
+        assert watchlists["pagination"]["total_items"] == len(overlap_ids)
+        assert {item["id"] for item in watchlists["items"]}.issubset(overlap_ids)
 
     def test_compare_non_friend_403(self, alice):
         # Register a third user that's not a friend

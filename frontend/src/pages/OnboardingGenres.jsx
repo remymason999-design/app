@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { apiGet, apiPut, formatApiError } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { capture, EVENTS } from "@/lib/analytics";
 
 export default function OnboardingGenres() {
     const navigate = useNavigate();
@@ -35,6 +36,8 @@ export default function OnboardingGenres() {
                 age: age ? Number(age) : undefined,
             });
             setUser(updated);
+            capture(EVENTS.ONBOARDING_STEP_COMPLETED, { step: "genres", selected_count: selected.size, country }, { user: updated });
+            capture(EVENTS.ONBOARDING_COMPLETED, {}, { user: updated });
             toast.success("All set — let's find something to watch");
             navigate("/discover");
         } catch (err) {

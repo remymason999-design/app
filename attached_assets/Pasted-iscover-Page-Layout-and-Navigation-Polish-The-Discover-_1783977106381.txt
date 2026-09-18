@@ -1,0 +1,222 @@
+iscover Page Layout and Navigation Polish
+The Discover page still does not look balanced or polished. Do not redesign the entire brand again. Keep the existing orange, dark theme, typography and general card concept, but correct the proportions, spacing, hierarchy and navigation.
+Main problem
+The screen currently feels:
+	●	Too narrow and vertically stretched
+	●	Too crowded at the bottom
+	●	Overloaded with information
+	●	Compressed between the action buttons and navigation
+	●	More like a prototype than a finished streaming app
+	●	Dominated by an oversized floating navigation pill
+The goal is to make the Discover page feel cleaner, wider, more cinematic and easier to use.
+⸻
+1. Make the recommendation card wider and shorter
+The current card is too narrow and too tall.
+Required changes:
+	●	Increase the card width to approximately 92–94% of the available mobile screen width.
+	●	Keep the card centred.
+	●	Reduce the total card height.
+	●	Avoid the current long vertical poster-like shape.
+	●	Make the layout feel more cinematic and balanced.
+	●	Ensure the card, controls and bottom navigation fit comfortably on a standard phone screen.
+	●	Prevent important artwork, faces or title text from being badly cropped.
+	●	Use TMDB backdrop images where available.
+	●	Use portrait posters only as a fallback.
+	●	Apply sensible object-fit: cover and image positioning.
+Do not stretch portrait artwork into an unsuitable wide format.
+⸻
+2. Improve the content hierarchy
+The card currently contains too many elements fighting for attention.
+Keep visible:
+	●	Match percentage
+	●	Up to two genre tags
+	●	Recommendation explanation
+	●	Film or show title
+	●	Rating
+	●	Release year
+	●	Runtime
+	●	Short description
+	●	Streaming provider
+	●	Information button
+Hierarchy requirements:
+	●	The title must be the strongest text element.
+	●	Make the recommendation explanation smaller and less dominant.
+	●	Limit the description to two lines.
+	●	Reduce unnecessary spacing between genre tags, explanation, title, metadata and description.
+	●	Keep genre pills compact.
+	●	Keep the match badge small and clean.
+	●	Keep the information button in the top-right corner without making it too large.
+The card should feel informative without looking busy.
+⸻
+3. Improve the provider display
+The provider logo currently appears to float by itself.
+Change this to a proper provider badge inside the information area.
+Example:
+Included with Prime Video
+Requirements:
+	●	Place the provider badge near the metadata or description.
+	●	Use a small provider logo beside the provider name.
+	●	Keep it subtle and readable.
+	●	Do not leave a circular provider logo floating in the bottom-left corner.
+	●	Support multiple providers where necessary without overcrowding the card.
+⸻
+4. Move action controls outside the card
+The action controls currently feel compressed into the bottom of the recommendation card.
+Place the actions in a separate row directly below the card.
+Keep these actions:
+	●	Rewind
+	●	Skip
+	●	Watched
+	●	Save
+Requirements:
+	●	Use equal visual spacing.
+	●	Keep buttons large enough to tap comfortably.
+	●	Make Rewind slightly more prominent than it is currently.
+	●	Keep Watched as a secondary action, but still clearly available.
+	●	Ensure the labels sit consistently under the buttons.
+	●	Do not let the action row overlap the card or bottom navigation.
+	●	Add enough breathing room above and below the controls.
+	●	Maintain at least a 44px touch target for every button.
+Suggested order:
+Rewind — Skip — Watched — Save
+Do not add navigation arrows.
+⸻
+5. Fix top navigation spacing
+Keep the current top structure:
+	●	Discover heading
+	●	Search icon
+	●	Filter icon
+	●	For You
+	●	Movies
+	●	TV Shows
+	●	New
+Required changes:
+	●	Align the Discover heading, search and filter icons properly.
+	●	Make search and filter buttons slightly smaller.
+	●	Keep category tabs evenly spaced.
+	●	Reduce the size of the active For You pill.
+	●	Use balanced horizontal padding.
+	●	Avoid tabs feeling squeezed or uneven.
+	●	Keep enough space between the heading row, tabs and card.
+⸻
+6. Replace the oversized floating bottom navigation
+The current bottom navigation is too large, too rounded and too visually heavy.
+Replace it with a cleaner fixed bottom navigation bar.
+Keep these five tabs:
+	●	Discover
+	●	Watchlist
+	●	Friends
+	●	Savings
+	●	Profile
+Required design:
+	●	Full-width fixed bar at the bottom of the screen.
+	●	Remove the oversized floating pill appearance.
+	●	Use a subtle dark background.
+	●	Add either a thin top border or a very soft shadow.
+	●	Reduce the total visual height.
+	●	Target approximately 64–72px including safe-area padding.
+	●	Space all five items evenly.
+	●	Reduce icon size slightly.
+	●	Keep labels small but readable.
+	●	Use orange only for the active tab.
+	●	Use muted grey for inactive tabs.
+	●	Do not use a large orange box behind the active tab.
+	●	Use the active icon, label and optionally a small indicator line or dot.
+	●	Keep the same navigation design across every app page.
+	●	Respect iPhone safe-area padding using env(safe-area-inset-bottom).
+	●	Ensure the bar never overlaps page content.
+	●	Add enough bottom padding to scrollable content so the final content is not hidden behind the bar.
+The navigation should feel like a polished streaming or social app, not a large floating capsule.
+⸻
+7. Add the Watchlist notification badge
+Remove the existing “Saved to Watchlist” dropdown or banner if it still exists.
+Replace it with a badge on the Watchlist navigation tab.
+Behaviour:
+	●	Increment the badge when a user saves a new title.
+	●	Show the number of unseen Watchlist additions.
+	●	Clear the badge when the user opens Watchlist.
+	●	Do not clear it merely because the app refreshes.
+	●	Store the unread state per user.
+	●	Cap the visible badge at 99+.
+	●	Ensure the badge does not distort the navigation layout.
+⸻
+8. Review the Profile tab
+Keep Profile as one of the five navigation items for now.
+Use:
+	●	A clean profile icon
+	●	The label “Profile”
+	●	The same active and inactive styling as the other tabs
+Do not replace it with only an avatar unless the avatar fallback, loading and accessibility states are fully handled.
+⸻
+9. Fix old and weak titles appearing in the normal feed
+The current feed is showing Jaws 2 from 1978 even though the catalog-quality task was intended to stop old and weak titles.
+Audit exactly why that title appeared.
+For the normal recommendation feed:
+	●	Titles released before 2005 should not appear unless the individual user has clearly shown interest in classics or older content.
+	●	Fallback logic must not silently bypass the release-year eligibility rule.
+	●	Discovery pools must not bypass the eligibility rule.
+	●	Catalog exhaustion must not automatically reintroduce old titles.
+	●	Global learning must not make an otherwise ineligible title eligible.
+	●	Admin and test users should follow normal eligibility rules unless an explicit debug mode is enabled.
+For the Jaws 2 recommendation, log:
+	●	Movie ID
+	●	Release year
+	●	Rank
+	●	Final recommendation score
+	●	Quality score
+	●	Quality tier
+	●	Eligibility result
+	●	Source pool
+	●	Reason code
+	●	Fallback path
+	●	Whether classic affinity was detected
+	●	Which rule allowed it into the feed
+Do not simply hardcode a block for this one title. Fix the underlying path.
+⸻
+10. Responsive layout requirements
+Test the Discover page at:
+	●	iPhone SE width
+	●	Standard iPhone width
+	●	Large iPhone width
+	●	Standard Android width
+	●	Desktop browser preview
+Requirements:
+	●	No element overlap.
+	●	No buttons touching the navigation.
+	●	No text clipped unexpectedly.
+	●	No artwork stretched.
+	●	No content hidden behind the fixed navigation.
+	●	The card should remain centred.
+	●	Desktop should not display an extremely narrow mobile column surrounded by excessive empty space.
+For desktop preview:
+	●	Allow a slightly wider app container.
+	●	Keep a mobile-app feel without making the content unnecessarily tiny.
+	●	Do not stretch the card across the entire desktop screen.
+⸻
+11. Accessibility requirements
+	●	Every action must have an accessible label.
+	●	Keep minimum 44px touch targets.
+	●	Maintain readable contrast.
+	●	Do not use colour alone to communicate the selected tab.
+	●	Ensure keyboard focus states work in desktop preview.
+	●	Ensure labels do not disappear at smaller screen widths.
+	●	Support screen-reader labels for provider badges, match percentage and action buttons.
+⸻
+Acceptance criteria
+Do not mark this task complete until all of the following are true:
+	●	The recommendation card is wider and shorter.
+	●	The screen no longer feels like one long narrow column.
+	●	Important artwork is not badly cropped.
+	●	The title is the main focus.
+	●	The provider appears as a clean badge.
+	●	Action controls sit outside the card.
+	●	The action controls do not touch the bottom navigation.
+	●	The bottom navigation is full-width, fixed and low-profile.
+	●	The floating pill navigation has been removed.
+	●	All five navigation items are evenly spaced.
+	●	The active tab is orange without a large background block.
+	●	The Watchlist badge increments and clears correctly.
+	●	Content is not hidden behind the fixed navigation.
+	●	Jaws 2 or similar pre-2005 titles do not appear for users without classic-film interest.
+	●	All relevant tests pass.
+	●	Provide screenshots at the tested mobile widths and desktop preview before completion.

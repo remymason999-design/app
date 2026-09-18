@@ -1,0 +1,34 @@
+- [Cold-start genre dominance](coldstart-genre-dominance.md) — make selected genres dominate first ~50 swipes via 3 soft levers (primary-match boost, core-ratio hold, per-genre even-spread); never count-weight co-tags.
+- [Recommendation tone grouping](recommendation-tone-grouping.md) — gate exploration on effective tone group (card.tone + themes + audience), not raw card.tone.
+- [Recommendation feed maturity](recommendation-feed-maturity.md) — anti-genre-trap rules: supply-aware variety floor, even-spread dominant feeling, confident users skip thin-pool rescue.
+- [Discover catalog data shape](discover-catalog-data-shape.md) — provider slugs lowercase (netflix/prime_video…), genre "Sci-Fi" not "Science Fiction"; persona-sim no-ops refill.
+- [Rec-engine soft levers](rec-engine-soft-levers.md) — rec quality changes must be soft (re-rank/label), never new pool filters; sim pools must stay identical; auto-block already safe—don't touch.
+- [Installing Python packages](python-package-install.md) — pip/uv-add fail on immutable nix store; install with `uv pip install --target .pythonlibs/lib/python3.12/site-packages <pkg>`.
+- [Provider region-keyed availability](provider-region-storage.md) — providers_by_region is canonical; Discover gate + sub-match are region-resolved; flatrate = known services only.
+- [Mongo persistence & deploy](mongo-persistence-deploy.md) — local mongod is dev-only; deploy needs managed Mongo + Reserved VM single-worker (in-memory catalog); rapid-restart stale-lock gotcha.
+- [Resend email + password reset](resend-email-connector.md) — connector token needs "repl/depl " prefix; send from verified brand domain; forgot-password reply identical for known/unknown (anti-enumeration).
+- [Quality gate & unknown runtime](quality-gate-runtime-films.md) — gate only on explicit-bad values, never missing/None; a None-runtime reject silently wiped all films → feeds went 100% TV. All-one-type feed ⇒ suspect a field-presence reject, not exhaustion.
+- [UK Anglo default hide](uk-anglo-default-hide.md) — anime + Asian-language drama hidden from default pool; show_anime_asian opt-in is authoritative over legacy excluded_categories; European langs stay.
+- [Anti-repetition passes](anti-repetition-passes.md) — feed de-streak: feeling spacing (sim-critical) wins, cluster/franchise best-effort via same-feeling swaps only; onboarding-preference persistence checked on learned taste, not feed (mono-niche supply exhaustion ≠ drift).
+- [Onboarding persistence & confidence](onboarding-persistence-and-confidence.md) — selected genres persist; source-separated title evidence fades with genuine later actions, never impressions or repeat taps.
+- [Managed Mongo aggregation limits](managed-mongo-aggregation.md) — managed DB rejects complex aggregation pipelines; new analytics/diagnostics endpoints should find() + aggregate in Python, guard each metric so failures return null.
+- [Discover tabs & content_type](discover-tabs-content-type.md) — Movies/TV tabs pass content_type to /discover (overrides user pref); refill/banners gate on personalised tab set (for-you,movies,tv), not just for-you.
+- [Discover layout + bottom nav](discover-floating-actions.md) — backdrop-first card, "Included with X" pill, action row below card (no overlap), full-width fixed nav with watchlist unseen badge (clear-on-open endpoint).
+- [Mongo dotted-key weights](mongo-dotted-key-weights.md) — never use raw person names as $inc keys (dots nest into dicts and 500 later); sanitize writes+reads with person_key, readers skip non-numeric.
+- [Sentiment & pricing systems](sentiment-and-pricing-update.md) — atomic claim-then-inc for watched-sentiment reversal; server-authoritative plan costs from live streaming_plans; for-you-both min() scoring + cache.
+- [Mobile launch readiness](mobile-launch-readiness.md) — prod origin watchsmart.uk; web-preview localStorage token fallback; gen-guard Discover timers; App Store pack in mobile/docs.
+- [Expo mobile app](expo-mobile-app.md) — mobile/ runs on port 8080 workflow w/ EXPO_PUBLIC_API_URL; SecureStore tokens + 401 refresh; layouts must gate on loading; use mark-trim asset, not portrait logo PNGs.
+- [WatchSmart brand & Discover controls](watchsmart-brand-redesign.md) — orange #FF7A18 palette (amber token repointed), Inter, official PNG logo assets (not SVG); Discover row = Rewind·Skip·Watched·Save (no Undo btn), up=watched, Rewind reverses via unskip/unsave/unwatched.
+- [Backfill version selector traps](backfill-version-selector.md) — `$ne` misses absent fields; `except:pass` masks real bugs. Both caused a months-long silent backfill no-op.
+- [App Store publish from mobile/](mobile-appstore-publish.md) — register `mobile/.replit-artifact/artifact.toml` (kind="mobile", shell-write it); EAS "expo not installed" = wrong project root, not deps.
+- [Mobile-width verification harness](mobile-width-verification.md) — verify 375–430px layouts despite 1280px-only screenshots: scaled same-origin iframes + dev_token bootstrap (viewport-test.html).
+- [Native Apple identity safety](native-apple-identity-safety.md) — Apple login keys users by verified sub; email collisions require authenticated linking; exchange/revocation tokens stay server-only and subject-bound.
+- [Push notification safety](push-notification-safety.md) — explicit user-scoped opt-in; secret-backed device revocation; generic payloads; fenced, retry-safe Expo outbox delivery.
+- [TV progress semantics](tv-progress-semantics.md) — episode state is separate from saved/watched sentiment; bulk operations infer only from known season counts and explicit corrections always win.
+- [Async list history restoration](async-list-history-restoration.md) — scope saved scroll and view controls to the exact history entry; restore only after async list content mounts.
+- [Per-user delivery locking pitfalls](plus-launch-deletion-fencing.md) — lock only serializes, re-check liveness after acquiring it; bound ambiguous-delivery retries inside the provider's idempotency-key window, not indefinitely.
+- [Franchise identity](franchise-identity.md) — use stable TMDB collection IDs for grouping and retain collection names only for display; accept legacy name-only cards.
+- [Impression attribution](impression-attribution.md) — count each served card once; attribute only its first subsequent user+feed+title-matched save, skip, or watched action.
+- [Tutorial versioning](tutorial-versioning.md) — bump the web tutorial seen-key when adding a required card, or existing users never receive the new guidance.
+- [Compare Friends refresh](compare-friends-refresh.md) — paginate and replace results; refresh on return, never poll full snapshots while the page is idle.
+- [Analytics query privacy](analytics-query-privacy.md) — block raw search text while preserving derived query metrics such as length buckets and result counts.

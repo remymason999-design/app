@@ -1,0 +1,125 @@
+Run exhaustive swipe-behavior simulations for ALL supported genres and combinations.
+
+Goal:
+Stress-test the full recommendation engine, personalization, exploration, queue rotation, and genre balance across the entire catalog.
+
+Test EVERY genre individually:
+- Action
+- Adventure
+- Animation
+- Anime
+- Biography
+- Comedy
+- Crime
+- Documentary
+- Drama
+- Family
+- Fantasy
+- History
+- Horror
+- Kids
+- Music
+- Mystery
+- Romance
+- Sci-Fi
+- Sport
+- Thriller
+- TV Movie
+- War
+- Western
+- Reality
+- Talk
+- News
+
+For EACH genre:
+- Simulate 200–500 swipes
+- saves
+- skips
+- watched
+- trailer opens
+- detail opens
+- app reopen
+- refill cycles
+
+Verify:
+- selected genre dominates correctly
+- no genre starvation
+- no endless repetition
+- adjacent genres feel natural
+- wildcards stay controlled
+- queue depth survives long sessions
+- personalization evolves over time
+- recommendations remain fresh
+
+Test ALL major genre combinations:
+- Documentary + Crime
+- Documentary + History
+- Horror + Mystery
+- Comedy + Romance
+- Action + Thriller
+- Sci-Fi + Adventure
+- Fantasy + Adventure
+- Music + Documentary
+- Crime + Drama
+- War + History
+- Anime + Action
+- Family + Animation
+- Thriller + Mystery
+- Romance + Drama
+- Sport + Documentary
+- Western + Drama
+- Reality + Comedy
+- News + Documentary
+
+Also generate randomized multi-genre users:
+- narrow taste users
+- broad taste users
+- chaotic users
+- exploration-heavy users
+- anti-exploration users
+
+Mood/tone tests:
+- dark
+- emotional
+- uplifting
+- gritty
+- intense
+- wholesome
+- slow-burn
+- fast-paced
+- cerebral
+- lighthearted
+
+Subscription tests:
+- Netflix only
+- Prime only
+- Disney only
+- Apple only
+- mixed subscriptions
+- no subscriptions
+
+Long-session tests:
+- 1000+ swipe simulations
+- multi-day feed evolution
+- queue rebuilds
+- refill cycles
+- shown-history persistence
+
+Debug output:
+- genre exposure %
+- repeated title rate
+- queue depth
+- refill effectiveness
+- wildcard acceptance
+- adjacent genre balance
+- tone evolution
+- pacing evolution
+- personalization confidence
+- top repeated titles
+- weakest genres
+- strongest genres
+
+Fix bugs found during testing.
+
+Goal:
+The system should feel highly personalized, fresh, balanced, and stable across all genres and long-term usage.

@@ -1,0 +1,355 @@
+WatchSmart is now approaching its first iOS TestFlight and App Store build.
+
+The Apple Developer Program account is active.
+
+Your task is to complete a full launch-readiness audit, correct any remaining native-app issues, and prepare the current WatchSmart Expo app for upload through Replit Publishing.
+
+IMPORTANT SAFETY RULES
+
+- Do not delete, replace, restructure or damage the existing web frontend.
+- Do not rewrite or duplicate the existing FastAPI backend.
+- Do not reset the database or alter existing user accounts, recommendations, interactions, watchlists or analytics data.
+- Keep all native mobile work inside /mobile unless a clearly necessary additive backend change is documented first.
+- Do not restore or recreate an old WatchSmart interface.
+- The native application must reflect the latest approved WatchSmart interface and branding.
+- Do not upload anything to Apple until the checks in this task are complete and the current interface has been verified on a real iPhone.
+- Do not claim the app is launch-ready merely because it compiles.
+
+PHASE 1 — VERIFY WHICH INTERFACE IS CURRENT
+
+Before changing anything, compare:
+
+1. The current production web interface.
+2. The latest mobile interface inside /mobile.
+3. Any older components, layouts or screens still present in the repository.
+4. The interface currently shown by Expo Go.
+
+Identify whether any old Discover layout, old navigation, deprecated component or fallback screen is being rendered.
+
+Produce a short report containing:
+
+- Which files control the current mobile Discover screen.
+- Which files control the bottom navigation.
+- Which files control authentication and onboarding.
+- Whether any old UI components are still being imported.
+- Whether duplicated screens or routes exist.
+- Whether Expo is loading a stale cached bundle.
+- Whether the mobile workflow points to the correct /mobile project.
+- Whether the current native interface matches the latest approved WatchSmart design.
+
+Remove only confirmed obsolete mobile files that are no longer referenced.
+
+Do not remove anything from /frontend or /backend.
+
+PHASE 2 — COMPLETE THE NATIVE USER JOURNEY
+
+Verify that the following work in the native mobile app using the real existing backend:
+
+AUTHENTICATION
+
+- Splash screen.
+- Registration.
+- Login.
+- Secure access-token storage.
+- Secure refresh-token storage.
+- Automatic token refresh.
+- Persistent login after fully closing and reopening the app.
+- Logout.
+- Expired-session handling.
+- Correct error messages.
+- Keyboard and safe-area handling.
+- No passwords or tokens logged to the console.
+
+ONBOARDING
+
+- New users complete the current WatchSmart onboarding.
+- Provider selection works.
+- Film and television taste selection works.
+- Existing onboarding data is saved to the real user account.
+- Users who already completed onboarding are not forced through it again.
+- Back, continue and skip behaviour is correct.
+- Onboarding does not use generic or outdated cards.
+
+DISCOVER
+
+- The latest approved Discover layout is used.
+- Recommendations come from the existing backend recommendation engine.
+- Posters and backdrops load reliably.
+- Save, skip, watched and rewind actions work.
+- Swipe gestures are smooth.
+- Buttons do not overlap cards.
+- Rewind is visually prominent.
+- Card information is readable on real iPhone screen sizes.
+- Provider information is accurate.
+- Recommendation impressions and actions are logged.
+- Loading, empty, exhausted-feed, offline and API-error states exist.
+- No repeated action is sent if the user taps twice.
+- No outdated fallback UI appears.
+
+MOVIE AND SERIES DETAILS
+
+- Title, poster, backdrop, overview, genres, year, runtime and certification display where available.
+- Streaming provider information displays correctly for the United Kingdom.
+- Save, remove, watched and similar-title actions work.
+- Series data and progress work where currently supported.
+- Missing metadata does not break the screen.
+- Native sharing uses the React Native or Expo Share API rather than navigator.share.
+
+SEARCH
+
+- Search works for films, television programmes, actors and other currently supported searches.
+- Search results can be selected.
+- Search does not merely display results without opening them.
+- Empty, loading and error states work.
+- Keyboard dismissal works properly.
+
+WATCHLIST
+
+- Saved titles appear for the authenticated user.
+- Removing a title works.
+- Opening a title works.
+- Watchlist state updates immediately after Discover actions.
+- Empty states are branded.
+- Watchlist notification or badge behaviour matches the latest approved design.
+
+FRIENDS
+
+- Existing friends functionality is connected to the real backend.
+- Friend requests, accepting, declining and removing work where supported.
+- Shared or compared watchlists work where already supported.
+- No placeholder is presented as a finished feature.
+- If a feature is not yet backed by an endpoint, clearly mark it as incomplete rather than inventing local-only behaviour.
+
+SAVINGS
+
+- Existing subscription and savings data loads from the real account.
+- Subscription selections can be viewed and edited where currently supported.
+- Calculations match the web app.
+- Currency is appropriate for UK users.
+- No fake or placeholder savings figures are shown.
+
+PROFILE AND SETTINGS
+
+- Profile data loads correctly.
+- Provider settings work.
+- Notification screen opens.
+- Privacy Policy and Terms links open successfully.
+- Contact or support option works.
+- Account deletion is available if the backend currently supports it.
+- If account deletion is not yet supported, report this as a launch blocker and propose the smallest safe backend implementation.
+- Logout works.
+- App version and build number are displayed.
+
+PHASE 3 — APP STORE COMPLIANCE CHECK
+
+Audit the app against current Apple submission requirements and identify any blockers.
+
+Check specifically:
+
+- The application is a genuine native experience and not merely a thin website wrapper.
+- There are no broken links, blank screens or placeholder buttons.
+- Users can access Privacy Policy and Terms.
+- The Privacy Policy accurately covers accounts, personalisation, analytics, recommendation interactions and third-party services.
+- App privacy disclosures can be completed accurately.
+- All third-party SDKs and data collection are listed.
+- Permission prompts contain clear purpose strings.
+- The app does not request permissions it does not need.
+- Authentication works for App Review.
+- A review account can be supplied if login is mandatory.
+- Account deletion requirements are satisfied.
+- No copyrighted third-party artwork is bundled without permission.
+- TMDB attribution is displayed where required by the TMDB terms.
+- Streaming-provider information is not presented as an official partnership unless one exists.
+- No misleading subscription or savings claims appear.
+- The age rating can be completed accurately.
+- Export-compliance information can be answered.
+- No debug menus, test buttons, development URLs or console logs remain in production.
+- The production API uses HTTPS.
+- Secrets are not embedded in the client bundle.
+- The app remains usable if optional analytics or tracking fails.
+
+Do not add an App Store review popup for the first release unless it is already fully controlled and appropriately timed.
+
+Prepare the project so an in-app rating prompt can be added later after a positive user milestone, using Apple’s native review API and respecting Apple’s system limits.
+
+PHASE 4 — ANALYTICS AND CRASH REPORTING
+
+Confirm the production status of:
+
+- PostHog React Native.
+- Crash reporting using the currently selected Expo-compatible Sentry package.
+- Environment separation between development and production.
+- No sensitive personal information in analytics events.
+- Core events for:
+  - registration
+  - login
+  - onboarding completion
+  - recommendation impression
+  - swipe save
+  - swipe skip
+  - watched
+  - rewind
+  - watchlist open
+  - search
+  - friend request
+  - savings screen
+  - app error
+
+If PostHog or Sentry is not safely configured yet, report exactly what remains. Do not invent API keys or expose secret server credentials.
+
+PHASE 5 — TECHNICAL PRODUCTION CONFIGURATION
+
+Inspect and correct the Expo configuration.
+
+Use the final agreed identifiers:
+
+- App display name: WatchSmart
+- Expo project name: WatchSmart
+- Expo slug: watchsmart
+- iOS bundle identifier: com.watchsmart.app
+
+Before committing the bundle identifier, confirm that it is available and has not already been registered under a different WatchSmart app.
+
+Configure and verify:
+
+- app.json or app.config.ts.
+- eas.json if used.
+- ios.bundleIdentifier.
+- version: 1.0.0.
+- ios.buildNumber: 1.
+- orientation.
+- supported iPhone and iPad behaviour.
+- branded app icon.
+- adaptive or notification assets where applicable.
+- splash screen.
+- dark background colour.
+- scheme or deep-link configuration.
+- production API environment variable.
+- Expo project ID if Replit Launch or EAS requires it.
+- privacy manifests and plugin configuration required by installed packages.
+- correct status-bar appearance.
+- correct safe-area behaviour.
+- no hard-coded localhost addresses.
+- no development-only dependencies imported in production code.
+
+Run:
+
+- Dependency installation validation.
+- TypeScript checking.
+- Expo Doctor.
+- Production bundle/export validation.
+- Route validation.
+- Broken import validation.
+- Environment-variable validation.
+- Secret scanning.
+- iOS production-build readiness checks.
+
+Fix launch-blocking errors. Do not hide errors by disabling checks.
+
+PHASE 6 — REAL DEVICE TEST PLAN
+
+Provide a numbered test checklist for the owner to complete on a real iPhone through Expo Go or a development/TestFlight build.
+
+The checklist must include:
+
+1. Fresh installation.
+2. New registration.
+3. Existing account login.
+4. Onboarding.
+5. Swipe actions.
+6. Recommendation refresh.
+7. Watchlist.
+8. Search.
+9. Friends.
+10. Savings.
+11. Profile.
+12. Background and resume.
+13. Force-close and reopen.
+14. Token refresh.
+15. Poor network.
+16. Airplane mode.
+17. Logout.
+18. Different iPhone screen sizes where practical.
+19. Dark appearance.
+20. App links and legal links.
+21. Crash-free session.
+22. No old interface appearing.
+
+Do not proceed to Apple upload until the owner confirms that this checklist passes.
+
+PHASE 7 — PREPARE REPLIT APP STORE PUBLISHING
+
+Prepare the mobile project for Replit’s Publishing > App Store flow.
+
+Do not initiate the final upload without asking for confirmation once all checks pass.
+
+Before asking for confirmation, provide:
+
+- Expo project name and slug.
+- Bundle identifier.
+- Version and build number.
+- Production API URL.
+- Apple app record status.
+- App icon status.
+- Splash status.
+- Privacy Policy URL.
+- Terms URL.
+- Support URL.
+- Account-deletion status.
+- Analytics status.
+- Crash-reporting status.
+- Test results.
+- Remaining warnings.
+- Exact files changed.
+- Exact files deleted.
+- Dependencies added or removed.
+- Confirmation that the web frontend still works.
+- Confirmation that the backend still works.
+- Confirmation that the database and user data were not reset.
+- Confirmation that no old interface is being used.
+
+APP STORE INFORMATION PACK
+
+Create a draft launch information file at:
+
+/mobile/docs/app-store-submission.md
+
+Include placeholders or completed drafts for:
+
+- App name.
+- Subtitle.
+- Promotional text.
+- Full description.
+- Keywords.
+- Primary category.
+- Secondary category.
+- Support URL.
+- Marketing URL.
+- Privacy Policy URL.
+- Copyright.
+- Age-rating considerations.
+- App Review contact information placeholders.
+- App Review notes.
+- Test-account username and password placeholders.
+- Explanation of the recommendation and swipe experience.
+- Explanation of where Apple reviewers can find each major feature.
+- Data-collection disclosure worksheet.
+- Screenshot checklist.
+- Release notes for version 1.0.0.
+
+Do not place real passwords inside the repository.
+
+FINAL OUTPUT
+
+At the end, categorise everything as:
+
+A. Passed and ready.
+B. Fixed during this task.
+C. Requires owner testing.
+D. Requires owner information.
+E. Launch blocker.
+F. Safe to add after launch.
+
+Do not upload the app merely because the owner has an active Apple Developer account.
+
+Stop immediately before the final “Launch to App Store” action and ask for explicit confirmation.

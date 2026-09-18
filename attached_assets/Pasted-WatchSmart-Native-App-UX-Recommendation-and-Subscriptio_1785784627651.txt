@@ -1,0 +1,468 @@
+WatchSmart Native App — UX, Recommendation and Subscription Update
+Please implement everything below as one controlled update.
+Do not redesign the overall brand. Keep the current black, navy, white and orange WatchSmart style. Do not remove existing functionality.
+1. Fix the excessive space at the top
+There is too much empty vertical space between the WatchSmart header and the page content on several screens.
+This is especially visible on:
+* Discover
+* Watchlist
+* Savings
+* Friends comparison
+The app must still respect the iPhone safe area and Dynamic Island, but it should not apply additional oversized top padding beneath the header.
+Required result
+* Keep the logo and profile button safely below the status bar.
+* Reduce the gap underneath the header.
+* Use consistent spacing on every main tab.
+* The page heading should begin much closer to the header.
+* Do not overlap the Dynamic Island or status bar.
+* Test on modern iPhones with and without the Dynamic Island.
+Create one reusable screen-header layout rather than using different padding values on every screen.
+ 
+⸻
+ 
+2. Improve the bottom navigation bar
+The bottom navigation is currently too low, too short and too visually weak.
+Required changes
+* Increase the visible height of the navigation bar.
+* Move the icons and labels slightly higher.
+* Make each icon larger and easier to tap.
+* Add proper text labels beneath every icon:
+    * Discover
+    * Watchlist
+    * Friends
+    * Savings
+* Preserve the iPhone home-indicator safe area.
+* The navigation background must extend fully behind the home indicator.
+* The actual buttons must sit above the home indicator rather than almost touching it.
+* Use a minimum touch target of approximately 44 × 44 points.
+* Make the active tab clearer using WatchSmart orange.
+* Keep inactive tabs visible in muted grey.
+* Keep the watchlist badge positioned neatly without covering the icon.
+The bar should feel like an intentional premium navigation component, not a thin strip attached to the bottom.
+ 
+⸻
+ 
+3. Fix the Discover movie-card stack
+The next movie card is too visible beneath the current card. The current card is also too transparent or washed out, which makes the text and artwork difficult to read.
+Required changes
+* Only the active card should be clearly visible.
+* The following card may be visible by a very small amount to communicate that it is a stack, but its: 
+    * title
+    * match percentage
+    * description
+    * provider label
+    * metadata must not show through the active card.
+* Remove excessive card transparency.
+* Increase the dark image overlay behind text.
+* Preserve the poster artwork and colour rather than making the whole card grey.
+* Ensure white text reaches strong contrast.
+* Keep the active card fully opaque.
+* Render underneath cards slightly scaled down and vertically offset.
+* Clip all underlying content correctly using border radius and overflow: hidden.
+* Check for duplicate text caused by stacked cards rendering simultaneously.
+* Do not allow the next card’s title or match score to appear through the current card.
+
+Also verify that a swipe transition removes the previous card cleanly before displaying the next one.
+ 
+⸻
+ 
+4. Replace the current Watched action with useful feedback
+Marking something as watched is not enough. We need to learn whether the user actually liked it.
+When the user presses Watched, open a fast feedback sheet instead of immediately completing the action.
+Feedback sheet
+Title:
+What did you think?
+Primary options:
+* Loved it
+* Liked it
+* It was okay
+* Didn’t like it
+Also include:
+* Haven’t finished it
+* Cancel
+Data model
+Store the watched interaction with fields similar to:
+
+{
+  user_id,
+  title_id,
+  interaction_type: "watched",
+  watched_sentiment: "loved" | "liked" | "neutral" | "disliked",
+  completed: true | false,
+  created_at
+}
+
+Use the existing database naming conventions rather than blindly duplicating fields.
+
+Recommendation weighting
+
+Treat feedback approximately as:
+
+Loved it      = very strong positive signal
+Liked it      = positive signal
+It was okay   = weak or neutral signal
+Didn't like it = strong negative signal
+Haven't finished it = incomplete signal, not a full dislike
+
+The engine should learn from:
+
+* genres
+* subgenres
+* cast
+* directors
+* writers
+* themes
+* tone
+* audience type
+* language
+* release era
+* provider
+* community taste cluster
+
+Do not treat every watched title as positive.
+
+A disliked watched title must not strengthen recommendations for similar content.
+
+UX requirements
+
+* The feedback should take only one tap after pressing Watched.
+* Confirm the response with a small animation or brief message.
+* Then advance to the next card.
+* Rewind must reverse both the watched action and its sentiment.
+* Allow users to change this rating later from title details or viewing history.
+
+⸻
+
+5. Repair “For you both”
+
+The current For you both results are clearly inaccurate. It is showing titles that do not reflect both users’ tastes.
+
+Do not produce this list by simply joining two watchlists or using one person’s generic feed.
+
+Correct logic
+
+For every title, calculate:
+
+joint_score =
+  minimum(userA_score, userB_score)
+  + mutual_genre_bonus
+  + mutual_tone_bonus
+  + shared_provider_bonus
+  + community_quality_bonus
+  - dislike_conflict_penalty
+  - hard_skip_penalty
+  - already_seen_penalty
+
+Using the lower of the two individual scores is important. A title should not rank highly when one user is predicted to love it and the other is predicted to dislike it.
+
+Exclude titles when
+
+* either user has hard-skipped it
+* either user has marked it watched and disliked it
+* either user has hidden it
+* neither user has access through their selected services
+* it violates either user’s explicit content settings
+* it falls outside important language or anime preferences
+* the title is low quality or weak fallback inventory
+
+Tabs
+
+Keep these sections, but make their meaning accurate:
+
+* Both — saved by both users
+* You — saved only by the current user
+* Friend — saved only by the friend
+* For you both — newly recommended titles that should appeal to both
+
+“For you both” must not contain existing watchlist items unless clearly placed in a separate shared-watchlist section.
+
+Validation
+
+Create automated test profiles such as:
+
+* crime/thriller user + crime/drama user
+* Marvel user + historical-drama user
+* animation user + adult-thriller user
+* almost identical users
+* highly opposing users
+
+Log for each result:
+
+* both individual recommendation scores
+* final joint score
+* reason for recommendation
+* shared genres
+* conflicting preferences
+* provider availability
+* exclusion checks
+
+The UI may show a short reason such as:
+
+* “Matches both of your crime and mystery taste”
+* “Popular with people who share both your tastes”
+* “Available on a service you both use”
+
+Never show a generic explanation unless it is supported by the score.
+
+⸻
+
+6. Add proper UK subscription plans
+
+The app currently appears to store one price per service. That is not sufficient because most services have several plans.
+
+Create a proper subscription plan structure.
+
+Suggested structure
+
+type StreamingPlan = {
+  id: string;
+  serviceId: string;
+  name: string;
+  monthlyPrice: number;
+  annualPrice?: number;
+  billingType: "monthly" | "annual" | "free" | "licence_required";
+  hasAds: boolean;
+  videoQuality?: string;
+  simultaneousStreams?: number;
+  minimumTermMonths?: number;
+  active: boolean;
+  region: "GB";
+  sourceUrl?: string;
+  priceVerifiedAt: string;
+};
+
+User subscription record
+
+Each user must choose:
+
+* service
+* plan
+* monthly or annual billing where available
+* optional custom price
+* whether it is included through another provider
+* optional promotional end date
+
+Example:
+
+{
+  service_id: "netflix",
+  plan_id: "netflix-standard",
+  billing_cycle: "monthly",
+  effective_monthly_cost: 12.99,
+  included_with_other_provider: false
+}
+
+Subscription selection UX
+
+During onboarding and in Profile → Streaming services:
+
+1. User selects the service.
+2. A plan selector appears.
+3. The user chooses their exact plan.
+4. Show:
+    * plan name
+    * monthly price
+    * ads or no ads
+    * quality
+    * streams where known
+5. Allow Enter my own price because users may have:
+    * legacy prices
+    * bundles
+    * promotions
+    * student pricing
+    * mobile-network offers
+
+Do not silently guess the most expensive plan.
+
+Savings calculations
+
+All Savings figures must use the user’s selected plan, not a generic service price.
+
+Annual cost should be calculated from the real billing choice:
+
+monthly plan: monthly price × 12
+annual plan: actual annual payment
+free service: £0
+bundled service: user-entered effective cost
+
+The current monthly figure of £38.47 must therefore be recalculated after the user confirms their plans.
+
+7. Add these UK services
+
+Add:
+
+* NOW
+* Channel 4
+* discovery+
+* BBC iPlayer
+* MUBI
+
+Use their recognised names and appropriate provider identifiers.
+
+NOW
+
+NOW needs multiple membership options rather than one plan:
+
+* Entertainment
+* Cinema
+* Sports Month
+* Sports Day
+* Boost
+* Ultra Boost
+* relevant Entertainment/HBO Max combinations where currently offered
+
+NOW currently advertises Entertainment at £7.99 monthly on the flexible plan, Cinema at £9.99 monthly, Sports Month at £34.99, Sports Day at £14.99, Boost at £6 and Ultra Boost at £9. Minimum-term offers can differ, so the price source and verification date must be stored rather than permanently hard-coded. 
+
+discovery+
+
+Include at least:
+
+* Entertainment
+* TNT Sports where relevant
+
+The current Entertainment price is shown as £3.99 monthly, while the TNT Sports offering is listed separately at £30.99 monthly. 
+
+Channel 4
+
+Include:
+
+* Channel 4 — Free
+* Channel 4+ — paid ad-free plan where available
+
+Free services should still be selectable because they affect title availability, but they must add £0 to subscription spending.
+
+BBC iPlayer
+
+Include BBC iPlayer as:
+
+* no separate monthly streaming subscription
+* TV Licence required
+
+Do not describe BBC iPlayer as simply free without context. In the pricing system, use:
+
+billing type: licence_required
+streaming service cost used by WatchSmart: £0
+
+Do not automatically add the entire household TV Licence to streaming savings unless the user explicitly elects to include it.
+MUBI
+Add:
+* MUBI
+* MUBI GO or premium option where available
+* monthly and annual selection where supplied by the current pricing source
+MUBI confirms that MUBI GO is available through a premium plan in the UK. 
+Existing services
+Also audit all existing UK prices, including:
+* Netflix
+* Amazon Prime Video
+* Disney+
+* Apple TV+
+* Paramount+
+* ITVX
+* any other service already displayed
+Amazon currently lists standard Prime membership at £8.99 monthly or £95 annually. Disney+ currently lists UK plans including Standard with Ads at £5.99, Standard at £9.99 and Premium at £14.99 monthly. 
+Do not use US prices or currency.
+ 
+⸻
+ 
+8. Create maintainable pricing data
+Do not scatter subscription prices through frontend components.
+Create one central UK pricing table or configuration source.
+Each plan must store:
+* provider
+* plan name
+* current price
+* annual price where applicable
+* ads status
+* billing type
+* minimum term
+* region
+* official source
+* date last checked
+* active/deprecated status
+Add an admin pricing screen so prices can be corrected without rebuilding the app.
+The admin must be able to:
+* add a plan
+* edit a price
+* deactivate an old plan
+* record a promotional price
+* record a standard price
+* update the verification date
+Promotional offers must not replace the normal price permanently.
+ 
+⸻
+ 
+9. First-open tutorial
+Add a lightweight tutorial when the user first opens the completed app.
+Do not make it long or generic.
+Tutorial sequence
+Page 1 — Find something worth watching
+Swipe through personalised films and shows from your streaming services.
+Show:
+* swipe right = Save
+* swipe left = Skip
+* Watched = rate something already watched
+* Rewind = undo the last action
+Page 2 — Better recommendations
+Tell WatchSmart what you loved, liked or disliked so your recommendations improve.
+Explain that marking something as watched is not automatically treated as liking it.
+Page 3 — Watch together
+Compare taste with friends and find something you’ll both enjoy.
+Explain the difference between shared saved titles and new “For you both” recommendations.
+Page 4 — Spend less
+Select your exact streaming plans and WatchSmart will identify services you may not be using.
+Tutorial behaviour
+* Show after account creation and initial service selection.
+* Store tutorial_completed_at.
+* Do not show it every time the app opens.
+* Include:
+    * Next
+    * Back
+    * Skip
+    * Get started
+* Add Replay tutorial inside Profile → Help.
+* Use the real app interface or simple illustrations, not generic onboarding cards.
+* Keep it consistent with the WatchSmart design.
+* Ensure users can still understand the controls through accessible text rather than relying only on gestures.
+ 
+⸻
+ 
+10. Important additional corrections visible in the screenshots
+Please also fix:
+* The Discover card currently displays duplicated match percentages and overlapping text.
+* The title and description are being rendered over underlying content.
+* The title metadata has insufficient contrast.
+* The provider pill is difficult to read.
+* The Friends screen appears to extend underneath the Dynamic Island.
+* Page content must not be hidden behind the bottom navigation.
+* The Savings page heading at the bottom is being clipped by the navigation bar.
+* Grid rows must include enough bottom padding so the final posters remain fully accessible.
+* Poster titles should use consistent line limits and not break awkwardly.
+* “BBC player” should be labelled BBC iPlayer.
+* “Now TV” should be presented to users as NOW, although internal provider aliases may include Now TV for matching API data.
+ 
+⸻
+ 
+11. Completion checks
+Before marking this task complete:
+1. Run TypeScript checks.
+2. Run Expo Doctor.
+3. Test on an actual iPhone through Expo Go or the current development build.
+4. Test screens with the Dynamic Island.
+5. Test every bottom navigation button.
+6. Confirm no content sits underneath the navigation bar.
+7. Confirm only one Discover card’s text is visible.
+8. Confirm Watched requires sentiment feedback.
+9. Confirm Rewind removes the sentiment interaction.
+10. Confirm “For you both” excludes conflicts and dislikes.
+11. Confirm users can select exact subscription plans.
+12. Confirm free services do not increase monthly cost.
+13. Confirm all prices are GBP and region GB.
+14. Confirm tutorial only displays once.
+15. Do not replace live backend data with fake or hard-coded demonstration data.
+At completion, provide:
+* files changed
+* database migration details
+* screenshots of each corrected screen
+* example joint-recommendation calculations
+* the complete UK plan list
+* evidence that every validation check passed

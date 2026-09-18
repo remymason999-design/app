@@ -1,0 +1,769 @@
+WatchSmart Premium UX Blueprint
+
+Version 1.0 – App Store Ready Consumer Experience
+
+⸻
+
+DESIGN PHILOSOPHY
+
+Current issue:
+
+WatchSmart still feels like a recommendation tool.
+
+It needs to feel like a product.
+
+The goal is:
+
+Open app → Discover something → Save it → Watch it
+
+in under 60 seconds.
+
+Every screen should support that outcome.
+
+⸻
+
+GLOBAL DESIGN SYSTEM
+
+Visual Style
+
+Premium dark streaming platform.
+
+Think:
+
+* Apple TV
+* Netflix
+* Arc Browser
+* Spotify
+
+NOT:
+
+* IMDb
+* TMDB
+* Plex
+* Admin dashboard
+
+⸻
+
+Colours
+
+Background
+
+#05070A
+
+Surface
+
+#0B111A
+
+Card
+
+#111827
+
+Primary Orange
+
+#FF7A18
+
+Accent Orange
+
+#FF4D00
+
+Text Primary
+
+#FFFFFF
+
+Text Secondary
+
+#9CA3AF
+
+Success
+
+#22C55E
+
+⸻
+
+Typography
+
+Inter
+
+Headers:
+
+* Bold
+* Large
+* High contrast
+
+Body:
+
+* Clean
+* Spacious
+
+No tiny metadata blocks.
+
+⸻
+
+SCREEN 1
+
+ONBOARDING
+
+Purpose:
+
+Sell the app in 5 seconds.
+
+⸻
+
+Layout
+
+⸻
+
+LOGO
+
+WATCHSMART
+
+Less browsing.
+More watching.
+
+⸻
+
+✓ Pick your streaming services
+
+✓ Swipe to discover
+
+✓ Save what you’ll watch
+
+✓ Get smarter recommendations
+
+⸻
+
+[ LET’S GET STARTED ]
+
+Already have an account? Log In
+
+⸻
+
+⸻
+
+Behaviour
+
+Minimal.
+
+No distractions.
+
+No links except login.
+
+No extra information.
+
+The goal is:
+
+Press button.
+
+Continue.
+
+⸻
+
+SCREEN 2
+
+STREAMING SERVICE SELECTION
+
+Purpose:
+
+Personalisation starts immediately.
+
+⸻
+
+Layout
+
+Header
+
+Where do you watch?
+
+Choose every service you currently have.
+
+⸻
+
+GRID
+
+Netflix
+Prime
+Disney+
+Apple TV+
+Max
+Hulu
+Peacock
+Paramount+
+YouTube
+Tubi
+
+⸻
+
+Continue
+
+⸻
+
+⸻
+
+Tile Design
+
+Large cards.
+
+Selected state:
+
+Orange border
+
+Orange check
+
+Subtle glow
+
+Unselected:
+
+Dark card
+
+Grey border
+
+⸻
+
+Continue Button
+
+Sticky bottom.
+
+Always visible.
+
+⸻
+
+SCREEN 3
+
+DISCOVER HOME
+
+This is the most important screen.
+
+Everything revolves around Discover.
+
+⸻
+
+TOP AREA
+
+⸻
+
+Good Morning George
+
+What are we watching tonight?
+
+⸻
+
+Search
+
+Notifications
+
+Profile
+
+⸻
+
+Tabs
+
+For You
+
+Movies
+
+TV Shows
+
+New
+
+⸻
+
+⸻
+
+CARD AREA
+
+Only one card visible.
+
+No stacked clutter.
+
+One recommendation.
+
+One decision.
+
+⸻
+
+Hero Card
+
+Large cinematic backdrop.
+
+70% of visible screen.
+
+Rounded corners.
+
+Soft shadow.
+
+Subtle gradient overlay.
+
+⸻
+
+CARD CONTENT
+
+Top Left
+
+96% Match
+
+Green pill
+
+⸻
+
+Top Right
+
+Info button
+
+⸻
+
+Middle
+
+Movie Title
+
+Large
+
+Bold
+
+Dominant element
+
+Example:
+
+Breaking Bad
+
+⸻
+
+Under Title
+
+Because you liked:
+
+Mindhunter
+
+True Detective
+
+Ozark
+
+⸻
+
+Then:
+
+Crime • Thriller • Mystery
+
+⸻
+
+Bottom Row
+
+2025
+
+TV-MA
+
+4 Seasons
+
+Netflix
+
+⸻
+
+Provider badge
+
+Bottom left
+
+⸻
+
+CARD ACTIONS
+
+Below card
+
+Large circular buttons
+
+⸻
+
+Rewind
+
+Skip
+
+Watched
+
+Save
+
+⸻
+
+⸻
+
+BUTTON DESIGN
+
+Rewind
+
+Grey
+
+Skip
+
+Dark grey
+
+Watched
+
+Green
+
+Save
+
+Orange
+
+⸻
+
+SWIPES
+
+Left
+
+Skip
+
+Right
+
+Save
+
+Up
+
+Watched
+
+Down
+
+No action
+
+⸻
+
+CARD ANIMATIONS
+
+Save
+
+Card flies right
+
+Orange pulse
+
+⸻
+
+Skip
+
+Card flies left
+
+Grey fade
+
+⸻
+
+Watched
+
+Card flies upward
+
+Green pulse
+
+⸻
+
+Rewind
+
+Card slides back
+
+Restores state
+
+⸻
+
+WHY RECOMMENDED
+
+User taps card.
+
+Expand.
+
+Show:
+
+Why recommended
+
+Genres matched
+
+Taste overlap
+
+Provider
+
+Quality score
+
+Similar titles
+
+Cast
+
+Trailer
+
+⸻
+
+SCREEN 4
+
+WATCHLIST
+
+Purpose:
+
+Personal movie shelf.
+
+Not a boring list.
+
+⸻
+
+Layout
+
+Header
+
+Watchlist
+
+37 Saved
+
+⸻
+
+Tabs
+
+All
+
+Movies
+
+TV Shows
+
+⸻
+
+Grid
+
+Poster
+
+Poster
+
+Poster
+
+Poster
+
+⸻
+
+⸻
+
+Card Design
+
+Poster
+
+Match score
+
+Provider
+
+Year
+
+⸻
+
+Tap
+
+Opens detail page.
+
+⸻
+
+SCREEN 5
+
+FRIENDS
+
+Purpose:
+
+Social discovery.
+
+⸻
+
+Layout
+
+Friends
+
+Find what to watch together.
+
+⸻
+
+Compare Watchlists
+
+Shared Matches
+
+Recently Saved
+
+Invite Friends
+
+⸻
+
+⸻
+
+Future Vision
+
+Friend Match %
+
+Taste Compatibility
+
+Shared Recommendations
+
+Group Movie Night
+
+⸻
+
+SCREEN 6
+
+SAVINGS
+
+Purpose:
+
+Unique WatchSmart feature.
+
+Should feel valuable.
+
+⸻
+
+Header
+
+Savings
+
+⸻
+
+This Month
+
+£47 Saved
+
+⸻
+
+Netflix
+
+12 titles watched
+
+£54 value
+
+⸻
+
+Prime
+
+8 titles watched
+
+£31 value
+
+⸻
+
+Disney+
+
+5 titles watched
+
+£22 value
+
+⸻
+
+⸻
+
+Visual Style
+
+Premium dashboard
+
+Dark cards
+
+Orange highlights
+
+Large numbers
+
+Minimal clutter
+
+⸻
+
+PROFILE
+
+Move Profile completely out of bottom nav.
+
+Access:
+
+Top-right avatar only.
+
+⸻
+
+PROFILE LAYOUT
+
+Large avatar
+
+Name
+
+Taste Score
+
+⸻
+
+Genres
+
+Crime
+Thriller
+Mystery
+Drama
+
+⸻
+
+Stats
+
+Saved
+
+Watched
+
+Days Active
+
+Recommendations Seen
+
+⸻
+
+Recent Activity
+
+⸻
+
+⸻
+
+BOTTOM NAVIGATION
+
+Only 4 items.
+
+No Profile.
+
+⸻
+
+Discover
+
+Watchlist
+
+Friends
+
+Savings
+
+⸻
+
+⸻
+
+Active State
+
+Orange
+
+Glow
+
+Animated transition
+
+⸻
+
+Inactive State
+
+Grey
+
+Low emphasis
+
+⸻
+
+Design
+
+Floating
+
+Rounded
+
+Premium
+
+Dark glass effect
+
+⸻
+
+GOLDEN RULES
+
+Every screen must answer:
+
+1. What should I watch?
+2. Why am I seeing it?
+3. What do I do next?
+
+If a screen does not help answer one of those questions, simplify it.
+
+WatchSmart should feel like:
+
+“Netflix meets Tinder”
+
+not
+
+“TMDB with orange buttons.”

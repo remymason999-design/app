@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "WatchSmart",
+    "slug": "watchsmart",
+    "owner": "remymason999",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "watchsmart",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#05070A",
+    "ios": {
+      "icon": "./assets/images/icon.png",
+      "supportsTablet": false,
+      "bundleIdentifier": "com.watchsmart.app",
+      "buildNumber": "3",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": false
+        }
+      }
+    },
+    "android": {
+      "package": "com.watchsmart.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#05070A",
+        "foregroundImage": "./assets/images/icon.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#05070A",
+          "image": "./assets/images/watchsmart-mark.png",
+          "imageWidth": 140
+        }
+      ],
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-apple-authentication",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/android-icon-monochrome.png",
+          "color": "#FF7A18",
+          "defaultChannel": "default"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "04e894d3-97db-47a9-b2db-d0c66ed037a4"
+      }
+    }
+  }
+}

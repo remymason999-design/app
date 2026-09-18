@@ -1,0 +1,173 @@
+Friend request code visibility — web only
+The text/code is too faint on the website.
+Increase contrast for the friend code, input text, placeholder text and related labels.
+Do not change the native app version if it already looks correct.
+Check Safari/mobile web and desktop web.
+Friend reaction banners on posters
+In Compare Friends, the other person's reaction should be visually attached to the poster rather than plain text underneath.
+Example banner at the bottom of the poster:
+❤️ Remy loved it
+👍 Katie liked it
+😐 Alex thought it was okay
+👎 Sam didn't like it
+The banner needs to be easy to scan while browsing.
+This should work for Watched and any relevant Compare Friends results.
+Watched reaction flow on the website
+Native already asks:
+Loved
+Liked
+Okay
+Didn't like
+Haven't finished / equivalent existing options
+Website should do the same when a user presses Watched.
+It must use the existing reaction system and existing backend values, not create a new one.
+Reactions made on web should immediately appear on native and vice versa.
+Savings needs a proper upgrade
+Current Savings needs to become genuinely useful rather than simply displaying subscription costs.
+Show:
+current monthly spend
+yearly spend
+potential monthly saving
+potential yearly saving
+services being actively used
+services with little/no recent viewing activity
+how many Watchlist titles are available on each service
+whether titles overlap across multiple subscriptions
+Eventually provide useful statements such as:
+You haven't watched anything on Disney+ recently
+8 titles in your Watchlist are already available on services you keep
+Reviewing this subscription could save £7.99/month
+Do not tell users definitively to cancel a service. Present it as information/recommendations to review.
+Use real account/library/provider data wherever available.
+Full website/native feature parity audit
+We now know features are drifting between platforms.
+Replit should compare every main area:
+Discover
+Search
+title details
+Save
+Skip
+Watched
+reactions
+Library
+TV progress
+watch time
+Friends
+friend requests
+Compare Friends
+reaction banners
+Savings
+Profile
+provider preferences
+onboarding/tutorial
+Categorise every feature as:
+Same
+Missing on web
+Missing on native
+Different behaviour
+Then bring the web up to parity with native where native already has the better working feature.
+I’d send Replit this as the next explicit assignment:
+New explicit assignment: complete the remaining WatchSmart web/native parity and Friends/Savings work that is NOT already being handled by the Library redesign.
+Do not redo the Library work from the previous task unless something here directly depends on it.
+First inspect the existing web, native and backend implementations and reuse existing APIs/data models.
+Implement the following:
+1. Friend request code visibility on web
+The friend request/share code and associated text are currently too light on the website and difficult to read.
+Fix contrast on:
+friend/share code
+entered text
+placeholder text
+labels
+secondary explanatory text
+The native app already looks correct, so do not make unnecessary native styling changes.
+Test mobile Safari and desktop web.
+2. Compare Friends reaction banners
+Currently another user's reaction appears as ordinary text underneath the title/poster.
+Change this into a clear reaction banner attached to the bottom of each relevant poster/card.
+Examples:
+❤️ Alex loved it
+👍 Alex liked it
+😐 Alex thought it was okay
+👎 Alex didn't like it
+Reuse the existing WatchSmart reactions and existing user reaction data.
+Do not hard-code reactions.
+Make the banner readable without covering important poster information.
+3. Website Watched reaction flow
+On native, pressing Watched asks the user how they felt about the title.
+The web version does not currently provide the same experience.
+Bring web behaviour into parity with native.
+When a user marks a title watched on web, use the existing reaction flow and existing reaction values.
+Do not create a separate web-only reaction system.
+Reactions recorded on web must appear correctly in native and vice versa.
+4. Upgrade Savings
+Expand Savings so it provides useful subscription insights rather than only displaying basic subscription costs.
+Where supported by existing data, show:
+current monthly subscription spend
+yearly spend
+possible monthly saving
+possible yearly saving
+which services are actively being used
+recent viewing activity by service
+Watchlist titles available on each service
+overlap where titles are available through multiple subscriptions
+services with little/no recent WatchSmart viewing activity
+Present recommendations carefully as services to review, not automatic cancellation instructions.
+Example:
+Disney+
+No recent viewing activity
+2 Watchlist titles
+£7.99/month
+Potential annual saving: £95.88
+Add a clear explanation of why each saving/review suggestion is being shown.
+Use real subscription/provider/library/history data. Do not invent viewing usage.
+If WatchSmart does not currently have enough data for a particular insight, gracefully omit that insight instead of fabricating it.
+5. Full web/native parity audit
+Compare the working features on web and native across:
+Discover
+Search
+title details
+Save
+Skip
+Watched
+reaction selection
+Library
+TV progress
+watch-time stats
+Friends
+friend requests
+Compare Friends
+reaction banners
+Savings
+Profile
+streaming-service preferences
+onboarding/tutorial
+Produce an audit table internally with:
+Feature | Web | Native | Difference | Required change
+Then implement the missing web parity where native already has functioning behaviour.
+Do not deliberately remove native functionality to make the platforms match.
+Prefer bringing the weaker platform up to the stronger implementation.
+Important requirements
+preserve all existing user data
+reuse existing backend APIs/data models where possible
+no duplicate reaction systems
+no duplicate subscription systems
+no hard-coded fake analytics
+don't alter unrelated features
+maintain WatchSmart dark/orange styling
+maintain mobile responsiveness and safe-area behaviour
+Before coding, briefly tell me:
+Which of these items already partially exist.
+Which are missing.
+Whether any backend changes are genuinely required.
+Then implement the missing work immediately — do not stop after the audit.
+When complete, report:
+files changed
+web changes
+native changes
+backend/database changes
+existing data compatibility
+parity issues found
+parity issues fixed
+tests performed
+anything still outstanding
+whether any native change requires another TestFlight build or can be delivered by EAS Update
