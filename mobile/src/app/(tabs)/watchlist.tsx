@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   FlatList,
   Modal,
@@ -71,6 +71,9 @@ export default function WatchlistScreen() {
   const [editing, setEditing] = useState<WatchlistItem | null>(null);
   const [season, setSeason] = useState(1);
   const [episode, setEpisode] = useState(1);
+  const [page, setPage] = useState(1);
+  const listRef = useRef<FlatList<WatchlistItem>>(null);
+  const PAGE_SIZE = 12;
 
   const {
     data,
@@ -128,13 +131,13 @@ export default function WatchlistScreen() {
   const progressEdit = useMutation({
     mutationFn: async (op: "cursor" | "through" | "toggle" | "season" | "series") => {
       if (!editing) return;
-       const contentId = editing.id;
+      const contentId = editing.id;
       if (op === "through") return markWatchedThrough(editing.id, season, episode);
       if (op === "toggle") return toggleEpisodeProgress({ movie_id: editing.id, season, episode });
       if (op === "season") return markSeasonProgress(editing.id, season, episode);
       if (op === "series") return markSeriesProgress(editing.id, season, episode);
-       await setEpisodeProgress({ movie_id: editing.id, season, episode, watched: true });
-       return { contentId, action: op };
+      await setEpisodeProgress({ movie_id: editing.id, season, episode, watched: true });
+      return { contentId, action: op };
     },
     onSuccess: (result, op) => {
       const contentId = (result as { contentId?: string } | undefined)?.contentId || editing?.id;
@@ -192,6 +195,24 @@ export default function WatchlistScreen() {
     return arr;
   }, [items, typeTab, sort, libraryTab, inProgressIds]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [libraryTab, typeTab, sort]);
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const visibleItems = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  useEffect(() => {
+    if (page > pageCount) setPage(pageCount);
+  }, [page, pageCount]);
+
+  const changePage = (nextPage: number) => {
+    setPage(Math.max(1, Math.min(pageCount, nextPage)));
+    requestAnimationFrame(() => {
+      if (visibleItems.length > 0) {
+        listRef.current?.scrollToIndex({ index: 0, animated: false, viewPosition: 0 });
+      }
+    });
+  };
+
   const cardWidth = Math.floor((width - SCREEN_H_PADDING * 2 - 12) / 2);
 
   const renderCardContent = (item: WatchlistItem, isHorizontal: boolean = false) => {
@@ -204,7 +225,7 @@ export default function WatchlistScreen() {
       ? Math.min(100, Math.round((Number(watchedEpisodes) / Number(eligibleEpisodes)) * 100))
       : null;
     const isTV = item.type === "tv";
-    const currentSeason = (item.seasons as Array<{ season_number?: number; episode_count?: number }> | undefined)
+     const currentSeason = (item.seasons as { season_number?: number; episode_count?: number }[] | undefined)
       ?.find((s) => s.season_number === item.progress?.season);
     const progressLabel = item.progress
       ? `S${item.progress.season} E${item.progress.episode}${currentSeason?.episode_count ? ` of ${currentSeason.episode_count}` : ""}`
@@ -289,9 +310,7 @@ export default function WatchlistScreen() {
       </View>
       {data?.stats && (
         <Text style={styles.stats}>
-          {libraryTab === "watchlist" ? (
-            `${data.stats.saved ?? 0} saved`
-          ) : (
+          {libraryTab === "watchlist" ? null : (
             `${data.stats.watched ?? 0} titles · ${data.stats.watched_episodes ?? 0} episodes · ${
               (() => {
                 const hours = Math.floor(data.stats.total_hours || 0);
@@ -307,7 +326,7 @@ export default function WatchlistScreen() {
       )}
       <View style={styles.chipRow}>
         {(["watchlist", "watched"] as LibraryTab[]).map((id) => (
-          <Pressable key={id} onPress={() => setLibraryTab(id)}
+          <Pressable key={id} onPress={() => { setLibraryTab(id); setPage(1); }}
             style={[styles.chip, libraryTab === id && styles.chipActive]}
             accessibilityRole="tab" accessibilityState={{ selected: libraryTab === id }}>
             <Text style={[styles.chipText, libraryTab === id && styles.chipTextActive]}>
@@ -350,6 +369,7 @@ export default function WatchlistScreen() {
                   key={t.id}
                   onPress={() => {
                     setTypeTab(t.id);
+                    setPage(1);
                     analytics.capture(EVENTS.FILTER_CHANGED, {
                       filter_name: "content_type",
                       selected: true,
@@ -376,6 +396,7 @@ export default function WatchlistScreen() {
                   key={s.id}
                   onPress={() => {
                     setSort(s.id);
+                    setPage(1);
                     analytics.capture(EVENTS.FILTER_CHANGED, {
                       filter_name: "sort",
                       selected: true,
@@ -424,13 +445,14 @@ export default function WatchlistScreen() {
   return (
     <>
     <FlatList
+      ref={listRef}
       style={styles.container}
       contentContainerStyle={{
         paddingTop: screenPad.paddingTop,
         paddingHorizontal: screenPad.paddingHorizontal,
         paddingBottom: screenPad.paddingBottom,
       }}
-      data={sorted}
+      data={visibleItems}
       keyExtractor={(m) => m.id}
       numColumns={2}
       columnWrapperStyle={{ gap: 12 }}
@@ -453,6 +475,27 @@ export default function WatchlistScreen() {
         />
       }
       renderItem={({ item }) => renderCardContent(item, false)}
+      ListFooterComponent={pageCount > 1 ? (
+        <View style={styles.pagination} testID="library-pagination">
+          <Pressable
+            disabled={page <= 1}
+            onPress={() => changePage(page - 1)}
+            style={[styles.pageButton, page <= 1 && styles.pageButtonDisabled]}
+            accessibilityLabel="Previous page"
+          >
+            <Text style={styles.pageButtonText}>Previous</Text>
+          </Pressable>
+          <Text style={styles.pageLabel}>Page {page} of {pageCount}</Text>
+          <Pressable
+            disabled={page >= pageCount}
+            onPress={() => changePage(page + 1)}
+            style={[styles.pageButton, page >= pageCount && styles.pageButtonDisabled]}
+            accessibilityLabel="Next page"
+          >
+            <Text style={styles.pageButtonText}>Next</Text>
+          </Pressable>
+        </View>
+      ) : null}
     />
     <Modal visible={!!editing} transparent animationType="slide" onRequestClose={() => setEditing(null)}>
       <View style={styles.modalBackdrop}>
@@ -462,13 +505,29 @@ export default function WatchlistScreen() {
           <View style={styles.progressInputs}>
             <View style={{ flex: 1 }}>
               <Text style={styles.inputLabel}>Season</Text>
-              <TextInput value={String(season)} onChangeText={(v) => setSeason(Math.max(1, Math.min(99, Number(v) || 1)))}
-                keyboardType="number-pad" style={styles.input} />
+              <View style={styles.stepper}>
+                <Pressable onPress={() => setSeason((v) => Math.max(1, v - 1))} style={styles.stepperButton} accessibilityLabel="Previous season">
+                  <Text style={styles.stepperText}>−</Text>
+                </Pressable>
+                <TextInput value={String(season)} onChangeText={(v) => setSeason(Math.max(1, Math.min(99, Number(v) || 1)))}
+                  keyboardType="number-pad" style={[styles.input, { flex: 1 }]} />
+                <Pressable onPress={() => setSeason((v) => Math.min(99, v + 1))} style={styles.stepperButton} accessibilityLabel="Next season">
+                  <Text style={styles.stepperText}>+</Text>
+                </Pressable>
+              </View>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.inputLabel}>Episode</Text>
-              <TextInput value={String(episode)} onChangeText={(v) => setEpisode(Math.max(1, Math.min(999, Number(v) || 1)))}
-                keyboardType="number-pad" style={styles.input} />
+              <View style={styles.stepper}>
+                <Pressable onPress={() => setEpisode((v) => Math.max(1, v - 1))} style={styles.stepperButton} accessibilityLabel="Previous episode">
+                  <Text style={styles.stepperText}>−</Text>
+                </Pressable>
+                <TextInput value={String(episode)} onChangeText={(v) => setEpisode(Math.max(1, Math.min(999, Number(v) || 1)))}
+                  keyboardType="number-pad" style={[styles.input, { flex: 1 }]} />
+                <Pressable onPress={() => setEpisode((v) => Math.min(999, v + 1))} style={styles.stepperButton} accessibilityLabel="Next episode">
+                  <Text style={styles.stepperText}>+</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
           <View style={styles.progressSummary}>
@@ -576,4 +635,12 @@ const styles = StyleSheet.create({
   modalActionAlt: { backgroundColor: "rgba(255,255,255,0.05)", borderRadius: 11, padding: 12, alignItems: "center", marginTop: 8 },
   modalActionTextAlt: { color: Colors.text, fontFamily: "Inter_600SemiBold", fontSize: 13 },
   cancelBtn: { alignItems: "center", padding: 12, marginTop: 4 },
+  pagination: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, paddingVertical: 12, backgroundColor: Colors.obsidian },
+  pageButton: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+  pageButtonDisabled: { opacity: 0.35 },
+  pageButtonText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.text },
+  pageLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textSecondary },
+  stepper: { flexDirection: "row", alignItems: "center", gap: 4 },
+  stepperButton: { width: 30, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 8, backgroundColor: Colors.velvet, borderWidth: 1, borderColor: Colors.border },
+  stepperText: { color: Colors.amber, fontSize: 22, lineHeight: 24 },
 });

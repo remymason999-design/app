@@ -228,10 +228,29 @@ export interface CompareData {
     friend?: Record<string, { season?: number; episode?: number }>;
   };
   synced_at: string;
+  /** Query-mode pagination response used by the native compare screen. */
+  items?: CompareMovie[];
+  pagination?: {
+    page: number;
+    page_size: number;
+    total_items: number;
+    total_pages: number;
+  };
+  counts?: {
+    saved?: { both?: number; you?: number; friend?: number };
+    watched?: { both?: number; you?: number; friend?: number };
+    recommendations?: number;
+  };
 }
 
-export async function fetchCompare(friendId: string): Promise<CompareData> {
-  const r = await api.get<CompareData>(`/share/compare/${friendId}`);
+export type CompareView = "watchlists" | "watched" | "recs";
+export type CompareScope = "overlap" | "only_me" | "only_them";
+
+export async function fetchCompare(
+  friendId: string,
+  params?: { view?: CompareView; scope?: CompareScope; page?: number; page_size?: number },
+): Promise<CompareData> {
+  const r = await api.get<CompareData>(`/share/compare/${friendId}`, { params });
   return r.data;
 }
 

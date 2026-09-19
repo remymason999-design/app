@@ -85,12 +85,10 @@ export default function FriendsScreen() {
   const friendsQ = useQuery<Friend[]>({
     queryKey: ["/share/friends"],
     queryFn: fetchFriends,
-    refetchInterval: 8000,
   });
   const requestsQ = useQuery<ShareRequests>({
     queryKey: ["/share/requests"],
     queryFn: fetchShareRequests,
-    refetchInterval: 8000,
   });
 
   const invalidateAll = () => {

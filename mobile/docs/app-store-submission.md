@@ -14,7 +14,7 @@ Placeholders are marked `TODO(owner)`. **Never commit real passwords to this fil
 | Expo slug | `watchsmart` |
 | iOS bundle identifier | `com.watchsmart.app` |
 | Version | 1.0.0 |
-| iOS build number | 3 |
+| iOS build number | 4 |
 | Production API | `https://watchsmart.uk` (HTTPS, set via `EXPO_PUBLIC_API_URL` at build time) |
 | Deep-link scheme | `watchsmart://` |
 
@@ -80,15 +80,20 @@ Placeholders are marked `TODO(owner)`. **Never commit real passwords to this fil
 | Name | Yes (optional) | Yes | No | Personalisation |
 | User content (swipes, ratings, watchlist) | Yes | Yes | No | App functionality, personalised recommendations |
 | Usage data (recommendation impressions/actions) | Yes | Yes | No | App functionality, analytics (first-party) |
+| Device ID | Yes | Yes | No | Maintain a privacy-safe analytics identity; deliver push notifications when enabled |
+| Diagnostics (redacted app errors) | Yes | Yes | No | App functionality, crash diagnosis |
 | Coarse location | No | — | — | Region is fixed to UK, not derived from device location |
-| Contacts, photos, precise location, health, financial data | No | — | — | Not collected |
+| Photos or videos | Yes (optional profile photo) | Yes | No | App functionality |
+| Contacts, precise location, health, financial data | No | — | — | Not collected |
 | Device identifiers (push token) | Yes (if enabled) | Yes | No | Deliver requested account and social notifications |
 | Advertising identifier (IDFA) | No | — | — | No ad SDKs; no tracking across apps |
 
 Third-party SDKs: Expo (framework, including `expo-notifications` for optional
-push delivery), axios, React Query — none collect data independently. No
-PostHog/Sentry SDK is currently bundled in the iOS app (add to this table if
-enabled later).
+push delivery), axios, React Query, and PostHog. PostHog receives only the
+app's allow-listed product events and redacted exception metadata; automatic
+screen/lifecycle collection, advertising tracking and native-crash capture are
+disabled. WatchSmart does not send email addresses, names, title names, review
+text, tokens or raw search queries to PostHog. No advertising SDK is bundled.
 
 ## Permissions
 

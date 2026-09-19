@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Pressable,
   RefreshControl,
@@ -18,7 +18,7 @@ import { ListError, ListLoading } from "@/components/lists/ListStates";
 import { PosterCard } from "@/components/lists/PosterCard";
 import { Colors } from "@/constants/colors";
 import { getFriendlyMessage, resolveImageUrl } from "@/lib/api";
-import { CompareData, CompareMovie, fetchCompare } from "@/lib/social-api";
+import { CompareData, CompareMovie, CompareScope, CompareView, fetchCompare } from "@/lib/social-api";
 import { analytics, EVENTS } from "@/lib/analytics";
 
 type Tab =
@@ -37,19 +37,45 @@ export default function CompareScreen() {
   const { width } = useWindowDimensions();
   const [tab, setTab] = useState<Tab>("saved_both");
   const [primary, setPrimary] = useState<"saved" | "watched" | "recs">("saved");
+  const [page, setPage] = useState(1);
+  const scrollRef = useRef<ScrollView>(null);
+  const resultsY = useRef(0);
+  const pageSize = 12;
+  const view: CompareView = primary === "watched" ? "watched" : primary === "recs" ? "recs" : "watchlists";
+  const scope: CompareScope = tab.endsWith("_you")
+    ? "only_me"
+    : tab.endsWith("_friend")
+      ? "only_them"
+      : "overlap";
   useEffect(() => {
     analytics.capture(EVENTS.FRIEND_COMPARE_OPENED, { compare_mode: "friend" });
   }, [friendId]);
 
   const { data, isLoading, isError, error, refetch, isRefetching } = useQuery<CompareData>({
-    queryKey: ["/share/compare", friendId],
-    queryFn: () => fetchCompare(friendId),
+    queryKey: ["/share/compare", friendId, view, scope, page, pageSize],
+    queryFn: () => fetchCompare(friendId, { view, scope, page, page_size: pageSize }),
     retry: (count, err) => {
       // 403 = not friends; don't retry.
       const status = (err as { response?: { status?: number } })?.response?.status;
       return status !== 403 && count < 1;
     },
   });
+
+  useEffect(() => {
+    setPage(1);
+  }, [primary, tab]);
+  useEffect(() => {
+    const totalPages = data?.pagination?.total_pages;
+    if (totalPages && page > totalPages) setPage(totalPages);
+  }, [data?.pagination?.total_pages, page]);
+
+  const changePage = (nextPage: number) => {
+    const totalPages = data?.pagination?.total_pages || 1;
+    setPage(Math.max(1, Math.min(totalPages, nextPage)));
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: Math.max(0, resultsY.current - 8), animated: false });
+    });
+  };
 
   const cardWidth = Math.floor((width - 20 * 2 - 10 * 2) / 3);
 
@@ -69,19 +95,21 @@ export default function CompareScreen() {
     const themFirst = (data.them?.name || "Them").split(" ")[0];
     const saved = data.saved || { both: data.overlap, you: data.only_me, friend: data.only_them };
     const watched = data.watched || { both: data.watched_both || [], you: [], friend: [] };
+    const savedCounts = data.counts?.saved;
+    const watchedCounts = data.counts?.watched;
     return primary === "saved"
       ? [
-          { id: "saved_both" as Tab, label: "Saved both", count: (saved.both || []).length },
-          { id: "saved_you" as Tab, label: "Saved you", count: (saved.you || []).length },
-          { id: "saved_friend" as Tab, label: `Saved ${themFirst}`, count: (saved.friend || []).length },
+          { id: "saved_both" as Tab, label: "Saved both", count: savedCounts?.both ?? (saved.both || []).length },
+          { id: "saved_you" as Tab, label: "Saved you", count: savedCounts?.you ?? (saved.you || []).length },
+          { id: "saved_friend" as Tab, label: `Saved ${themFirst}`, count: savedCounts?.friend ?? (saved.friend || []).length },
         ]
       : primary === "watched"
         ? [
-            { id: "watched_both" as Tab, label: "Watched both", count: (watched.both || []).length },
-            { id: "watched_you" as Tab, label: "Watched you", count: (watched.you || []).length },
-            { id: "watched_friend" as Tab, label: `Watched ${themFirst}`, count: (watched.friend || []).length },
+            { id: "watched_both" as Tab, label: "Watched both", count: watchedCounts?.both ?? (watched.both || []).length },
+            { id: "watched_you" as Tab, label: "Watched you", count: watchedCounts?.you ?? (watched.you || []).length },
+            { id: "watched_friend" as Tab, label: `Watched ${themFirst}`, count: watchedCounts?.friend ?? (watched.friend || []).length },
           ]
-        : [{ id: "for_you_both" as Tab, label: "For You Both", count: data.recommendations.length }];
+        : [{ id: "for_you_both" as Tab, label: "For You Both", count: data.counts?.recommendations ?? data.pagination?.total_items ?? data.recommendations?.length ?? 0 }];
   }, [data, primary]);
 
   const openTitle = (m: CompareMovie) => {
@@ -137,9 +165,12 @@ export default function CompareScreen() {
   const listByTab: Record<Tab, CompareMovie[]> = {
     saved_both: saved.both || [], saved_you: saved.you || [], saved_friend: saved.friend || [],
     watched_both: watched.both || [], watched_you: watched.you || [], watched_friend: watched.friend || [],
-    for_you_both: data.recommendations,
+    for_you_both: data.recommendations ?? [],
   };
-  const list = listByTab[tab];
+  // Query mode returns only the requested page. Keep legacy fallback for
+  // older deployments that do not understand the query parameters.
+  const list = data.items ?? listByTab[tab];
+  const pagination = data.pagination;
 
   const emptyCopy: Record<Tab, { title: string; body: string }> = {
     saved_both: {
@@ -165,9 +196,14 @@ export default function CompareScreen() {
       body: "Keep using the app — smart picks land here as we learn both your tastes.",
     },
   };
+  const overlapCount = data.overlap_count
+    ?? data.counts?.saved?.both
+    ?? data.overlap?.length
+    ?? 0;
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.container}
       contentContainerStyle={{
         paddingTop: insets.top + 8,
@@ -191,8 +227,8 @@ export default function CompareScreen() {
 
       <Text style={styles.kicker}>You & {data.them.name}</Text>
       <Text style={styles.h1}>
-        {data.overlap.length > 0
-          ? `You both saved ${data.overlap.length} title${data.overlap.length === 1 ? "" : "s"}.`
+        {overlapCount > 0
+          ? `You both saved ${overlapCount} title${overlapCount === 1 ? "" : "s"}.`
           : "No overlap — yet."}
       </Text>
 
@@ -220,7 +256,7 @@ export default function CompareScreen() {
             <View style={styles.pickTag}>
               <Ionicons name="sparkles" size={12} color={Colors.amber} />
               <Text style={styles.pickTagText}>
-                {data.overlap.length > 0 ? "Pick tonight" : "What you'll both love"}
+                {overlapCount > 0 ? "Pick tonight" : "What you'll both love"}
               </Text>
             </View>
             <Text style={styles.pickTitle} numberOfLines={2}>
@@ -245,6 +281,7 @@ export default function CompareScreen() {
           <Pressable key={id} onPress={() => {
             const nextTab = id === "saved" ? "saved_both" : id === "watched" ? "watched_both" : "for_you_both";
             setPrimary(id);
+            setPage(1);
             setTab(nextTab);
             analytics.capture(EVENTS.FRIEND_COMPARE_TAB_VIEWED, { compare_mode: id });
           }}
@@ -267,6 +304,7 @@ export default function CompareScreen() {
               key={t.id}
               onPress={() => {
                 setTab(t.id);
+                setPage(1);
                 analytics.capture(EVENTS.FRIEND_COMPARE_TAB_VIEWED, { compare_mode: t.id });
               }}
               style={[styles.tab, active && styles.tabActive]}
@@ -283,6 +321,7 @@ export default function CompareScreen() {
         })}
       </ScrollView>
 
+      <View onLayout={(event) => { resultsY.current = event.nativeEvent.layout.y; }}>
       {list.length === 0 ? (
         <View style={styles.emptyCard}>
           <Ionicons name="heart-outline" size={22} color={Colors.amber} />
@@ -334,6 +373,28 @@ export default function CompareScreen() {
           )})}
         </View>
       )}
+      {pagination && pagination.total_pages > 1 && (
+        <View style={styles.pagination} testID="compare-pagination">
+          <Pressable
+            disabled={pagination.page <= 1}
+            onPress={() => changePage(pagination.page - 1)}
+            style={[styles.pageButton, pagination.page <= 1 && styles.pageButtonDisabled]}
+            accessibilityLabel="Previous page"
+          >
+            <Text style={styles.pageButtonText}>Previous</Text>
+          </Pressable>
+          <Text style={styles.pageLabel}>Page {pagination.page} of {pagination.total_pages}</Text>
+          <Pressable
+            disabled={pagination.page >= pagination.total_pages}
+            onPress={() => changePage(pagination.page + 1)}
+            style={[styles.pageButton, pagination.page >= pagination.total_pages && styles.pageButtonDisabled]}
+            accessibilityLabel="Next page"
+          >
+            <Text style={styles.pageButtonText}>Next</Text>
+          </Pressable>
+        </View>
+      )}
+      </View>
     </ScrollView>
   );
 }
@@ -445,6 +506,11 @@ const styles = StyleSheet.create({
   tabCount: { fontFamily: "Inter_500Medium", fontSize: 10, color: Colors.textTertiary, marginTop: 2 },
   tabCountActive: { color: "rgba(11,5,0,0.7)" },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginTop: 18 },
+  pagination: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, paddingVertical: 14 },
+  pageButton: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border },
+  pageButtonDisabled: { opacity: 0.35 },
+  pageButtonText: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.text },
+  pageLabel: { fontFamily: "Inter_600SemiBold", fontSize: 12, color: Colors.textSecondary },
   recReason: {
     fontFamily: "Inter_400Regular",
     fontSize: 10,

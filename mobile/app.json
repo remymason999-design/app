@@ -4,6 +4,12 @@
     "slug": "watchsmart",
     "owner": "remymason999",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/04e894d3-97db-47a9-b2db-d0c66ed037a4"
+    },
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "watchsmart",
@@ -13,7 +19,7 @@
       "icon": "./assets/images/icon.png",
       "supportsTablet": false,
       "bundleIdentifier": "com.watchsmart.app",
-      "buildNumber": "3",
+      "buildNumber": "4",
       "usesAppleSignIn": true,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -44,9 +50,22 @@
           "imageWidth": 140
         }
       ],
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       "expo-web-browser",
       "expo-apple-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow WatchSmart to choose a profile photo from your library.",
+          "cameraPermission": "Allow WatchSmart to take a profile photo.",
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-notifications",
         {

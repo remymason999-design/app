@@ -7,6 +7,7 @@
     "production": {
       "distribution": "store",
       "autoIncrement": false,
+      "channel": "production",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://watchsmart.uk"
       }
