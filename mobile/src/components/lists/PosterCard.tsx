@@ -73,7 +73,7 @@ export function PosterCard({
             </Text>
           </View>
         )}
-        {progressPct != null && (
+        {progressPct != null && !overlayMetadata && (
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
           </View>
@@ -98,7 +98,20 @@ export function PosterCard({
               ) : <View />}
               {subLabel ? <Text style={styles.overlayText}>{subLabel}</Text> : null}
             </View>
-            {progressLabel ? <Text style={styles.overlayProgress}>{progressLabel}</Text> : null}
+            {progressPct != null ? (
+              <View style={styles.overlayProgressBlock}>
+                {progressLabel ? <Text style={styles.overlayProgress}>{progressLabel}</Text> : null}
+                <View
+                  style={styles.overlayProgressTrack}
+                  accessibilityRole="progressbar"
+                  accessibilityValue={{ min: 0, max: 100, now: progressPct }}
+                >
+                  <View style={[styles.overlayProgressFill, { width: `${progressPct}%` }]} />
+                </View>
+              </View>
+            ) : progressLabel ? (
+              <Text style={styles.overlayProgress}>{progressLabel}</Text>
+            ) : null}
           </View>
         )}
       </View>
@@ -192,6 +205,22 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: "100%",
+    backgroundColor: Colors.amber,
+  },
+  overlayProgressBlock: {
+    marginTop: 7,
+    gap: 5,
+  },
+  overlayProgressTrack: {
+    width: "100%",
+    height: 6,
+    overflow: "hidden",
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
+  overlayProgressFill: {
+    height: "100%",
+    borderRadius: 999,
     backgroundColor: Colors.amber,
   },
   reactionBanner: {
